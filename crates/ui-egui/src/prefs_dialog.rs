@@ -5,12 +5,12 @@
 //! application of the UI-side preferences (brightness, canvas colour, UI scaling, render threads).
 
 use serde_json::{Map, Value, json};
-use vectorcraft_engine::Prefs;
-use vectorcraft_engine::cmd::prefscmds::{GPU_PREFERENCES, PREF_CATEGORIES, PREF_GROUPS, PREF_SPECS, PrefKind};
+use splinewright_engine::Prefs;
+use splinewright_engine::cmd::prefscmds::{GPU_PREFERENCES, PREF_CATEGORIES, PREF_GROUPS, PREF_SPECS, PrefKind};
 
 use crate::state::Dialog;
 use crate::theme::{self, Brightness, Tokens};
-use crate::{VectorcraftApp, widgets};
+use crate::{SplinewrightApp, widgets};
 
 /// UI-only fields shown in the dialog (backed by `UiState`, not engine prefs).
 pub const UI_FIELDS: &[(&str, &str, &str)] = &[
@@ -19,10 +19,10 @@ pub const UI_FIELDS: &[(&str, &str, &str)] = &[
     ("__taskBar", "General", "Enable Contextual Task Bar"),
 ];
 
-pub fn open(app: &mut VectorcraftApp, category: Option<&str>) {
+pub fn open(app: &mut SplinewrightApp, category: Option<&str>) {
     // One field per preference key or group (the flattener presets have commands of their own).
     let mut fields: Map<String, Value> = app.session.prefs.to_json().as_object().cloned().unwrap_or_default();
-    fields.retain(|k, _| vectorcraft_engine::cmd::prefscmds::spec(k).is_some() || PREF_GROUPS.contains(&k.as_str()));
+    fields.retain(|k, _| splinewright_engine::cmd::prefscmds::spec(k).is_some() || PREF_GROUPS.contains(&k.as_str()));
     // Units ▸ General shows (and OK sets) the open document's units.
     if let Some(st) = app.session.active() {
         fields.insert("unitsGeneral".into(), json!(st.doc.units.key()));
@@ -36,7 +36,7 @@ pub fn open(app: &mut VectorcraftApp, category: Option<&str>) {
 }
 
 /// OK: validate and apply every preference in the dialog (nothing changes on error).
-pub fn confirm(app: &mut VectorcraftApp) -> Result<Value, String> {
+pub fn confirm(app: &mut SplinewrightApp) -> Result<Value, String> {
     let Some(d) = app.ui.dialog.clone() else { return Err("no dialog open".into()) };
     let values: Map<String, Value> = d.fields.iter().filter(|(k, _)| !k.starts_with("__")).map(|(k, v)| (k.clone(), v.clone())).collect();
     app.run("prefs.set", json!({ "values": values }))?;
@@ -49,12 +49,12 @@ pub fn confirm(app: &mut VectorcraftApp) -> Result<Value, String> {
 }
 
 /// Copy the engine prefs into `UiState` so the host persists them with the UI state.
-pub fn snapshot(app: &mut VectorcraftApp) {
+pub fn snapshot(app: &mut SplinewrightApp) {
     app.ui.engine_prefs = app.session.prefs.to_json();
 }
 
 /// Restore engine prefs from `UiState` after the host loaded saved UI state.
-pub fn restore(app: &mut VectorcraftApp) {
+pub fn restore(app: &mut SplinewrightApp) {
     let mut p: Prefs = serde_json::from_value(app.ui.engine_prefs.clone()).unwrap_or_default();
     if app.ui.engine_prefs.is_null() {
         // Older preference files: keep the saved brightness.
@@ -88,7 +88,7 @@ struct Applied {
 }
 
 /// Per frame: push UI-side preferences into egui / the renderer when they change.
-pub fn apply_runtime(app: &mut VectorcraftApp, ctx: &egui::Context) {
+pub fn apply_runtime(app: &mut SplinewrightApp, ctx: &egui::Context) {
     let p = &app.session.prefs;
     if let Some(b) = Brightness::parse(&p.ui_brightness)
         && b != app.ui.brightness
@@ -119,8 +119,8 @@ pub fn apply_runtime(app: &mut VectorcraftApp, ctx: &egui::Context) {
             ctx.data_mut(|d| d.insert_temp(egui::Id::NULL, t));
         }
         if prev.is_some_and(|pr| pr.threads != want.threads) {
-            vectorcraft_render::set_default_threads(u16::try_from(want.threads).ok());
-            app.canvas.renderer.threads = vectorcraft_render::default_threads();
+            splinewright_render::set_default_threads(u16::try_from(want.threads).ok());
+            app.canvas.renderer.threads = splinewright_render::default_threads();
             app.canvas.worker = None;
             app.canvas.worker_started = false;
         }
@@ -133,7 +133,7 @@ pub fn apply_runtime(app: &mut VectorcraftApp, ctx: &egui::Context) {
     }
 }
 
-pub fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
+pub fn show(app: &mut SplinewrightApp, ctx: &egui::Context) {
     let Some(mut d) = app.ui.dialog.clone() else { return };
     let t = Tokens::get(ctx);
     let (mut ok, mut cancel, mut reset) = (false, false, false);
@@ -260,7 +260,7 @@ fn category_fields(ui: &mut egui::Ui, d: &mut Dialog, cat: &str) {
             }
             PrefKind::Length { min, max, measure } => {
                 // In the dialog's own Units choice, so a change there shows right away.
-                let unit = vectorcraft_doc::Unit::named(&d.str(measure.pref_key())).unwrap_or_default();
+                let unit = splinewright_doc::Unit::named(&d.str(measure.pref_key())).unwrap_or_default();
                 let x = d.f64(sp.key, min);
                 labeled(ui, sp.label, |ui| {
                     if let Some(x) = widgets::num_field(ui, sp.key, Some(x), unit, 110.0) {
@@ -292,13 +292,13 @@ fn category_fields(ui: &mut egui::Ui, d: &mut Dialog, cat: &str) {
                 });
                 if sp.key == "gpuPreference" {
                     // The window's graphics device is chosen once, when the app starts.
-                    ui.label(egui::RichText::new(tl!("Applies the next time VectorCraft starts.")).color(t.text_dim).size(11.0));
+                    ui.label(egui::RichText::new(tl!("Applies the next time Splinewright starts.")).color(t.text_dim).size(11.0));
                 }
             }
             PrefKind::Color => {
                 labeled(ui, sp.label, |ui| {
                     let hex = v.as_str().unwrap_or("#000000");
-                    let c = vectorcraft_color::Color::from_hex(hex).map(|c| c.to_rgba8(1.0)).unwrap_or([0, 0, 0, 255]);
+                    let c = splinewright_color::Color::from_hex(hex).map(|c| c.to_rgba8(1.0)).unwrap_or([0, 0, 0, 255]);
                     let mut rgb = [c[0], c[1], c[2]];
                     if ui.color_edit_button_srgb(&mut rgb).changed() {
                         d.fields.insert(sp.key.into(), json!(format!("#{:02x}{:02x}{:02x}", rgb[0], rgb[1], rgb[2])));
@@ -334,7 +334,7 @@ fn category_fields(ui: &mut egui::Ui, d: &mut Dialog, cat: &str) {
 
 /// Is one of the dialog's Units (General, Stroke, Type, East Asian Type) Picas?
 fn picas_in_use(d: &Dialog) -> bool {
-    ["unitsGeneral", "unitsStroke", "unitsType", "unitsAsianType"].iter().any(|k| d.str(k) == vectorcraft_doc::Unit::Picas.key())
+    ["unitsGeneral", "unitsStroke", "unitsType", "unitsAsianType"].iter().any(|k| d.str(k) == splinewright_doc::Unit::Picas.key())
 }
 
 fn bool_row(ui: &mut egui::Ui, d: &mut Dialog, key: &str, label: &str) {
@@ -359,10 +359,10 @@ fn labeled(ui: &mut egui::Ui, label: &str, add: impl FnOnce(&mut egui::Ui)) {
 mod tests {
     use super::*;
     use crate::Services;
-    use vectorcraft_engine::Session;
+    use splinewright_engine::Session;
 
-    fn app() -> VectorcraftApp {
-        VectorcraftApp::new(Session::new(), Services::default())
+    fn app() -> SplinewrightApp {
+        SplinewrightApp::new(Session::new(), Services::default())
     }
 
     #[test]
@@ -397,7 +397,7 @@ mod tests {
         let ctx = egui::Context::default();
         let mut time = 0.0;
         // Come from elsewhere and hover the button for two seconds: did its tool tip show?
-        let mut hover = |a: &mut VectorcraftApp| {
+        let mut hover = |a: &mut SplinewrightApp| {
             let mut shown = vec![];
             for i in 0..20 {
                 time += 0.1;
@@ -483,7 +483,7 @@ mod tests {
         out.shapes.iter().for_each(|c| texts(&c.shape, &mut shown));
         assert!(shown.iter().any(|t| t.starts_with("Graphics Processor")), "{shown:?}");
         assert!(shown.iter().any(|t| t == "Automatic"), "{shown:?}");
-        assert!(shown.iter().any(|t| t == "Applies the next time VectorCraft starts."), "{shown:?}");
+        assert!(shown.iter().any(|t| t == "Applies the next time Splinewright starts."), "{shown:?}");
         a.ui.dialog.as_mut().unwrap().fields.insert("gpuPreference".into(), json!("highPerformance"));
         confirm(&mut a).unwrap();
         assert_eq!(a.session.prefs.gpu_preference, "highPerformance");
@@ -498,19 +498,19 @@ mod tests {
         let mut a = app();
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
-        let frame = |a: &mut VectorcraftApp| {
+        let frame = |a: &mut SplinewrightApp| {
             let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
                 apply_runtime(a, ui.ctx());
                 show(a, ui.ctx());
             });
             out.textures_delta.clear();
         };
-        let read = |ctx: &egui::Context| widgets::typed_unit(ctx, vectorcraft_doc::Unit::Picas);
+        let read = |ctx: &egui::Context| widgets::typed_unit(ctx, splinewright_doc::Unit::Picas);
         frame(&mut a);
-        assert_eq!(read(&ctx), vectorcraft_doc::Unit::Points, "on by default");
+        assert_eq!(read(&ctx), splinewright_doc::Unit::Points, "on by default");
         a.run("prefs.set", json!({"key": "numbersWithoutUnitsArePoints", "value": false})).unwrap();
         frame(&mut a);
-        assert_eq!(read(&ctx), vectorcraft_doc::Unit::Picas, "off");
+        assert_eq!(read(&ctx), splinewright_doc::Unit::Picas, "off");
         // The checkbox: dimmed with every unit in points, enabled once a unit is Picas.
         open(&mut a, Some("Units"));
         let d = a.ui.dialog.as_mut().unwrap();

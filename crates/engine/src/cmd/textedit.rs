@@ -2,10 +2,10 @@
 //! Character panel use while editing), creating area / on-path type from a path, and Fit Headline.
 
 use serde_json::{Value, json};
-use vectorcraft_color::Paint;
-use vectorcraft_doc::{Appearance, CharStyle, Node, NodeId, NodeKind, TextKind, TextObject, TextRun};
-use vectorcraft_geom::Affine;
-use vectorcraft_text::edit;
+use splinewright_color::Paint;
+use splinewright_doc::{Appearance, CharStyle, Node, NodeId, NodeKind, TextKind, TextObject, TextRun};
+use splinewright_geom::Affine;
+use splinewright_text::edit;
 
 use super::stroke::StrokeChange;
 use super::typecmd::refresh_bounds;
@@ -97,7 +97,7 @@ pub fn specs() -> Vec<CommandSpec> {
     ]
 }
 
-fn text_mut(d: &mut vectorcraft_doc::Document, id: NodeId) -> Option<&mut TextObject> {
+fn text_mut(d: &mut splinewright_doc::Document, id: NodeId) -> Option<&mut TextObject> {
     match d.node_mut(id).map(|n| &mut n.kind) {
         Some(NodeKind::Text(t)) => Some(t),
         _ => None,
@@ -176,24 +176,24 @@ pub(crate) struct CharChange {
     strikethrough: Option<bool>,
     all_caps: Option<bool>,
     features: Option<Vec<String>>,
-    position: Option<vectorcraft_doc::CharPosition>,
+    position: Option<splinewright_doc::CharPosition>,
     small_caps: Option<Option<f64>>,
-    char_align: Option<vectorcraft_doc::CharAlign>,
+    char_align: Option<splinewright_doc::CharAlign>,
 }
 
 /// `features: ["dlig", "-liga", …]` → the canonical tag list (differences from the defaults).
 pub(crate) fn features_param(p: &Value, cmd: &str) -> Result<Option<Vec<String>>> {
     let Some(v) = p.get("features").filter(|v| !v.is_null()) else { return Ok(None) };
     let tags: Vec<&str> = v.as_array().ok_or_else(|| bad(cmd, "features must be a list of tags"))?.iter().filter_map(Value::as_str).collect();
-    if let Some(t) = tags.iter().find(|t| !vectorcraft_text::OtFeatures::known_tag(t)) {
+    if let Some(t) = tags.iter().find(|t| !splinewright_text::OtFeatures::known_tag(t)) {
         return Err(bad(cmd, format!("unknown OpenType feature `{t}` (liga, calt, dlig, smcp, frac, onum, tnum, ordn, swsh; prefix - to turn off)")));
     }
-    Ok(Some(vectorcraft_text::OtFeatures::default().with_tags(tags).to_tags()))
+    Ok(Some(splinewright_text::OtFeatures::default().with_tags(tags).to_tags()))
 }
 
 /// `charAlign: "romanBaseline"|"emBoxTop"|"emBoxCenter"|"emBoxBottom"` (Character Alignment).
-pub(crate) fn char_align_param(p: &Value, cmd: &str) -> Result<Option<vectorcraft_doc::CharAlign>> {
-    use vectorcraft_doc::CharAlign;
+pub(crate) fn char_align_param(p: &Value, cmd: &str) -> Result<Option<splinewright_doc::CharAlign>> {
+    use splinewright_doc::CharAlign;
     let Some(v) = p.get("charAlign").filter(|v| !v.is_null()) else { return Ok(None) };
     Ok(Some(match v.as_str() {
         Some("romanBaseline") => CharAlign::RomanBaseline,
@@ -222,7 +222,7 @@ fn auto_or_num(p: &Value, k: &str, cmd: &str) -> Result<Option<Option<f64>>> {
 
 impl CharChange {
     /// `setup` gives the superscript, subscript and small caps proportions.
-    pub(crate) fn parse(p: &Value, cmd: &str, setup: &vectorcraft_doc::DocSetup) -> Result<Self> {
+    pub(crate) fn parse(p: &Value, cmd: &str, setup: &splinewright_doc::DocSetup) -> Result<Self> {
         let num = |k: &str| p.get(k).and_then(Value::as_f64);
         let (position, small_caps) = super::docsetup::script_params(p, setup, cmd)?;
         let flag = |k: &str| p.get(k).and_then(Value::as_bool);
@@ -290,10 +290,10 @@ impl CharChange {
             st.font_family = f.clone();
             // Keep the style when the new family has it, else its closest match.
             if self.style.is_none() {
-                let styles = vectorcraft_text::FontDb::global().styles(f);
+                let styles = splinewright_text::FontDb::global().styles(f);
                 if !styles.is_empty()
                     && !styles.iter().any(|s| s.eq_ignore_ascii_case(&st.font_style))
-                    && let Some(face) = vectorcraft_text::FontDb::global().face(f, &st.font_style)
+                    && let Some(face) = splinewright_text::FontDb::global().face(f, &st.font_style)
                 {
                     st.font_style = face.style.clone();
                 }
@@ -371,7 +371,7 @@ pub(crate) fn protect_missing_glyphs(before: &[TextRun], runs: &mut Vec<TextRun>
             })
             .flatten()
     }
-    let db = vectorcraft_text::FontDb::global();
+    let db = splinewright_text::FontDb::global();
     let mut faces = std::collections::HashMap::new();
     let mut covers = |st: &CharStyle, c: char| {
         let face = faces.entry((st.font_family.clone(), st.font_style.clone())).or_insert_with(|| db.face(&st.font_family, &st.font_style));
@@ -448,12 +448,12 @@ fn create_in_path(s: &mut Session, p: &Value) -> Result<Value> {
     if let Some(f) = str_param(p, "font") {
         style.font_family = f.to_string();
     }
-    if !s.paint.fill.is_none() && s.paint.fill != Paint::solid(vectorcraft_color::Color::WHITE) {
+    if !s.paint.fill.is_none() && s.paint.fill != Paint::solid(splinewright_color::Color::WHITE) {
         style.fill = s.paint.fill.clone();
     }
     let text = str_param(p, "text").unwrap_or("").to_string();
     let start = match point_param(p, "at") {
-        Some(at) if on_path => vectorcraft_geom::ArcPath::new(path).fraction_at(at).unwrap_or(0.0),
+        Some(at) if on_path => splinewright_geom::ArcPath::new(path).fraction_at(at).unwrap_or(0.0),
         _ => 0.0,
     };
     let kind = if on_path { TextKind::OnPath { path: path.clone(), start, end: None } } else { TextKind::Area { frame: path.clone() } };
@@ -608,7 +608,7 @@ fn headline_tracking(t: &TextObject, target: f64) -> Option<f64> {
         for r in &mut h.runs {
             r.style.tracking = tr;
         }
-        let l = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &h);
+        let l = splinewright_text::layout(splinewright_text::FontDb::global(), &h);
         l.lines.first().map_or(0.0, |li| li.x1 - li.x0)
     };
     // Width is linear in tracking: w(tr) = w0 + tr * slope.
@@ -637,7 +637,7 @@ fn fit_headline(s: &mut Session, p: &Value) -> Result<Value> {
     s.edit("Fit Headline", |d, _| {
         for id in &ids {
             let Some(t) = text_mut(d, *id) else { continue };
-            let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+            let lay = splinewright_text::layout(splinewright_text::FontDb::global(), t);
             let Some(first) = lay.lines.first() else { continue };
             let target = first.avail.1 - first.avail.0;
             let Some(tr) = headline_tracking(t, target) else { continue };

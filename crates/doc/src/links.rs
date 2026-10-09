@@ -290,7 +290,7 @@ impl Document {
 mod tests {
     use super::*;
     use crate::NodeId;
-    use vectorcraft_geom::Affine;
+    use splinewright_geom::Affine;
 
     fn png(w: u32, h: u32) -> Vec<u8> {
         let mut out = vec![];

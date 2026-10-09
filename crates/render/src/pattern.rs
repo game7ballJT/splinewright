@@ -15,9 +15,9 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use vectorcraft_doc::pattern::{Overlap, PatternDef, TileType};
-use vectorcraft_doc::{Document, Node};
-use vectorcraft_geom::{Affine, Rect, Shape};
+use splinewright_doc::pattern::{Overlap, PatternDef, TileType};
+use splinewright_doc::{Document, Node};
+use splinewright_geom::{Affine, Rect, Shape};
 use vello_cpu::peniko::{Extend, ImageQuality, ImageSampler};
 use vello_cpu::{Pixmap, RenderContext};
 
@@ -221,10 +221,10 @@ impl Renderer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vectorcraft_color::{Color, Paint};
-    use vectorcraft_doc::pattern::{PatternEdit, RepeatSpec, pattern_paint};
-    use vectorcraft_doc::{Appearance, NodeId, NodeKind};
-    use vectorcraft_geom::shapes;
+    use splinewright_color::{Color, Paint};
+    use splinewright_doc::pattern::{PatternEdit, RepeatSpec, pattern_paint};
+    use splinewright_doc::{Appearance, NodeId, NodeKind};
+    use splinewright_geom::shapes;
 
     /// A 20×20 tile with a red 10×10 square in its top-left corner.
     fn doc_with_pattern(tt: TileType) -> Document {
@@ -305,7 +305,7 @@ mod tests {
         assert!(is_red(r.pixel(10, 10)) && is_white(r.pixel(30, 10)) && is_red(r.pixel(50, 10)));
         let mut d2 = d.clone();
         let id = d2.layers[0].children().unwrap()[0].id;
-        vectorcraft_doc::pattern::transform_pattern_paints(d2.node_mut(id).unwrap(), Affine::translate((10.0, 0.0)));
+        splinewright_doc::pattern::transform_pattern_paints(d2.node_mut(id).unwrap(), Affine::translate((10.0, 0.0)));
         let r = render(&d2, 1.0);
         assert!(is_white(r.pixel(5, 5)) && is_red(r.pixel(15, 5)));
     }

@@ -8,9 +8,9 @@ use std::sync::Arc;
 use hayro_interpret::pattern::ShadingPattern;
 use hayro_interpret::shading::{ShadingFunction, ShadingType};
 use kurbo::{BezPath, Circle, Point, Rect, Shape, Vec2};
-use vectorcraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop, Paint};
-use vectorcraft_doc::live::{GradientMesh, lerp_color};
-use vectorcraft_doc::{Node, NodeKind, OpacityMask};
+use splinewright_color::{Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop, Paint};
+use splinewright_doc::live::{GradientMesh, lerp_color};
+use splinewright_doc::{Node, NodeKind, OpacityMask};
 
 use crate::import::round3;
 use crate::import_color::{Colors, Native};
@@ -263,6 +263,6 @@ pub(crate) fn fold_stop_opacity(content: &Node, mask: &OpacityMask) -> Option<No
 }
 
 /// `node` (filling `bounds`) clipped to `clip`: a clip group.
-pub(crate) fn clipped(clip: Node, node: Node, id: vectorcraft_doc::NodeId) -> Node {
+pub(crate) fn clipped(clip: Node, node: Node, id: splinewright_doc::NodeId) -> Node {
     Node::new(id, NodeKind::Group { children: vec![Arc::new(clip), Arc::new(node)], clip: true })
 }

@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{Document, Node, NodeId, NodeKind};
+use splinewright_doc::{Document, Node, NodeId, NodeKind};
 
 use crate::DocState;
 
@@ -14,7 +14,7 @@ use super::encode::single_artboard;
 use super::{ARTBOARD_PARAMS, Format, default_name, encode, encode_all, encode_with_warnings, merge, writable, write_encoded, write_or_return};
 
 pub(super) fn serialize(s: &mut Session, p: &Value) -> Result<Value> {
-    let f = writable("document.serialize", Some(str_param(p, "format").unwrap_or("vectorcraft")), None)?;
+    let f = writable("document.serialize", Some(str_param(p, "format").unwrap_or("splinewright")), None)?;
     let expanded = expand_presets(s, "document.serialize", p)?;
     let p = &*expanded;
     let doc = &*source(s, f, p, "document.serialize")?;
@@ -24,21 +24,21 @@ pub(super) fn serialize(s: &mut Session, p: &Value) -> Result<Value> {
     // Text formats come back as text; an SVG in UTF-16 or ISO 8859-1 also as its bytes.
     let data = |bytes: &[u8]| match f.id {
         "svg" => {
-            let text = vectorcraft_svg::text_of(bytes).unwrap_or_else(|_| String::from_utf8_lossy(bytes));
+            let text = splinewright_svg::text_of(bytes).unwrap_or_else(|_| String::from_utf8_lossy(bytes));
             let mut v = json!({ "text": text });
             if text.as_bytes() != bytes {
-                v["dataBase64"] = json!(vectorcraft_format::base64_encode(bytes));
+                v["dataBase64"] = json!(splinewright_format::base64_encode(bytes));
             }
             v
         }
-        _ => json!({ "dataBase64": vectorcraft_format::base64_encode(bytes) }),
+        _ => json!({ "dataBase64": splinewright_format::base64_encode(bytes) }),
     };
     let mut out = merge(data(main.first().map_or(&[][..], |m| &m.1)), json!({ "warnings": enc.warnings }));
     if main.len() > 1 {
         out["files"] = main.iter().map(|(name, bytes)| merge(json!({ "name": name }), data(bytes))).collect();
     }
     if !linked.is_empty() {
-        out["linked"] = linked.iter().map(|(name, bytes)| json!({ "name": name, "dataBase64": vectorcraft_format::base64_encode(bytes) })).collect();
+        out["linked"] = linked.iter().map(|(name, bytes)| json!({ "name": name, "dataBase64": splinewright_format::base64_encode(bytes) })).collect();
     }
     Ok(out)
 }
@@ -118,7 +118,7 @@ fn source<'a>(s: &'a mut Session, f: &Format, p: &Value, cmd: &str) -> Result<Co
 
 /// The selected objects (not on template layers) alone on one layer, with one artboard: their
 /// visual bounds.
-fn selection(s: &mut Session, cmd: &str) -> Result<(Document, vectorcraft_geom::Rect)> {
+fn selection(s: &mut Session, cmd: &str) -> Result<(Document, splinewright_geom::Rect)> {
     let ids = edit::selected_roots(s)?;
     let st = s.doc()?;
     let is_template = |id| st.doc.node(id).is_some_and(|l| matches!(l.kind, NodeKind::Layer { template: true, .. }));
@@ -130,11 +130,11 @@ fn selection(s: &mut Session, cmd: &str) -> Result<(Document, vectorcraft_geom::
 
 /// Objects `ids` of `doc` alone on one layer (in that order, back to front), with one artboard
 /// named `name`: their visual bounds (`None` when they have none).
-pub(crate) fn isolated(doc: &Document, ids: &[NodeId], name: &str) -> Option<(Document, vectorcraft_geom::Rect)> {
+pub(crate) fn isolated(doc: &Document, ids: &[NodeId], name: &str) -> Option<(Document, splinewright_geom::Rect)> {
     let nodes: Vec<Arc<Node>> = ids.iter().filter_map(|id| doc.node(*id).cloned().map(Arc::new)).collect();
     let bounds = nodes.iter().filter_map(|n| n.visual_bounds()).reduce(|a, b| a.union(b))?;
     let mut d = single_artboard(doc, bounds, name);
-    let mut layer = Node::layer(d.alloc_id(), name, vectorcraft_doc::LayerColor::Preset(0));
+    let mut layer = Node::layer(d.alloc_id(), name, splinewright_doc::LayerColor::Preset(0));
     if let Some(ch) = layer.children_mut() {
         *ch = nodes;
     }

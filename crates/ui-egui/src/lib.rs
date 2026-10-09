@@ -1,6 +1,6 @@
-//! VectorCraft's egui frontend: an Illustrator-style UI over `vectorcraft-engine`.
+//! Splinewright's egui frontend: an Illustrator-style UI over `splinewright-engine`.
 //!
-//! The UI is thin: every action goes through [`VectorcraftApp::run`], which dispatches UI commands
+//! The UI is thin: every action goes through [`SplinewrightApp::run`], which dispatches UI commands
 //! (view/window) here and everything else to the engine. The same entry point serves menus,
 //! shortcuts, the ⌘K palette and the control channel ([`control`]).
 #![forbid(unsafe_code)]
@@ -143,8 +143,8 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 
 use serde_json::{Value, json};
-use vectorcraft_engine::cmd::fileio;
-use vectorcraft_engine::{Session, ViewInfo};
+use splinewright_engine::cmd::fileio;
+use splinewright_engine::{Session, ViewInfo};
 
 pub use control::{ControlRequest, ControlResponse};
 pub use state::{UiState, View};
@@ -226,8 +226,8 @@ pub struct Services {
     /// Show a folder picker; returns its path (desktop: Relink to Folder, Package).
     pub pick_folder: Option<Box<dyn FnMut() -> Option<String>>>,
     /// Where Data Recovery keeps its copies when not in a folder (the web's browser storage;
-    /// tests): installed into the session ([`vectorcraft_engine::cmd::recovery`]).
-    pub recovery_store: Option<std::sync::Arc<dyn vectorcraft_engine::cmd::recovery::RecoveryStore>>,
+    /// tests): installed into the session ([`splinewright_engine::cmd::recovery`]).
+    pub recovery_store: Option<std::sync::Arc<dyn splinewright_engine::cmd::recovery::RecoveryStore>>,
     /// File → Print: the system's printers and print queue (desktop), the browser's print dialog
     /// (web). Without it Print saves the job as a PDF.
     pub print: Option<Box<dyn print::PrintService>>,
@@ -237,7 +237,7 @@ pub struct Services {
 
 /// Cached canvas raster.
 pub struct CanvasCache {
-    pub renderer: vectorcraft_render::Renderer,
+    pub renderer: splinewright_render::Renderer,
     pub texture: Option<egui::TextureHandle>,
     pub key: Option<CacheKey>,
     pub last_ms: f64,
@@ -247,17 +247,17 @@ pub struct CanvasCache {
     pub slices: Option<SliceCache>,
     /// The print tiling's pages for (document uid, revision) (View → Show Print Tiling).
     pub print_tiling: Option<PrintTilingCache>,
-    /// [`VectorcraftApp::selection_box`] for (document uid, revision, Use Preview Bounds).
-    pub selection_box: Option<((u64, u64, bool), Option<vectorcraft_doc::OrientedBox>)>,
+    /// [`SplinewrightApp::selection_box`] for (document uid, revision, Use Preview Bounds).
+    pub selection_box: Option<((u64, u64, bool), Option<splinewright_doc::OrientedBox>)>,
     /// The tools' cursors as OS cursor bitmaps.
     pub cursors: cursors::Images,
 }
 
 /// [`CanvasCache::slices`]: the layout of the slices of (document uid, revision).
-pub type SliceCache = ((u64, u64), std::sync::Arc<Vec<vectorcraft_doc::SliceArea>>);
+pub type SliceCache = ((u64, u64), std::sync::Arc<Vec<splinewright_doc::SliceArea>>);
 
 /// [`CanvasCache::print_tiling`]: the print tiling of (document uid, revision).
-pub type PrintTilingCache = ((u64, u64), std::sync::Arc<Vec<vectorcraft_pdf::TilingPage>>);
+pub type PrintTilingCache = ((u64, u64), std::sync::Arc<Vec<splinewright_pdf::TilingPage>>);
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CacheKey {
@@ -284,7 +284,7 @@ pub struct Perf {
     pub fps: f64,
 }
 
-pub struct VectorcraftApp {
+pub struct SplinewrightApp {
     pub session: Session,
     pub ui: UiState,
     pub views: Vec<View>,
@@ -317,13 +317,13 @@ pub struct VectorcraftApp {
     /// Canvas rect of the last frame (screen points), for control-channel coordinate mapping.
     pub canvas_rect: Option<egui::Rect>,
     /// Hover position in document coordinates.
-    pub hover_doc: Option<vectorcraft_geom::Point>,
+    pub hover_doc: Option<splinewright_geom::Point>,
     /// System clipboard: SVG to publish next frame, the last SVG we published (so pasting it back
     /// uses the lossless internal clipboard) and what came with a paste (a Paste event's text, a
     /// picture or file the host read: [`Self::paste_from_host`]).
     clipboard_out: Option<String>,
     clipboard_published: Option<String>,
-    pub(crate) clipboard_in: Option<vectorcraft_engine::cmd::clipboard::Flavour>,
+    pub(crate) clipboard_in: Option<splinewright_engine::cmd::clipboard::Flavour>,
     /// A URL to open through egui next frame (when the host has no `open_url` service).
     pending_url: Option<String>,
     /// Windows and Linux: the window has no OS decorations, so the app bar is the title bar (drag,
@@ -363,13 +363,13 @@ pub struct VectorcraftApp {
     scrub_group: bool,
 }
 
-/// Seconds between two looks at the system clipboard for [`VectorcraftApp::system_paste`].
+/// Seconds between two looks at the system clipboard for [`SplinewrightApp::system_paste`].
 const SYSTEM_CLIPBOARD_POLL: f64 = 0.25;
 
-impl VectorcraftApp {
+impl SplinewrightApp {
     pub fn new(mut session: Session, services: Services) -> Self {
         // The font menus and the first file opened need the installed fonts: catalog them now.
-        vectorcraft_text::FontDb::global().scan_in_background();
+        splinewright_text::FontDb::global().scan_in_background();
         if let Some(store) = &services.recovery_store {
             session.recovery.set_store(store.clone());
         }
@@ -380,7 +380,7 @@ impl VectorcraftApp {
             views,
             services,
             canvas: CanvasCache {
-                renderer: vectorcraft_render::Renderer::new(),
+                renderer: splinewright_render::Renderer::new(),
                 texture: None,
                 key: None,
                 last_ms: 0.0,
@@ -466,11 +466,11 @@ impl VectorcraftApp {
     }
 
     /// The canvas on screen in document coordinates (none before it is laid out).
-    pub fn screen_frame(&self) -> Option<vectorcraft_tools::ScreenFrame> {
+    pub fn screen_frame(&self) -> Option<splinewright_tools::ScreenFrame> {
         let (rect, view) = (self.canvas_rect?, self.view()?);
         let xf = canvas::Xf::new(rect, view);
         let px = |x: f32, y: f32| xf.delta_to_doc(egui::vec2(x, y));
-        Some(vectorcraft_tools::ScreenFrame {
+        Some(splinewright_tools::ScreenFrame {
             origin: xf.to_doc(rect.left_top()),
             right: px(1.0, 0.0),
             down: px(0.0, 1.0),
@@ -559,7 +559,7 @@ impl VectorcraftApp {
         if let Err(e) = self.session.select_tool(id, v) {
             self.ui.status = e.to_string();
         }
-        if let Some(g) = vectorcraft_tools::catalog::group_of(id)
+        if let Some(g) = splinewright_tools::catalog::group_of(id)
             && let Some(slot) = self.ui.group_tool.get_mut(g)
         {
             *slot = id.to_string();
@@ -573,7 +573,7 @@ impl VectorcraftApp {
         while let Ok(req) = rx.try_recv() {
             let reply = req.reply.clone();
             // Guarded per request: a panic must not drop the channel (taken out of `self` above).
-            let outcome = vectorcraft_engine::guard::catch_panic(|| control::handle(self, ctx, &req))
+            let outcome = splinewright_engine::guard::catch_panic(|| control::handle(self, ctx, &req))
                 .unwrap_or_else(|msg| control::err(format!("internal error: {msg} (please report this bug)")));
             match outcome {
                 control::Outcome::Done(v) => {
@@ -682,7 +682,7 @@ pub fn now_ms() -> f64 {
 /// The most fonts Type › Recent Fonts lists (Preferences › Type › Number of Recent Fonts).
 pub const MAX_RECENT_FONTS: usize = 15;
 
-impl VectorcraftApp {
+impl SplinewrightApp {
     /// Type › Recent Fonts: the fonts used last, newest first, as many as Preferences › Type ›
     /// Number of Recent Fonts says.
     pub fn recent_fonts(&self) -> &[String] {
@@ -692,7 +692,7 @@ impl VectorcraftApp {
 
     /// The selection's bounding box, rotated with rotated objects ([`Session::transform_box`]). The
     /// canvas and the transform fields read it every frame: it is measured once per revision.
-    pub fn selection_box(&mut self) -> Option<vectorcraft_doc::OrientedBox> {
+    pub fn selection_box(&mut self) -> Option<splinewright_doc::OrientedBox> {
         let st = self.session.active()?;
         let key = (st.uid, st.revision, self.session.prefs.use_preview_bounds);
         if let Some((k, b)) = self.canvas.selection_box
@@ -708,7 +708,7 @@ impl VectorcraftApp {
 
 /// eframe isn't a dependency of this crate (the host owns the event loop); these entry points are
 /// called from the host's `eframe::App` impl.
-impl VectorcraftApp {
+impl SplinewrightApp {
     /// The language the UI is drawn in: the Preferences dialog's choice while it is open (so a
     /// change shows before OK), else the `interfaceLanguage` preference (`auto` = the system's).
     pub fn ui_language(&self) -> i18n::Lang {
@@ -720,7 +720,7 @@ impl VectorcraftApp {
     /// Per-frame logic before layout (control channel, shortcuts, inbox). A bug that panics costs
     /// one frame and shows an error, instead of closing the app with unsaved work.
     pub fn logic(&mut self, ctx: &egui::Context) {
-        if let Err(msg) = vectorcraft_engine::guard::catch_panic(|| self.logic_frame(ctx)) {
+        if let Err(msg) = splinewright_engine::guard::catch_panic(|| self.logic_frame(ctx)) {
             self.status(format!("Internal error: {msg} (please report this bug)"));
         }
     }
@@ -780,7 +780,7 @@ impl VectorcraftApp {
                 }
             } else {
                 // Quitting with nothing unsaved: no copies to leave behind.
-                vectorcraft_engine::cmd::recovery::forget_all(&mut self.session);
+                splinewright_engine::cmd::recovery::forget_all(&mut self.session);
             }
         }
         if let Some(wait) = recovery::frame(self, now) {
@@ -823,7 +823,7 @@ impl VectorcraftApp {
         let mut files = vec![];
         for f in dropped {
             let path = Some(f.path().to_string_lossy().to_string()).filter(|s| !s.is_empty());
-            let name = path.as_deref().map_or_else(|| "dropped".into(), vectorcraft_engine::cmd::fileio::file_name);
+            let name = path.as_deref().map_or_else(|| "dropped".into(), splinewright_engine::cmd::fileio::file_name);
             let target = self.drop_target(&name, pos, shift);
             // A file placed by its path is read by the engine.
             let bytes = if path.is_some() && target != place::DropTarget::Open { Ok(vec![]) } else { f.bytes() };
@@ -838,7 +838,7 @@ impl VectorcraftApp {
     /// Fonts installed or removed while the app was in the background are listed when it comes
     /// back (Refresh Font List by itself): a look at the font folders, a scan only when they changed.
     fn refresh_installed_fonts(&mut self) {
-        if vectorcraft_text::FontDb::global().installed_fonts_changed() {
+        if splinewright_text::FontDb::global().installed_fonts_changed() {
             // A failure shows in the status bar, as the menu item's does.
             let _ = self.run("text.rescanFonts", json!({}));
         }
@@ -905,7 +905,7 @@ impl VectorcraftApp {
 
     /// Lay out the whole window.
     pub fn ui(&mut self, ui: &mut egui::Ui) {
-        if let Err(msg) = vectorcraft_engine::guard::catch_panic(|| self.ui_frame(ui)) {
+        if let Err(msg) = splinewright_engine::guard::catch_panic(|| self.ui_frame(ui)) {
             self.status(format!("Internal error: {msg} (please report this bug)"));
         }
     }

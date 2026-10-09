@@ -1,15 +1,15 @@
-# VectorCraft MCP server
+# Splinewright MCP server
 
-`vectorcraft-cli mcp` runs a [Model Context Protocol](https://modelcontextprotocol.io) server on stdio
+`splinewright-cli mcp` runs a [Model Context Protocol](https://modelcontextprotocol.io) server on stdio
 (newline-delimited JSON-RPC 2.0, protocol `2025-06-18`; `2025-03-26` and `2024-11-05` also accepted). Agents use it to
-draw, inspect and look at VectorCraft documents.
+draw, inspect and look at Splinewright documents.
 
 It has two backends:
 
 | Mode | How | What works |
 |---|---|---|
-| **Remote** | `vectorcraft-cli mcp --connect 127.0.0.1:7979` (the app must run with `vectorcraft --control 7979`) | Everything. Tool calls are forwarded over the [control protocol](control-protocol.md), so you watch the app change live. |
-| **Headless** | `vectorcraft-cli mcp --headless` | An in-process engine session with a CPU renderer. Everything except the UI-only tools (`inspect_ui`, `type_text`, `open_panel`, `screenshot {window:true}`). |
+| **Remote** | `splinewright-cli mcp --connect 127.0.0.1:7979` (the app must run with `splinewright --control 7979`) | Everything. Tool calls are forwarded over the [control protocol](control-protocol.md), so you watch the app change live. |
+| **Headless** | `splinewright-cli mcp --headless` | An in-process engine session with a CPU renderer. Everything except the UI-only tools (`inspect_ui`, `type_text`, `open_panel`, `screenshot {window:true}`). |
 
 With no flag, the server tries `127.0.0.1:7979` and falls back to headless. Logs go to stderr; stdout carries
 only protocol messages.
@@ -17,20 +17,20 @@ only protocol messages.
 ## Build and register
 
 ```sh
-cargo build --release -p vectorcraft-cli
-claude mcp add vectorcraft -- "$PWD/target/release/vectorcraft-cli" mcp
+cargo build --release -p splinewright-cli
+claude mcp add splinewright -- "$PWD/target/release/splinewright-cli" mcp
 # or pin a mode:
-claude mcp add vectorcraft-headless -- "$PWD/target/release/vectorcraft-cli" mcp --headless
-claude mcp add vectorcraft-app -- "$PWD/target/release/vectorcraft-cli" mcp --connect 127.0.0.1:7979
+claude mcp add splinewright-headless -- "$PWD/target/release/splinewright-cli" mcp --headless
+claude mcp add splinewright-app -- "$PWD/target/release/splinewright-cli" mcp --connect 127.0.0.1:7979
 ```
 
 Other clients use the same command in their JSON config:
 
 ```json
-{"mcpServers": {"vectorcraft": {"command": "/abs/path/target/release/vectorcraft-cli", "args": ["mcp"]}}}
+{"mcpServers": {"splinewright": {"command": "/abs/path/target/release/splinewright-cli", "args": ["mcp"]}}}
 ```
 
-For a live session, start the app first: `cargo run --release -p vectorcraft -- --control 7979`.
+For a live session, start the app first: `cargo run --release -p splinewright -- --control 7979`.
 
 ## Protocol
 
@@ -64,21 +64,21 @@ arguments filled in. A missing required argument is `-32602`.
 
 ```sh
 echo '{"jsonrpc":"2.0","id":1,"method":"prompts/get","params":{"name":"poster","arguments":{"brief":"a jazz festival"}}}' \
-  | vectorcraft-cli mcp --headless
+  | splinewright-cli mcp --headless
 ```
 
 ### Resource templates
 
-`vectorcraft://document` (summary) and `vectorcraft://document/json` (the whole model) are the fixed
+`splinewright://document` (summary) and `splinewright://document/json` (the whole model) are the fixed
 resources. The templates read one thing at a time, which matters on a real document: the full model
 is thousands of lines an agent pays for again on every change.
 
 | `uriTemplate` | Reads |
 |---|---|
-| `vectorcraft://object/{id}` | One layer or object with its children, bounds and paint: `document.node {id, summary: true}`, the node as `document.inspect` lists it. A large container can be sliced with `run_command document.node {id, summary: true, depth?, childLimit?}` (a level that shows fewer children reports `childCount`) |
-| `vectorcraft://command/{id}` | One command: label, menu path, shortcut, parameter description, enablement |
-| `vectorcraft://effect/{id}` | One live effect with its parameters and defaults |
-| `vectorcraft://swatch/{name}` | One swatch, colour, gradient or pattern swatch (percent-encode spaces) |
+| `splinewright://object/{id}` | One layer or object with its children, bounds and paint: `document.node {id, summary: true}`, the node as `document.inspect` lists it. A large container can be sliced with `run_command document.node {id, summary: true, depth?, childLimit?}` (a level that shows fewer children reports `childCount`) |
+| `splinewright://command/{id}` | One command: label, menu path, shortcut, parameter description, enablement |
+| `splinewright://effect/{id}` | One live effect with its parameters and defaults |
+| `splinewright://swatch/{name}` | One swatch, colour, gradient or pattern swatch (percent-encode spaces) |
 
 An unknown URI is `-32002`; a template with no value, or a value that names nothing, is `-32602`.
 
@@ -118,9 +118,9 @@ place. From then on the engine's own `log` records arrive as `notifications/mess
 `logger` and `data`. A `null` level turns it back off. Nothing is sent before the client asks, and
 records queued at the old level are dropped rather than replayed at the new one.
 
-Installing the logger that receives those records is `vectorcraft-cli`'s job, not the library's: a
+Installing the logger that receives those records is `splinewright-cli`'s job, not the library's: a
 crate that installed one would override whatever logger an embedder had already set up. Embedding
-`vectorcraft-mcp` directly means calling `vectorcraft_mcp::logging::install()` yourself if you want
+`splinewright-mcp` directly means calling `splinewright_mcp::logging::install()` yourself if you want
 log records to reach your client.
 
 ### Not implemented
@@ -178,9 +178,9 @@ objects' fills or strokes differ (`fillMixed` / `strokeMixed`, drawn as a "?" pr
 | `invoke_menu` | `{command, params?}` | Invokes a menu item by command id. Includes UI commands such as `view.*` and `window.*` in remote mode. |
 | `open_panel` | `{panel}` | Remote only. `panel` is a panel id (`layers`, `swatches`, `colorGuide`, …, as `window.panel` takes) or its display label (`"Color Guide"`), in any case. |
 | `screenshot` | `{path?, scale?, artboard?, window?}` | Returns MCP image content (`image/png`, base64) plus a text block. Renders the artboard; `window:true` captures the app window (remote only). |
-| `open_file` | `{path}` | Opens any readable file as a new active document: `.vectorcraft`/`.drawcraft`, `.vctemplate`, `.svg`/`.svgz`, `.pdf`/`.ai`, `.ait`, `.eps`, `.dxf`, `.emf`, `.wmf`, PNG, JPEG, GIF, WebP, TIFF, BMP (an image opens as a document of its pixel size). Templates (`.vctemplate`, `.ait`) open as a new untitled document. PDF, `.ai` and SVG files saved with Preserve Editing reopen as the document they carry. The reply is `document.open`'s: its `warnings` say what didn't come in as it was (an EPS whose PostScript can't be read opens as its preview, and the warning names the PostScript error, the operator and the procedure). `run_command document.formats` lists the formats. |
-| `save_file` | `{path?}` | Runs `document.save`: the document's own file in its own format (native `.vectorcraft` unless it was opened from or saved as SVG, PDF or a restorable `.ai`; then `warnings` say what that format loses). A path's extension picks the format (`.vectorcraft`, `.vctemplate`, `.pdf`, `.svg`, `.svgz`, `.ai`: a PDF carrying the native document, which reopens editable). |
-| `export` | `{path?, format?, scale?, artboard?, range?, selection?, outlineText?, options?}` | `svg`, `svgz`, `pdf`, `eps`, `dxf`, `emf`, `wmf`, `png`, `jpg`, `webp`, `gif`, `png8` (an indexed `.png`), `tiff`, `bmp`, `tga`, `psd` (layered), `txt` (the document's text), `vectorcraft` or `template` (a native template). The tool's `format` enum and `document.formats` list them, generated from the engine's format table. When `format` is omitted, it comes from the path's extension. PDF writes one page per artboard: all of them, or `artboard` (0-based) / `range` (`"1-3, 5"`, 1-based); the other formats write one artboard. `options` carries more format options (e.g. `{"quality": 80}` for JPEG). `selection: true` exports the selected objects cropped to their bounds (the reply adds their `bounds`, and reports `format` and the encoder's `warnings` as a whole-document export does); `outlineText: true` writes SVG text as paths. Template layers are left out, live effects are kept, and exporting `vectorcraft` never changes the document's path. Without `path` the bytes come back as `dataBase64`. Both backends run the same `document.export` call. |
+| `open_file` | `{path}` | Opens any readable file as a new active document: `.splinewright`/`.drawcraft`, `.vctemplate`, `.svg`/`.svgz`, `.pdf`/`.ai`, `.ait`, `.eps`, `.dxf`, `.emf`, `.wmf`, PNG, JPEG, GIF, WebP, TIFF, BMP (an image opens as a document of its pixel size). Templates (`.vctemplate`, `.ait`) open as a new untitled document. PDF, `.ai` and SVG files saved with Preserve Editing reopen as the document they carry. The reply is `document.open`'s: its `warnings` say what didn't come in as it was (an EPS whose PostScript can't be read opens as its preview, and the warning names the PostScript error, the operator and the procedure). `run_command document.formats` lists the formats. |
+| `save_file` | `{path?}` | Runs `document.save`: the document's own file in its own format (native `.splinewright` unless it was opened from or saved as SVG, PDF or a restorable `.ai`; then `warnings` say what that format loses). A path's extension picks the format (`.splinewright`, `.vctemplate`, `.pdf`, `.svg`, `.svgz`, `.ai`: a PDF carrying the native document, which reopens editable). |
+| `export` | `{path?, format?, scale?, artboard?, range?, selection?, outlineText?, options?}` | `svg`, `svgz`, `pdf`, `eps`, `dxf`, `emf`, `wmf`, `png`, `jpg`, `webp`, `gif`, `png8` (an indexed `.png`), `tiff`, `bmp`, `tga`, `psd` (layered), `txt` (the document's text), `splinewright` or `template` (a native template). The tool's `format` enum and `document.formats` list them, generated from the engine's format table. When `format` is omitted, it comes from the path's extension. PDF writes one page per artboard: all of them, or `artboard` (0-based) / `range` (`"1-3, 5"`, 1-based); the other formats write one artboard. `options` carries more format options (e.g. `{"quality": 80}` for JPEG). `selection: true` exports the selected objects cropped to their bounds (the reply adds their `bounds`, and reports `format` and the encoder's `warnings` as a whole-document export does); `outlineText: true` writes SVG text as paths. Template layers are left out, live effects are kept, and exporting `splinewright` never changes the document's path. Without `path` the bytes come back as `dataBase64`. Both backends run the same `document.export` call. |
 | `add_text` | `{text, x?, y?, width?, height?, path?, mode?, pathEffect?, size?, font?, color?}` | Point type at (x, y); area type with `width`/`height`; or `path` + `mode` (`area`/`onPath`) to flow text in or along a path, with `pathEffect` (`rainbow`, `skew`, `3dRibbon`, `stairStep`, `gravity`). |
 | `apply_effect` | `{effect?, params?, ids?}` | Appends a live effect. Without `effect`, returns the effect catalogue with parameters and defaults. |
 | `pathfinder` | `{operation, ids?}` | `unite`, `minusFront`, `intersect`, `exclude`, `divide`, `trim`, `merge`, `crop`, `outline`, `minusBack`. For a live version, apply the `pathfinder.*` effect to a group (`effect.apply` groups several loose selected objects first). |
@@ -296,9 +296,9 @@ and reflected or repeated gradients (`spreadMethod`) are expanded into stops. `<
 found in the SVG's folder) stay linked images (see Linked images); SVG files and `data:` SVGs become art; a file that
 can't be read becomes a placeholder in its box, named in `warnings` and `missingLinks`.
 
-Native files: `run_command document.save {compress: true}` writes a gzip-compressed `.vectorcraft` (the
+Native files: `run_command document.save {compress: true}` writes a gzip-compressed `.splinewright` (the
 `useCompression` preference makes that the default for saves; compressed files open like any other, told apart by
-their content). `version: 2` or `1` writes a file older VectorCraft versions open (format name `drawcraft`, never
+their content). `version: 2` or `1` writes a file older Splinewright versions open (format name `drawcraft`, never
 compressed), and `preview: true` embeds a PNG of the first artboard, at most 256 px on its longer side. A save writes
 a temporary file and renames it over the old one, so a failed save never damages the file; only the images the
 document uses are written, and document keys written by a newer version are kept.
@@ -307,8 +307,8 @@ document uses are written, and document keys written by a newer version are kept
 
 | URI | Content |
 |---|---|
-| `vectorcraft://document` | `document.inspect` summary (JSON) |
-| `vectorcraft://document/json` | The complete document model (JSON) |
+| `splinewright://document` | `document.inspect` summary (JSON) |
+| `splinewright://document/json` | The complete document model (JSON) |
 
 ## Examples
 
@@ -416,8 +416,8 @@ paints under its layers, which isn't art). `layers: false` gives one layer per p
 {"name":"run_command","arguments":{"command":"document.open","params":{"path":"/tmp/map.pdf","textAs":"outlines","layers":false}}}
 ```
 
-Preserve Editing (`preserveEditing`, on in the `VectorCraft Default` preset) embeds the native document in the PDF as
-an embedded file (`vectorcraft-editing.vectorcraft`; files named `drawcraft-editing.drawcraft` are read too) with a
+Preserve Editing (`preserveEditing`, on in the `Splinewright Default` preset) embeds the native document in the PDF as
+an embedded file (`splinewright-editing.splinewright`; files named `drawcraft-editing.drawcraft` are read too) with a
 hash of the pages it was written with. `open_file` / `document.open` of such a PDF, `.ai` or `.ait` (no `pages` picked) restores the
 document exactly (`restored: true`); when another app changed the pages, or the data can't be read, the artwork is
 imported instead and the first warning says why. Choosing a standard turns it off (PDF/A refuses it). Save to a `.ai`
@@ -489,25 +489,41 @@ printf '%s\n' \
   '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
   '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"draw_shape","arguments":{"shape":"ellipse","x":10,"y":10,"width":100,"height":80,"fill":"#ff0000"}}}' \
   '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"inspect_document","arguments":{}}}' \
-  | target/release/vectorcraft-cli mcp --headless
+  | target/release/splinewright-cli mcp --headless
 ```
 
+## Spelling, contrast and the CLI palette (Splinewright additions)
+
+- `type.checkSpelling {ids?, suggestions?, ignore?}` checks type objects against the bundled English dictionary
+  (SCOWL size 50, `assets/dict/`) and the custom dictionary (`customDictionary` preference, Preferences › Type).
+  Without `ids` it checks the selected type, else every visible, unlocked type object. It returns
+  `{checked, count, misspellings: [{id, word, start, end, suggestions}]}`; `start`/`end` are bytes of the
+  object's plain text, as `text.editRange` takes them. Edit › Spelling › Check Spelling… (Cmd+I) opens a dialog
+  that steps through the same list (Change, Change All, Ignore, Ignore All, Add).
+- `type.spell.change {changes: [{id, start, end, to}]}` applies several replacements as one undo step.
+- `type.spell.addWord {word}` adds to the custom dictionary; `type.spell.suggest {word, count?}` lists suggestions.
+- `object.checkContrast {foreground?, background?, ids?}` returns the WCAG 2 contrast ratio of two objects (the
+  upper one is the foreground; type uses its first character's fill) or of one object against `background`
+  (a colour, default white): `{ratio, foreground, background, aa, aaLarge, aaa, aaaLarge, nonText, summary}`.
+- `splinewright-cli palette FILE [--format text|json|hex]` lists a document's colours, most used first;
+  `splinewright-cli contrast #fg #bg` prints the ratio and exits 1 when the pair fails AA.
+- `help.docs` (F1), `help.github`, `help.upstream`, `help.reportIssue` and `help.website` return the project URLs.
 ## Headless batch CLI
 
 ```sh
-vectorcraft-cli commands                          # command catalogue (JSON)
-vectorcraft-cli run --in in.svg \
+splinewright-cli commands                          # command catalogue (JSON)
+splinewright-cli run --in in.svg \
   --cmd select.all --cmd paint.setFill --params '{"color":"#ff0000"}' \
   --export out.svg --export out.png --scale 2
-vectorcraft-cli run --cmd file.new --params '{"width":800,"height":600}' \
+splinewright-cli run --cmd file.new --params '{"width":800,"height":600}' \
   --cmd shape.star --params '{"cx":400,"cy":300,"radius1":200,"radius2":90}' \
-  --export star.vectorcraft
+  --export star.splinewright
 ```
 
 `run` prints one JSON line per step (`open`, `cmd`, `export`) and exits non-zero on the first failure. `--params`
 applies to the `--cmd` just before it. `run` also accepts the host commands `file.open`, `file.save`, `file.export`,
 `file.exportForScreens` and `tool.select`. `run --in`, `convert` and `info` read every format `document.open` reads
-(`vectorcraft-cli --help` lists them).
+(`splinewright-cli --help` lists them).
 
 ## Transparency and opacity masks
 
@@ -1114,7 +1130,7 @@ text in embedded subset fonts with a ToUnicode map; fonts whose licence forbids 
 warning.
 
 ```json
-{"name":"run_command","arguments":{"command":"document.exportPdf","params":{"path":"/tmp/press.pdf","output":{"conversion":"preserveNumbers","destination":"VectorCraft Generic CMYK (SWOP-like)","profiles":"destination","outputIntent":"VectorCraft Generic CMYK (SWOP-like)","trapped":true},"advanced":{"outlineText":false}}}}
+{"name":"run_command","arguments":{"command":"document.exportPdf","params":{"path":"/tmp/press.pdf","output":{"conversion":"preserveNumbers","destination":"Splinewright Generic CMYK (SWOP-like)","profiles":"destination","outputIntent":"Splinewright Generic CMYK (SWOP-like)","trapped":true},"advanced":{"outlineText":false}}}}
 ```
 
 ## Scale Strokes & Effects
@@ -1212,7 +1228,7 @@ The Selection & Anchor Display and General preferences apply to `pointer_gesture
 {"name":"pointer_gesture","arguments":{"tool":"selection","mods":{"cmd":true},"events":[{"kind":"down","x":175,"y":125},{"kind":"up","x":175,"y":125}]}}
 ```
 
-The preferences for the view need the desktop app (`vectorcraft-cli mcp --connect`): `zoomWithMouseWheel` (the
+The preferences for the view need the desktop app (`splinewright-cli mcp --connect`): `zoomWithMouseWheel` (the
 wheel zooms about the pointer, Shift-wheel scrolls up and down, Cmd/Ctrl-wheel sideways; the control channel's
 `ui.wheel` turns the wheel), `zoomToSelection` (on: Zoom In and Zoom Out centre the selection), `showToolTips`,
 `anchorSize` (1–7), `gridColor`, `gridStyle`, `gridsInBack`, `guideColor`, `guideStyle`, `showPixelGrid` (on by
@@ -1363,7 +1379,7 @@ path's direction; an inside or outside stroke spans the side it shows on). `pain
 strokeMode: "within"|"along"|"across"}` sets it (the Gradient panel's Stroke buttons), and `document.inspect` reports it
 as `strokeOptions.gradientMode`. Width profiles, dashes and arrowheads keep working: the gradient runs on through gaps
 and into the heads. Outline Stroke and Expand turn such a stroke into gradient meshes clipped to its outline; SVG and PDF
-write it as slices of linear gradients clipped to the outline (`vectorcraft_svg::export_with_report` and the PDF
+write it as slices of linear gradients clipped to the outline (`splinewright_svg::export_with_report` and the PDF
 report warn about it).
 
 ```json
@@ -1524,7 +1540,7 @@ fills or strokes carry effects is written as one piece per fill and stroke, so o
 ## Linked images
 
 A placed image linked to its file (`file.place {path}`, Link on) records the file's absolute path, its size,
-modification time and hash, and keeps a low-resolution preview (at most 256 px a side): a `.vectorcraft` save writes
+modification time and hash, and keeps a low-resolution preview (at most 256 px a side): a `.splinewright` save writes
 the preview instead of the pixels, plus the path relative to the saved file. `document.open` reads
 the linked files again, looking for each at its path, then at its relative path and by name in the document's folder
 (so a folder moved with its links still opens): the result lists `missingLinks` (their images show the preview),
@@ -1553,7 +1569,7 @@ bounds, or the artboard less a 36 pt margin.
 
 ## PDF presets
 
-`pdf.preset.list` lists the built-in presets (`VectorCraft Default`, which preserves editing, then High Quality Print,
+`pdf.preset.list` lists the built-in presets (`Splinewright Default`, which preserves editing, then High Quality Print,
 Press Quality, Smallest File Size and the PDF/X presets, `builtIn: true`; `supported` says the writer produces the
 preset's standard) and the saved ones, each with its `description` and `settings`. `pdf.preset.save {name?,
 newName?, description?, preset?, …document.exportPdf options}` creates or changes a saved preset (a change starts from
@@ -1584,7 +1600,7 @@ password?}` (the page's objects), `clipboard.importImage {dataBase64, mime?}` (a
 physical size) or `clipboard.importText {text}` (point text in the default type style), each centred on `center`
 (default: the first artboard); then any `edit.paste*` command pastes it. The desktop app does this itself: Copy and
 Cut publish the formats to the system clipboard, and a Paste outside text editing first reads what another app
-copied (SVG, then PDF, then text, then a bitmap; SVG markup in text counts as SVG). Pasting what VectorCraft copied
+copied (SVG, then PDF, then text, then a bitmap; SVG markup in text counts as SVG). Pasting what Splinewright copied
 keeps the lossless internal clipboard. Windows carries every format both ways and pastes a bitmap from PNG, else
 from the device-independent bitmap screenshots copy (`CF_DIBV5`, then `CF_DIB`; alpha kept, opaque when it is zero
 throughout, at most 32768 px a side); macOS and Linux carry one format (the text, else the PNG) and paste text and
@@ -1676,7 +1692,7 @@ bounds; `clip` puts it in a clip group of the old bounds when it is larger). The
 ## Package and Document Info
 
 `file.package {folder?, name?, copyLinks?, linksFolder?, relink?, copyFonts?, report?}` copies a saved document (an
-unsaved one is an error) into `folder/name` (default name `<document> Folder`): `<document>.vectorcraft`, its linked
+unsaved one is an error) into `folder/name` (default name `<document> Folder`): `<document>.splinewright`, its linked
 files in `Links/` (relinked: the packaged document points at the copies; the open one doesn't change), the fonts its
 type uses in `Fonts/` (fonts whose licence doesn't allow embedding are listed in `skippedFonts` instead) and
 `<document> Report.txt`. Every option defaults to true. Without `folder` (the web, or an agent that wants the bytes) the
@@ -1824,7 +1840,7 @@ Modified documents get recovery copies (`file.recovery.save`; the app runs it ev
 `autosaveRecovery` is on, skipping documents of more than 20,000 objects while `recoveryOffForComplex` is on). A copy
 goes when its document is saved, reverted or closed, so copies still there after the app quits were left by a crash.
 The copies live in the `recoveryFolder` preference's folder (default: `Data Recovery` beside the app's preferences;
-none when the app runs with `VECTORCRAFT_NO_PREFS`) or, on the web, in browser storage.
+none when the app runs with `SPLINEWRIGHT_NO_PREFS`) or, on the web, in browser storage.
 
 Each running app (each browser tab) keeps its copies in an area of its own (`<area>/<name>`): a sub-folder whose
 `.lock` file it keeps locked while it runs, or on the web an area with a heartbeat it refreshes every minute and a Web
@@ -1836,7 +1852,7 @@ again. Several apps running at once (agents' instances included) never see each 
 and an area being restored or discarded is held, so two apps launched together never both take it.
 
 `file.recovery.list` → `{copies: [{file, title, path, format, saved, open, running}], location}` (`open`: the copy of a
-document open here; `running`: kept by another VectorCraft that is running). `file.recovery.restore {file?}` opens
+document open here; `running`: kept by another Splinewright that is running). `file.recovery.restore {file?}` opens
 copies left behind (default: all) as `"<name> [Recovered]"`: modified, and Save asks where to save them (suggesting
 their original file); the copy moves into this app's area. `file.recovery.discard {file?}` deletes them. Without a
 folder or browser storage the commands are disabled and say how to set one.
@@ -1849,7 +1865,7 @@ folder or browser storage the commands are disabled and say how to set one.
 
 ## Native save options
 
-`document.save` / `file.saveAs` / `file.saveCopy` to a native (`.vectorcraft`, `.vctemplate`) or `.ai` file take, flat
+`document.save` / `file.saveAs` / `file.saveCopy` to a native (`.splinewright`, `.vctemplate`) or `.ai` file take, flat
 or in `options` (`file.formatOptions {format}` lists them with their values):
 
 - `separateArtboards: true` also writes each artboard of `range` (`"1-3, 5"`, default `"all"`) to
@@ -1862,11 +1878,11 @@ or in `options` (`file.formatOptions {format}` lists them with their values):
   (default true) with false write blank pages around the native document (smaller; other apps show empty pages).
 - `.ai` only: `compress` (default true) is the PDF option `compression.compressText`.
 
-File → Save As asks for these in the save options dialog (VectorCraft Options) after the save panel; Save, Save a Copy
+File → Save As asks for these in the save options dialog (Splinewright Options) after the save panel; Save, Save a Copy
 and Save as Template reuse the options as last saved (or Use Compression).
 
 ```json
-{"name":"run_command","arguments":{"command":"file.saveAs","params":{"path":"/tmp/set.vectorcraft","separateArtboards":true,"range":"2-3","includeLinked":true}}}
+{"name":"run_command","arguments":{"command":"file.saveAs","params":{"path":"/tmp/set.splinewright","separateArtboards":true,"range":"2-3","includeLinked":true}}}
 {"name":"run_command","arguments":{"command":"file.saveAs","params":{"path":"/tmp/set.ai","pdfCompatible":false}}}
 ```
 
@@ -1884,7 +1900,7 @@ white and gradients and patterns as one colour. What a format leaves out comes b
 
 `document.open` and `file.place` read `.emf` and `.wmf` (placeable or not) into one artboard, the picture's frame, and
 one layer: paths with their fills and strokes (pens become strokes with caps, joins and dashes), clipping groups,
-images and point type in the font the file names. Records VectorCraft doesn't read (EMF+ drawing among them) are
+images and point type in the font the file names. Records Splinewright doesn't read (EMF+ drawing among them) are
 skipped with one warning. `clipboard.importEmf {dataBase64, center?}` loads an EMF or WMF picture into the clipboard
 for `edit.paste`; the app pastes `image/emf` from the system clipboard ahead of text and bitmaps when the platform's
 clipboard service offers it (the Windows desktop service doesn't read metafiles yet).
@@ -1997,7 +2013,7 @@ show) is the flat render. `maxEditability: true` turns layers and sublayers into
 named as the Layers panel names it (text objects by their text); layers with a clipping mask, an opacity mask, an
 appearance of their own or knockout stay one pixel layer. Hidden layers and objects are left out unless
 `hiddenLayers: true` writes them as hidden layers. `layers: false` writes one flat image, on white where nothing is
-drawn. Files are at most 30000 pixels a side; PSD files don't open in VectorCraft.
+drawn. Files are at most 30000 pixels a side; PSD files don't open in Splinewright.
 
 ```json
 {"name":"export","arguments":{"path":"/tmp/poster.psd","options":{"ppi":300,"maxEditability":true}}}
@@ -2040,7 +2056,7 @@ unless `replace`). Saved presets live with the preferences. To print with a pres
 ## EPS and PostScript import
 
 `document.open` and `file.place` read `.eps` files, and PostScript by any name (an `.ai` saved without PDF
-compatibility opens as artwork; an `.ait` one as a new untitled document). An EPS file VectorCraft wrote restores the
+compatibility opens as artwork; an `.ait` one as a new untitled document). An EPS file Splinewright wrote restores the
 document it carries (`restored: true`, as Preserve Editing does for PDF and SVG); when that document can't be read the
 PostScript is read instead and the first warning says why.
 
@@ -2090,7 +2106,7 @@ its standard: what it still breaks (transparency, RGB in PDF/X-1a, a font not em
 writing a file that only claims the standard.
 
 ```json
-{"name":"run_command","arguments":{"command":"document.exportPdf","params":{"path":"/tmp/press.pdf","preset":"PDF/X-1a:2001","output":{"outputIntent":"VectorCraft Generic CMYK (SWOP-like)","outputCondition":"Coated","trapped":false}}}}
+{"name":"run_command","arguments":{"command":"document.exportPdf","params":{"path":"/tmp/press.pdf","preset":"PDF/X-1a:2001","output":{"outputIntent":"Splinewright Generic CMYK (SWOP-like)","outputCondition":"Coated","trapped":false}}}}
 ```
 
 ## Print tiling
@@ -2131,7 +2147,7 @@ colours keep their numbers with `preserveNumbers`), so a CMYK profile writes dev
 CMYK one. Settings saved before these options load with their defaults.
 
 ```json
-{"name":"run_command","arguments":{"command":"file.print","params":{"path":"/tmp/proof.pdf","settings":{"advanced":{"overprints":"simulate","flattenerPreset":"High Resolution"},"color":{"profile":"VectorCraft Generic CMYK (SWOP-like)","intent":"perceptual"}}}}}
+{"name":"run_command","arguments":{"command":"file.print","params":{"path":"/tmp/proof.pdf","settings":{"advanced":{"overprints":"simulate","flattenerPreset":"High Resolution"},"color":{"profile":"Splinewright Generic CMYK (SWOP-like)","intent":"perceptual"}}}}}
 ```
 
 ### Rotated bounding boxes
@@ -2216,7 +2232,7 @@ undo step.
 
 ## New type in a Japanese interface
 
-While the interface is in Japanese (VectorCraft › Language, or `auto` on a Japanese system), new type starts with em
+While the interface is in Japanese (Splinewright › Language, or `auto` on a Japanese system), new type starts with em
 box top-to-top leading (`leadingModel: "emBoxTop"`) and em box centre character alignment (`charAlign: "emBoxCenter"`);
 in other languages it starts on the Roman baseline (#432). This covers the Type tools,
 `text.create` and `text.createInPath`, which also take `leadingModel` and `charAlign` to choose, and `paraStyle.new` /
@@ -2268,7 +2284,7 @@ id `plugin.<id>`: `effect.apply`, `effect.setParams` and `effect.expandAppearanc
 
 ```json
 {"name":"run_command","arguments":{"command":"plugin.install","params":{"path":"/plugins/desaturate.wasm"}}}
-{"name":"run_command","arguments":{"command":"plugin.run","params":{"id":"org.vectorcraft.example.desaturate","params":{"amount":60}}}}
+{"name":"run_command","arguments":{"command":"plugin.run","params":{"id":"org.splinewright.example.desaturate","params":{"amount":60}}}}
 {"name":"run_command","arguments":{"command":"effect.apply","params":{"effect":"plugin.org.example.wobble","params":{"size":4}}}}
 ```
 

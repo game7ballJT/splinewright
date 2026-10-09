@@ -1,27 +1,27 @@
 [package]
-name = "vectorcraft-eps"
+name = "splinewright-eps"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "VectorCraft Encapsulated PostScript: a hand-written EPS writer (PostScript Level 2 and 3) with TIFF previews"
+description = "Splinewright Encapsulated PostScript: a hand-written EPS writer (PostScript Level 2 and 3) with TIFF previews"
 
 [lints]
 workspace = true
 
 [dependencies]
-vectorcraft-geom = { workspace = true }
-vectorcraft-color = { workspace = true }
-vectorcraft-doc = { workspace = true }
-vectorcraft-effects = { workspace = true }
-vectorcraft-brush = { workspace = true }
-vectorcraft-text = { workspace = true }
+splinewright-geom = { workspace = true }
+splinewright-color = { workspace = true }
+splinewright-doc = { workspace = true }
+splinewright-effects = { workspace = true }
+splinewright-brush = { workspace = true }
+splinewright-text = { workspace = true }
 # Windows metafile previews, opened when a file's PostScript can't be read.
-vectorcraft-metafile = { workspace = true }
+splinewright-metafile = { workspace = true }
 # The TIFF writer (previews) and PackBits, shared with raster export.
-vectorcraft-render = { workspace = true }
+splinewright-render = { workspace = true }
 kurbo = { workspace = true }
 image = { workspace = true }
 flate2 = { workspace = true }
 
 [dev-dependencies]
-vectorcraft-testkit = { workspace = true }
+splinewright-testkit = { workspace = true }

@@ -3,10 +3,10 @@
 
 use egui::{Sense, Stroke, Ui, vec2};
 use serde_json::{Value, json};
-use vectorcraft_doc::{NodeKind, TabAlign, TabStop};
+use splinewright_doc::{NodeKind, TabAlign, TabStop};
 
 use super::{first_selected, pstate, set_pstate};
-use crate::VectorcraftApp;
+use crate::SplinewrightApp;
 use crate::theme::Tokens;
 use crate::widgets::{self, menu_item};
 
@@ -27,11 +27,11 @@ fn align_id(a: TabAlign) -> &'static str {
 }
 
 /// The first selected text object's stops and the ruler span in points (the frame width for area type).
-fn current(app: &VectorcraftApp) -> Option<(Vec<TabStop>, f64)> {
+fn current(app: &SplinewrightApp) -> Option<(Vec<TabStop>, f64)> {
     let n = first_selected(app)?;
     let NodeKind::Text(t) = &n.kind else { return None };
     let span = match &t.kind {
-        vectorcraft_doc::TextKind::Area { frame } => frame.bounds().map_or(360.0, |b| b.width()),
+        splinewright_doc::TextKind::Area { frame } => frame.bounds().map_or(360.0, |b| b.width()),
         _ => 360.0,
     };
     Some((t.para.tabs.clone(), span.max(72.0)))
@@ -46,7 +46,7 @@ fn stops_json(stops: &[TabStop]) -> Value {
     )
 }
 
-fn apply(app: &mut VectorcraftApp, stops: &[TabStop]) {
+fn apply(app: &mut SplinewrightApp, stops: &[TabStop]) {
     if let Some((id, _, _)) = super::character::text_editing(app) {
         super::character::end_typing(app);
         app.run("text.tabs.set", json!({"stops": stops_json(stops), "ids": [id.0]})).ok();
@@ -55,7 +55,7 @@ fn apply(app: &mut VectorcraftApp, stops: &[TabStop]) {
     }
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let Some((mut stops, span)) = current(app) else {
         super::empty_state(ui, "pilcrow", tl!("No text selected"), tl!("Select a text object to set its tab stops."));
@@ -202,7 +202,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     resp.on_hover_text(tl!("Click to add a tab stop, drag to move it, drag it off the ruler to delete it"));
 }
 
-pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(app: &mut SplinewrightApp, ui: &mut Ui) {
     let Some((mut stops, _)) = current(app) else {
         ui.add_enabled(false, egui::Button::new(tl!("Select text")).frame(false));
         return;
@@ -233,9 +233,9 @@ pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vectorcraft_engine::Session;
+    use splinewright_engine::Session;
 
-    fn frame(app: &mut VectorcraftApp) {
+    fn frame(app: &mut SplinewrightApp) {
         let ctx = egui::Context::default();
         let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
             show(app, ui);
@@ -246,7 +246,7 @@ mod tests {
 
     #[test]
     fn panel_draws_empty_with_text_and_with_stops() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({})).unwrap();
         frame(&mut app);
         app.session.execute("text.create", &json!({"x": 10, "y": 20, "text": "a\tb", "area": {"width": 300, "height": 100}})).unwrap();

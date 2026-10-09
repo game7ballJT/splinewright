@@ -6,9 +6,9 @@
 
 use std::sync::Arc;
 
-use vectorcraft_color::{BlendMode, cms};
-use vectorcraft_doc::{Document, Knockout, LayerColor, Node, NodeKind};
-use vectorcraft_geom::Rect;
+use splinewright_color::{BlendMode, cms};
+use splinewright_doc::{Document, Knockout, LayerColor, Node, NodeKind};
+use splinewright_geom::Rect;
 
 use super::jpeg::{self, ColorModel};
 use super::tiff::packbits;

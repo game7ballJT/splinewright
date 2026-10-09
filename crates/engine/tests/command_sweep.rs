@@ -5,16 +5,16 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use serde_json::{Value, json};
-use vectorcraft_engine::{Session, command_specs};
-use vectorcraft_testkit::catch_quiet;
-use vectorcraft_testkit::fixtures::Fixture;
-use vectorcraft_testkit::invariants::{check_all, check_session, doc_json};
-use vectorcraft_testkit::strategies::{junk_params, junk_values, param_keys};
+use splinewright_engine::{Session, command_specs};
+use splinewright_testkit::catch_quiet;
+use splinewright_testkit::fixtures::Fixture;
+use splinewright_testkit::invariants::{check_all, check_session, doc_json};
+use splinewright_testkit::strategies::{junk_params, junk_values, param_keys};
 
 /// Commands that replace/close the active document or touch the filesystem are fine to call, but a
 /// few need their paths redirected into a temp dir (handled by `junk_params`).
 fn safe_path() -> String {
-    vectorcraft_testkit::temp_dir("sweep").join("out.bin").to_string_lossy().to_string()
+    splinewright_testkit::temp_dir("sweep").join("out.bin").to_string_lossy().to_string()
 }
 
 /// Run one call; returns a failure description or None.
@@ -71,7 +71,7 @@ fn every_command_without_a_document() {
         match catch_quiet(|| s.execute(c.id, &json!({}))) {
             Err(p) => failures.push(format!("PANIC {} with no document: {p}", c.id)),
             // Anything that needs a document must say so via enablement, not fail later.
-            Ok(Err(vectorcraft_engine::EngineError::NoDocument)) => failures.push(format!("{}: enabled without a document but needs one", c.id)),
+            Ok(Err(splinewright_engine::EngineError::NoDocument)) => failures.push(format!("{}: enabled without a document but needs one", c.id)),
             Ok(_) => {}
         }
         if s.in_interaction() {
@@ -118,7 +118,7 @@ fn bug_huge_transform_makes_document_unloadable() {
     ] {
         let mut s = Fixture::Multi.session();
         if s.execute(id, &p).is_ok() {
-            vectorcraft_testkit::invariants::check_native_roundtrip(&s.doc().unwrap().doc).unwrap_or_else(|e| panic!("{id} {p}: {e}"));
+            splinewright_testkit::invariants::check_native_roundtrip(&s.doc().unwrap().doc).unwrap_or_else(|e| panic!("{id} {p}: {e}"));
         }
     }
 }
@@ -129,7 +129,8 @@ fn bug_artboard_huge_props_break_svg() {
         let mut s = Fixture::Single.session();
         let p = json!({"index": 0, key: 1e308});
         if s.execute("artboard.setProps", &p).is_ok() {
-            vectorcraft_testkit::invariants::check_svg_roundtrip(&s.doc().unwrap().doc).unwrap_or_else(|e| panic!("{p}: {}", &e[..e.len().min(200)]));
+            splinewright_testkit::invariants::check_svg_roundtrip(&s.doc().unwrap().doc)
+                .unwrap_or_else(|e| panic!("{p}: {}", &e[..e.len().min(200)]));
         }
     }
 }
@@ -278,7 +279,7 @@ fn structured_junk() {
         ("document.open", json!({"name": "x.svg", "dataBase64": "!!!"})),
         ("document.open", json!({"name": "x.svg", "dataBase64": "PHN2Zz4="})),
         ("document.open", json!({"name": "x.pdf", "dataBase64": "JVBERi0xLjQK"})),
-        ("document.open", json!({"name": "x.vectorcraft", "dataBase64": "e30="})),
+        ("document.open", json!({"name": "x.splinewright", "dataBase64": "e30="})),
         ("document.activate", json!({"index": 99})),
         ("file.close", json!({"index": 99})),
         ("file.new", json!({"width": -1, "height": 0, "artboards": 1000000})),
@@ -357,7 +358,7 @@ fn every_command_undoes_exactly() {
             let _ = s.execute("edit.undo", &json!({}));
             let after = doc_json(&s.doc().unwrap().doc);
             if after != before {
-                failures.push(format!("{}: {}", c.id, vectorcraft_testkit::invariants::first_diff(&before, &after, "$")));
+                failures.push(format!("{}: {}", c.id, splinewright_testkit::invariants::first_diff(&before, &after, "$")));
             }
         } else if doc_json(&s.doc().unwrap().doc) != before && !c.params.contains("View state: not an undo step") {
             failures.push(format!("{}: changed the document without an undo step", c.id));
@@ -370,19 +371,19 @@ fn every_command_undoes_exactly() {
 /// params never panic.
 #[test]
 fn recovery_commands_with_a_damaged_store_and_junk_params() {
+    use splinewright_engine::cmd::recovery::{MemoryStore, RecoveryStore};
     use std::sync::Arc;
-    use vectorcraft_engine::cmd::recovery::{MemoryStore, RecoveryStore};
     let store = Arc::new(MemoryStore::default());
     for (name, bytes) in [
-        ("1-1/bad-1.vectorcraft", &b"{not json"[..]),
+        ("1-1/bad-1.splinewright", &b"{not json"[..]),
         ("1-1/bad-1.json", b"[1, 2"),
-        ("1-1/gz-1.vectorcraft", &[0x1f, 0x8b, 0, 1, 2][..]),
+        ("1-1/gz-1.splinewright", &[0x1f, 0x8b, 0, 1, 2][..]),
         ("1-1/meta-only.json", br#"{"title": 5, "path": [], "saved": "x"}"#),
         ("2-1/heartbeat", b"not a number"),
-        ("2-1/x.vectorcraft", b"{}"),
-        ("../escape.vectorcraft", b"{}"),
-        ("no-area.vectorcraft", b"{}"),
-        ("/.vectorcraft", b"{}"),
+        ("2-1/x.splinewright", b"{}"),
+        ("../escape.splinewright", b"{}"),
+        ("no-area.splinewright", b"{}"),
+        ("/.splinewright", b"{}"),
     ] {
         store.write(name, bytes).unwrap();
     }

@@ -8,9 +8,9 @@
 
 use kurbo::{Affine, Rect};
 use serde::Serialize;
-use vectorcraft_doc::marks::outset;
-use vectorcraft_doc::range::parse_range;
-use vectorcraft_doc::{Document, Node, NodeKind};
+use splinewright_doc::marks::outset;
+use splinewright_doc::range::parse_range;
+use splinewright_doc::{Document, Node, NodeKind};
 
 use super::{Emulsion, Orientation, PrintArtboards, PrintScaling, PrintSettings};
 use crate::PdfError;

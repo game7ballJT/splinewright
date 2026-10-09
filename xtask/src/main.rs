@@ -25,7 +25,7 @@ commands:
   ci              fmt --check, clippy -D warnings, test, assets, brands, layers, wasm (stops at first failure)
   corpus [--download]
                   show where test corpora live; --download fetches PngSuite into corpus/pngsuite
-  bundle          build dist/VectorCraft.app (macOS) with assets/app-icon/vectorcraft.icns
+  bundle          build dist/Splinewright.app (macOS) with assets/app-icon/splinewright.icns
   ico <out.ico> <png>...
                   pack PNGs into a Windows .ico (used by packaging/icons.sh)
   stats [--exact] count tests and lines per crate (--exact: ask the test harness via `-- --list`)
@@ -224,7 +224,7 @@ fn cmd_corpus(download: bool) -> Result<(), String> {
         "Test corpora live under {} (git-ignored, never committed).
 Tests that use a corpus skip cleanly when it is absent.
 
-  corpus/pngsuite/   PngSuite (public domain) — vectorcraft-codecs compares every file
+  corpus/pngsuite/   PngSuite (public domain) — splinewright-codecs compares every file
                      against the `image` crate. Fetch: cargo xtask corpus --download
   corpus/psd/        PSD samples from MIT/BSD projects (ag-psd, psd-tools test data).
                      Copy files in manually; licences must be MIT/BSD/CC0.

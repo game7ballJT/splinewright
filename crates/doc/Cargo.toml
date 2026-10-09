@@ -1,16 +1,16 @@
 [package]
-name = "vectorcraft-doc"
+name = "splinewright-doc"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "VectorCraft document model: artboards, layers, objects, appearance (pure data + serde)"
+description = "Splinewright document model: artboards, layers, objects, appearance (pure data + serde)"
 
 [lints]
 workspace = true
 
 [dependencies]
-vectorcraft-geom = { workspace = true }
-vectorcraft-color = { workspace = true }
+splinewright-geom = { workspace = true }
+splinewright-color = { workspace = true }
 kurbo = { workspace = true }
 image = { workspace = true }
 tiff = { workspace = true }

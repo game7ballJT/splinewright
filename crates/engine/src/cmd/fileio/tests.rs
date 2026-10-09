@@ -1,7 +1,7 @@
 use std::io::Cursor;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeKind;
+use splinewright_doc::NodeKind;
 
 use super::*;
 use crate::cmd::parse_range;
@@ -19,11 +19,11 @@ fn tmp_dir(tag: &str) -> std::path::PathBuf {
 }
 
 fn b64(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
+    splinewright_format::base64_decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
 }
 
 fn open(s: &mut Session, name: &str, bytes: &[u8]) -> Value {
-    s.execute("document.open", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes)}))
+    s.execute("document.open", &json!({"name": name, "dataBase64": splinewright_format::base64_encode(bytes)}))
         .unwrap_or_else(|e| panic!("{name}: {e}"))
 }
 
@@ -40,7 +40,7 @@ fn image_bytes(w: u32, h: u32, format: image::ImageFormat) -> Vec<u8> {
     out
 }
 
-fn image_of(s: &Session) -> vectorcraft_doc::ImageObject {
+fn image_of(s: &Session) -> splinewright_doc::ImageObject {
     let doc = &s.doc().unwrap().doc;
     match &doc.layers[0].children().unwrap()[0].kind {
         NodeKind::Image(im) => im.clone(),
@@ -55,11 +55,11 @@ fn opens_every_readable_format() {
     let native = b64(&s.execute("document.serialize", &json!({})).unwrap());
     let svg = s.execute("document.serialize", &json!({"format": "svg"})).unwrap()["text"].as_str().unwrap().to_string();
     let pdf = b64(&s.execute("document.serialize", &json!({"format": "pdf"})).unwrap());
-    let svgz = vectorcraft_svg::compress(&svg);
+    let svgz = splinewright_svg::compress(&svg);
 
     for (name, bytes, format) in [
-        ("a.vectorcraft", native.clone(), "vectorcraft"),
-        ("a.drawcraft", native, "vectorcraft"),
+        ("a.splinewright", native.clone(), "splinewright"),
+        ("a.drawcraft", native, "splinewright"),
         ("a.svg", svg.into_bytes(), "svg"),
         ("a.svgz", svgz, "svgz"),
         ("a.pdf", pdf.clone(), "pdf"),
@@ -67,7 +67,7 @@ fn opens_every_readable_format() {
     ] {
         let r = open(&mut s, name, &bytes);
         assert_eq!(r["format"], format, "{name}");
-        assert_eq!(r["title"], if format == "vectorcraft" { "Untitled-1" } else { name }, "{name}");
+        assert_eq!(r["title"], if format == "splinewright" { "Untitled-1" } else { name }, "{name}");
         assert!(s.doc().unwrap().doc.node_count() >= 2, "{name}: the rectangle came through");
     }
     for (name, kind) in [
@@ -105,8 +105,8 @@ fn webp_opens_at_its_pixel_size() {
 
 #[test]
 fn cmyk_tiffs_keep_their_inks_and_other_tiffs_become_png() {
-    let inks = vectorcraft_doc::cmyk::Inks::new(2, 1, vec![0, 102, 255, 0, 10, 20, 30, 40]).unwrap();
-    let tiff = vectorcraft_doc::ImageBlob::cmyk_tiff(&inks).unwrap();
+    let inks = splinewright_doc::cmyk::Inks::new(2, 1, vec![0, 102, 255, 0, 10, 20, 30, 40]).unwrap();
+    let tiff = splinewright_doc::ImageBlob::cmyk_tiff(&inks).unwrap();
     let r = raster_image(&tiff.bytes).unwrap();
     assert_eq!((r.width, r.height, r.blob.mime.as_str()), (2, 1, "image/tiff"));
     assert_eq!(r.blob.cmyk(), Some(inks));
@@ -128,7 +128,7 @@ fn content_beats_a_wrong_extension() {
 fn templates_open_untitled() {
     let mut s = session(100.0, 100.0, 1);
     let dir = tmp_dir("tpl");
-    let path = dir.join("t.vectorcraft").to_string_lossy().to_string();
+    let path = dir.join("t.splinewright").to_string_lossy().to_string();
     s.execute("file.saveAsTemplate", &json!({"path": path})).unwrap();
     let r = s.execute("document.open", &json!({"path": path})).unwrap();
     assert!(r["title"].as_str().unwrap().starts_with("Untitled-"), "{r}");
@@ -169,7 +169,7 @@ fn export_extensions_name_every_writable_format() {
     assert_eq!(
         exts,
         [
-            "vectorcraft",
+            "splinewright",
             "svg",
             "svgz",
             "pdf",
@@ -202,7 +202,7 @@ fn formats_query_lists_readers_writers_and_options() {
     assert_eq!(
         ids("writable"),
         [
-            "vectorcraft",
+            "splinewright",
             "svg",
             "svgz",
             "pdf",
@@ -242,7 +242,7 @@ fn ranges_parse_one_based() {
 
 /// Pages in a PDF, counted by importing it (one artboard per page).
 fn pdf_pages(bytes: &[u8]) -> usize {
-    vectorcraft_pdf::import(bytes).unwrap().artboards.len()
+    splinewright_pdf::import(bytes).unwrap().artboards.len()
 }
 
 #[test]
@@ -267,12 +267,12 @@ fn pdf_export_honours_artboard_and_range() {
 fn export_without_path_returns_bytes_and_never_retargets() {
     let mut s = session(100.0, 100.0, 1);
     let dir = tmp_dir("retarget");
-    let doc_path = dir.join("doc.vectorcraft").to_string_lossy().to_string();
+    let doc_path = dir.join("doc.splinewright").to_string_lossy().to_string();
     s.execute("document.save", &json!({"path": doc_path})).unwrap();
-    let copy = dir.join("copy.vectorcraft").to_string_lossy().to_string();
+    let copy = dir.join("copy.splinewright").to_string_lossy().to_string();
     let r = s.execute("document.export", &json!({"path": copy})).unwrap();
-    assert_eq!(r["format"], "vectorcraft");
-    assert!(vectorcraft_format::sniff(&std::fs::read(&copy).unwrap()));
+    assert_eq!(r["format"], "splinewright");
+    assert!(splinewright_format::sniff(&std::fs::read(&copy).unwrap()));
     assert_eq!(s.doc().unwrap().path.as_deref(), Some(doc_path.as_str()), "exporting the native format keeps the document's path");
     let r = s.execute("document.export", &json!({"format": "jpg"})).unwrap();
     assert_eq!(&b64(&r)[..2], [0xFF, 0xD8]);
@@ -281,7 +281,7 @@ fn export_without_path_returns_bytes_and_never_retargets() {
     // A never-saved document hands its native bytes back.
     let mut s = session(10.0, 10.0, 1);
     let r = s.execute("document.save", &json!({})).unwrap();
-    assert!(vectorcraft_format::sniff(&b64(&r)));
+    assert!(splinewright_format::sniff(&b64(&r)));
     assert_eq!(s.doc().unwrap().path, None);
     let _ = std::fs::remove_dir_all(dir);
 }
@@ -341,7 +341,7 @@ fn export_for_screens_one_page_per_pdf_unique_names() {
     let r = s.execute("document.exportForScreens", &json!({"range": "3", "formats": [{"format": "jpg", "scale": 0.5}]})).unwrap();
     assert_eq!(r["files"][0]["name"], "Artboard-3@0.5x.jpg");
     assert_eq!(image::load_from_memory(&b64(&r["files"][0])).unwrap().width(), 50);
-    assert!(s.execute("document.exportForScreens", &json!({"formats": [{"format": "vectorcraft"}]})).is_err());
+    assert!(s.execute("document.exportForScreens", &json!({"formats": [{"format": "splinewright"}]})).is_err());
     let _ = std::fs::remove_dir_all(dir);
 }
 
@@ -352,7 +352,7 @@ fn template_sublayers_are_left_out_too() {
     s.execute("layer.setCurrent", &json!({"id": sub})).unwrap();
     s.execute("paint.setFill", &json!({"color": "#ff0000"})).unwrap();
     let red = s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 50, "height": 100})).unwrap()["id"].as_u64().unwrap();
-    assert_eq!(s.doc().unwrap().doc.ancestry(vectorcraft_doc::NodeId(red)).unwrap().len(), 3, "the square is on a sublayer");
+    assert_eq!(s.doc().unwrap().doc.ancestry(splinewright_doc::NodeId(red)).unwrap().len(), 3, "the square is on a sublayer");
     assert!(has_red(&b64(&s.execute("document.export", &json!({"format": "png"})).unwrap())));
     s.execute("layer.setProps", &json!({"id": sub, "template": true})).unwrap();
     assert!(!has_red(&b64(&s.execute("document.export", &json!({"format": "png"})).unwrap())), "a template sublayer is left out");

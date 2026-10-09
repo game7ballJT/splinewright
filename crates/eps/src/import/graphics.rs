@@ -5,12 +5,12 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use kurbo::{PathEl, Shape};
-use vectorcraft_color::swatch::REGISTRATION;
-use vectorcraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop, Paint};
-use vectorcraft_doc::clipnest::{Clip, Drawn, MAX_NEST, deep_clips};
-use vectorcraft_doc::pattern::PatternDef;
-use vectorcraft_doc::{Appearance, AppearanceItem, Dash, Document, FillLayer, LineCap, LineJoin, Node, NodeId, NodeKind, StrokeLayer};
-use vectorcraft_geom::{Affine, BezPath, FillRule, PathData, Point, Rect, Vec2};
+use splinewright_color::swatch::REGISTRATION;
+use splinewright_color::{Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop, Paint};
+use splinewright_doc::clipnest::{Clip, Drawn, MAX_NEST, deep_clips};
+use splinewright_doc::pattern::PatternDef;
+use splinewright_doc::{Appearance, AppearanceItem, Dash, Document, FillLayer, LineCap, LineJoin, Node, NodeId, NodeKind, StrokeLayer};
+use splinewright_geom::{Affine, BezPath, FillRule, PathData, Point, Rect, Vec2};
 
 use super::interp::{Interp, MAX_GSAVE, matrix_obj};
 use super::obj::{DictRef, Key, Obj, Op, PsError, Res, Shared, ps_err};
@@ -36,7 +36,7 @@ const MAX_DRAWN: usize = 1 << 24;
 const SHADING_SAMPLES: usize = 32;
 
 const FAR_AWAY: &str = "objects far outside the page were left out";
-const TOO_MUCH: &str = "the file draws more than VectorCraft reads: the rest was left out";
+const TOO_MUCH: &str = "the file draws more than Splinewright reads: the rest was left out";
 const NESTED_PATTERNS: &str = "patterns nested too deeply are filled with mid-grey";
 /// Deepest patterns and glyph procedures drawn inside each other's art.
 pub(crate) const MAX_APART: u32 = 8;
@@ -984,7 +984,7 @@ impl Interp<'_> {
         (self.out.groups, self.out.too_deep) = (groups, too_deep);
         (self.g, self.saved) = (g, saved);
         r?;
-        let mut nodes = vectorcraft_doc::clipnest::nest(&mut self.out.doc, art);
+        let mut nodes = splinewright_doc::clipnest::nest(&mut self.out.doc, art);
         if !self.out.shadings.is_empty() {
             collapse(&mut nodes, &self.out.shadings);
         }
@@ -1137,7 +1137,7 @@ impl Interp<'_> {
                     st.dash = None;
                 }
                 let tol = (0.01 / self.scale().max(1e-9)).clamp(1e-4, 1.0);
-                let outline = vectorcraft_effects::stroke::line_outline(&bp, &st, st.width, tol);
+                let outline = splinewright_effects::stroke::line_outline(&bp, &st, st.width, tol);
                 if outline.elements().len() >= MAX_PATH {
                     return Err(PsError::Limit("a path has too many points"));
                 }

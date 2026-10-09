@@ -5,9 +5,9 @@
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
-use vectorcraft_doc::Document;
-use vectorcraft_geom::Affine;
-use vectorcraft_render::{RenderOptions, Rendered, Renderer};
+use splinewright_doc::Document;
+use splinewright_geom::Affine;
+use splinewright_render::{RenderOptions, Rendered, Renderer};
 
 use crate::CacheKey;
 
@@ -41,7 +41,7 @@ impl Worker {
         let (tx, jobs) = channel::<Job>();
         let (done_tx, rx) = channel::<Done>();
         std::thread::Builder::new()
-            .name("vectorcraft-render".into())
+            .name("splinewright-render".into())
             .spawn(move || {
                 let mut r = Renderer::new();
                 while let Ok(mut job) = jobs.recv() {

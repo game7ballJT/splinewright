@@ -16,9 +16,9 @@
 use std::collections::HashMap;
 
 use serde_json::{Value, json};
-use vectorcraft_color::Paint;
-use vectorcraft_doc::{Appearance, DEFAULT_GRAPHIC_STYLE, Document, GraphicStyle, Node, NodeId, NodeKind};
-use vectorcraft_geom::Rect;
+use splinewright_color::Paint;
+use splinewright_doc::{Appearance, DEFAULT_GRAPHIC_STYLE, Document, GraphicStyle, Node, NodeId, NodeKind};
+use splinewright_geom::Rect;
 
 use super::*;
 use crate::EngineError;

@@ -10,8 +10,8 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{Artboard, Document, LAYER_COLORS, LayerColor, Node, NodeId, NodeKind};
-use vectorcraft_geom::Rect;
+use splinewright_doc::{Artboard, Document, LAYER_COLORS, LayerColor, Node, NodeId, NodeKind};
+use splinewright_geom::Rect;
 
 use super::*;
 use crate::EngineError;
@@ -247,7 +247,7 @@ fn layer_color_param(v: &Value) -> std::result::Result<LayerColor, String> {
             if let Some(i) = LAYER_COLORS.iter().position(|(name, _)| name.eq_ignore_ascii_case(s.trim())) {
                 return Ok(LayerColor::Preset(i as u8));
             }
-            let c = vectorcraft_color::Color::from_hex(s).ok_or_else(|| format!("`{s}` is not a colour (#rrggbb or a preset name)"))?;
+            let c = splinewright_color::Color::from_hex(s).ok_or_else(|| format!("`{s}` is not a colour (#rrggbb or a preset name)"))?;
             let [r, g, b, _] = c.to_rgba8(1.0);
             Ok(LayerColor::Custom([r, g, b]))
         }

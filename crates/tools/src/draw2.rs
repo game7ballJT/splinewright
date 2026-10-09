@@ -9,8 +9,8 @@ mod family;
 mod gesture;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{NodeId, NodeKind};
-use vectorcraft_geom::{Anchor, AnchorKind, BezPath, Point, SubPath};
+use splinewright_doc::{NodeId, NodeKind};
+use splinewright_geom::{Anchor, AnchorKind, BezPath, Point, SubPath};
 
 use crate::{Action, Tool, ToolContext};
 

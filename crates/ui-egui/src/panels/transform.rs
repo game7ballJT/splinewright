@@ -4,13 +4,13 @@
 
 use egui::Ui;
 use serde_json::json;
-use vectorcraft_doc::NodeKind;
-use vectorcraft_geom::Rect;
+use splinewright_doc::NodeKind;
+use splinewright_geom::Rect;
 
 use super::{corner_radius_row, first_selected, pstate, set_pstate};
 use crate::theme::Tokens;
 use crate::widgets::{self, menu_item};
-use crate::{VectorcraftApp, icons};
+use crate::{SplinewrightApp, icons};
 
 pub const ANGLE_PRESETS: [f64; 9] = [-180.0, -135.0, -90.0, -45.0, 0.0, 45.0, 90.0, 135.0, 180.0];
 /// The shear angle's presets: steep enough to be useful, short of the degenerate ±90°.
@@ -26,7 +26,7 @@ pub fn constrained(w: f64, h: f64, new_w: Option<f64>, new_h: Option<f64>) -> (f
 }
 
 /// The artboard the Artboard tool has active, while that tool is in use.
-fn tool_artboard(app: &VectorcraftApp) -> Option<(usize, Rect)> {
+fn tool_artboard(app: &SplinewrightApp) -> Option<(usize, Rect)> {
     if app.session.tool_id() != "artboard" {
         return None;
     }
@@ -37,7 +37,7 @@ fn tool_artboard(app: &VectorcraftApp) -> Option<(usize, Rect)> {
 /// Where an artboard goes when the panel sets its X, Y, W or H: the reference point `refi` moves to
 /// the new X/Y or stays put while the size changes (both sides together when `link` is on).
 pub fn artboard_rect(r: Rect, refi: usize, x: Option<f64>, y: Option<f64>, w: Option<f64>, h: Option<f64>, link: bool) -> Rect {
-    let rp = vectorcraft_geom::reference_point(r, refi);
+    let rp = splinewright_geom::reference_point(r, refi);
     let (w0, h0) = (r.width(), r.height());
     let (nw, nh) = if link { constrained(w0, h0, w, h) } else { (w.unwrap_or(w0), h.unwrap_or(h0)) };
     // Where the reference point sits across the box (0, ½ or 1 of each side).
@@ -48,12 +48,12 @@ pub fn artboard_rect(r: Rect, refi: usize, x: Option<f64>, y: Option<f64>, w: Op
 }
 
 /// The Artboard tool's view of the panel: the active artboard's position and size.
-fn artboard_fields(app: &mut VectorcraftApp, ui: &mut Ui, index: usize, r: Rect) {
+fn artboard_fields(app: &mut SplinewrightApp, ui: &mut Ui, index: usize, r: Rect) {
     let units = app.session.general_unit();
     let refi: usize = ui.data(|d| d.get_temp(egui::Id::new("refpt"))).unwrap_or(4);
     let link = app.session.prefs.constrain_proportions;
-    let rp = vectorcraft_geom::reference_point(r, refi);
-    let set = |app: &mut VectorcraftApp, x, y, w, h| {
+    let rp = splinewright_geom::reference_point(r, refi);
+    let set = |app: &mut SplinewrightApp, x, y, w, h| {
         let n = artboard_rect(r, refi, x, y, w, h, link);
         let p = json!({"index": index, "x": n.x0, "y": n.y0, "width": n.width(), "height": n.height()});
         if let Err(e) = app.run("artboard.setProps", p) {
@@ -89,7 +89,7 @@ fn artboard_fields(app: &mut VectorcraftApp, ui: &mut Ui, index: usize, r: Rect)
     });
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     if app.session.active().is_none() {
         widgets::dim_label(ui, tl!("No document"));
@@ -173,15 +173,15 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     // Live shape properties (a path with live corners is no shape).
     if let Some(n) = first_selected(app)
         && let NodeKind::Path { live: Some(live), .. } = &n.kind
-        && !matches!(live, vectorcraft_doc::LiveShape::Path { .. })
+        && !matches!(live, splinewright_doc::LiveShape::Path { .. })
     {
         widgets::divider(ui);
         match live {
-            vectorcraft_doc::LiveShape::Rectangle { .. } => {
+            splinewright_doc::LiveShape::Rectangle { .. } => {
                 widgets::subheader(ui, tl!("Rectangle Properties:"));
                 corner_radius_row(app, ui, &n, "xfp-radius");
             }
-            vectorcraft_doc::LiveShape::Polygon { sides, .. } => {
+            splinewright_doc::LiveShape::Polygon { sides, .. } => {
                 widgets::subheader(ui, tl!("Polygon Properties:"));
                 ui.horizontal(|ui| {
                     widgets::dim_label(ui, tl!("Sides:"));
@@ -212,7 +212,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
 
 /// The Control bar's underlined "Transform" link: a click toggles the Transform panel in a
 /// popover under it, as the Stroke link does with the Stroke panel.
-pub fn link(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn link(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let resp = ui.link(egui::RichText::new(tl!("Transform")).size(12.0).color(t.text).underline()).on_hover_text(tl!("Transform options"));
     widgets::popover(&resp, resp.clicked(), |ui| {
@@ -223,7 +223,7 @@ pub fn link(app: &mut VectorcraftApp, ui: &mut Ui) {
 
 /// The link between W and H (Transform panel, Properties panel, Control bar): one toggle, the
 /// `constrainProportions` preference, which the size fields pass on as `proportional`.
-pub fn constrain_link(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn constrain_link(app: &mut SplinewrightApp, ui: &mut Ui) {
     let on = app.session.prefs.constrain_proportions;
     if widgets::icon_button(ui, if on { "link" } else { "link-2-off" }, tl!("Constrain Width and Height Proportions"), on, 22.0).clicked() {
         set_pref(app, "constrainProportions", !on);
@@ -231,13 +231,13 @@ pub fn constrain_link(app: &mut VectorcraftApp, ui: &mut Ui) {
 }
 
 /// Toggle a boolean preference (through `prefs.set`, as agents do).
-pub fn set_pref(app: &mut VectorcraftApp, key: &str, on: bool) {
+pub fn set_pref(app: &mut SplinewrightApp, key: &str, on: bool) {
     if let Err(e) = app.run("prefs.set", json!({ "key": key, "value": on })) {
         app.status(e);
     }
 }
 
-pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(app: &mut SplinewrightApp, ui: &mut Ui) {
     let hidden: bool = pstate(ui.ctx(), "xf-hide-options");
     let has = super::selection_len(app) > 0;
     if menu_item(ui, if hidden { tl!("Show Options") } else { tl!("Hide Options") }, true, false) {
@@ -268,7 +268,7 @@ mod tests {
     use super::*;
 
     /// One headless frame of the panel (or the Align panel's menu): the texts drawn.
-    fn texts(app: &mut VectorcraftApp, draw: fn(&mut VectorcraftApp, &mut Ui)) -> Vec<String> {
+    fn texts(app: &mut SplinewrightApp, draw: fn(&mut SplinewrightApp, &mut Ui)) -> Vec<String> {
         fn walk(s: &egui::Shape, out: &mut Vec<String>) {
             match s {
                 egui::Shape::Text(t) => out.push(t.galley.text().to_string()),
@@ -287,7 +287,7 @@ mod tests {
 
     #[test]
     fn use_preview_bounds_shows_the_visual_size_and_checks_the_align_flyout() {
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(splinewright_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width": 300, "height": 300})).unwrap();
         app.run("shape.rectangle", json!({"x": 0, "y": 0, "width": 100, "height": 50})).unwrap();
         app.run("stroke.set", json!({"weight": 10})).unwrap();
@@ -301,7 +301,7 @@ mod tests {
 
     #[test]
     fn rotation_field_shows_the_angle_the_box_keeps() {
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(splinewright_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width": 300, "height": 300})).unwrap();
         app.run("shape.rectangle", json!({"x": 0, "y": 0, "width": 100, "height": 50})).unwrap();
         app.run("object.rotate", json!({"angle": 45, "absolute": true})).unwrap();
@@ -316,7 +316,7 @@ mod tests {
 
     #[test]
     fn the_artboard_tool_shows_the_active_artboard() {
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(splinewright_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width": 300, "height": 200})).unwrap();
         app.run("shape.rectangle", json!({"x": 0, "y": 0, "width": 40, "height": 30})).unwrap();
         assert!(texts(&mut app, show).iter().any(|t| t == "40 pt"), "the selection first");

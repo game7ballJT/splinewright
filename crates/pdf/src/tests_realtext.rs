@@ -2,10 +2,10 @@
 //! ToUnicode map, where the outlines would be; fonts whose licence forbids it stay outlines.
 
 use serde_json::json;
-use vectorcraft_color::{Color, Gradient, GradientPaint, Paint};
-use vectorcraft_doc::{CharStyle, Document, Node, NodeKind, TextKind, TextObject, TextRun};
-use vectorcraft_geom::{Affine, BezPath, PathData, Point, Rect};
-use vectorcraft_text::{FALLBACK_FAMILY, FontDb};
+use splinewright_color::{Color, Gradient, GradientPaint, Paint};
+use splinewright_doc::{CharStyle, Document, Node, NodeKind, TextKind, TextObject, TextRun};
+use splinewright_geom::{Affine, BezPath, PathData, Point, Rect};
+use splinewright_text::{FALLBACK_FAMILY, FontDb};
 
 use crate::*;
 
@@ -114,7 +114,7 @@ fn real_text_lands_within_half_a_point_of_the_outlines() {
 /// the instance's glyphs where the outlines would be, not the default instance's (#296).
 #[test]
 fn variable_font_instances_are_real_text_in_their_own_glyphs() {
-    use vectorcraft_text::test_fonts::{VARIABLE_CHARS, VARIABLE_FAMILY, variable_font};
+    use splinewright_text::test_fonts::{VARIABLE_CHARS, VARIABLE_FAMILY, variable_font};
     FontDb::global().add_font(variable_font().unwrap());
     let mut widths = vec![];
     for s in ["Regular", "Bold"] {
@@ -215,7 +215,7 @@ fn pdf_a_takes_real_text() {
 /// A named instance comes back as live type in that style (not the default instance's).
 #[test]
 fn a_variable_font_instance_comes_back_in_its_own_style() {
-    use vectorcraft_text::test_fonts::{VARIABLE_CHARS, VARIABLE_FAMILY, variable_font};
+    use splinewright_text::test_fonts::{VARIABLE_CHARS, VARIABLE_FAMILY, variable_font};
     FontDb::global().add_font(variable_font().unwrap());
     let st = CharStyle { font_family: VARIABLE_FAMILY.into(), font_style: "Bold".into(), ..style(48.0) };
     let d = doc(vec![TextObject::point(Point::new(20.0, 80.0), VARIABLE_CHARS, st)]);

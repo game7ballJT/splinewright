@@ -3,8 +3,8 @@
 use std::collections::BTreeSet;
 
 use serde_json::{Value, json};
-use vectorcraft_color::Paint;
-use vectorcraft_doc::{Document, Node, NodeId, NodeKind};
+use splinewright_color::Paint;
+use splinewright_doc::{Document, Node, NodeId, NodeKind};
 
 use super::*;
 
@@ -387,8 +387,8 @@ fn same_graphic_style(s: &mut Session, _: &Value) -> Result<Value> {
 
 /// An appearance attribute Select > Same > Appearance Attribute matches.
 enum Attribute {
-    Item(vectorcraft_doc::AppearanceItem),
-    Effect(vectorcraft_doc::Effect),
+    Item(splinewright_doc::AppearanceItem),
+    Effect(splinewright_doc::Effect),
 }
 
 fn same_attribute(s: &mut Session, p: &Value) -> Result<Value> {

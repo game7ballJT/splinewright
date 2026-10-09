@@ -3,10 +3,10 @@
 //! the spine as a path.
 
 use serde_json::{Value, json};
-use vectorcraft_color::Paint;
-use vectorcraft_doc::live::BlendSpec;
-use vectorcraft_doc::{Node, NodeKind};
-use vectorcraft_geom::{Point, Rect};
+use splinewright_color::Paint;
+use splinewright_doc::live::BlendSpec;
+use splinewright_doc::{Node, NodeKind};
+use splinewright_geom::{Point, Rect};
 
 use super::*;
 
@@ -44,7 +44,7 @@ fn blend(s: &mut Session) -> (NodeId, NodeId, NodeId) {
 }
 
 fn steps(s: &Session, g: NodeId) -> Vec<Node> {
-    vectorcraft_doc::live::expand_live(&node(s, g))
+    splinewright_doc::live::expand_live(&node(s, g))
 }
 
 #[test]
@@ -82,7 +82,7 @@ fn moving_a_key_point_moves_the_key_and_the_other_way_round() {
     s.execute("object.move", &json!({"dx": 0, "dy": 50})).unwrap();
     let n = node(&s, g);
     let NodeKind::Blend { children, spec } = &n.kind else { panic!() };
-    let (path, _) = vectorcraft_doc::live::blend_spine(children, spec).unwrap();
+    let (path, _) = splinewright_doc::live::blend_spine(children, spec).unwrap();
     assert_eq!(path.subpaths[0].anchors[1].p, Point::new(105.0, 55.0));
     assert!(s.execute("object.blend.spine.moveAnchor", &json!({"id": g.0, "anchor": 9, "x": 0, "y": 0})).is_err());
     assert!(s.execute("object.blend.spine.moveAnchor", &json!({"id": g.0, "anchor": 0, "x": f64::MAX, "y": 0})).is_err());
@@ -164,12 +164,12 @@ fn direct_selection_picks_keys_and_edits_update_the_blend_live() {
     let mut s = session();
     let (a, _, g) = blend(&mut s);
     s.execute("paint.setFill", &json!({"ids": [a.0], "color": "#000000"})).ok();
-    let opt = vectorcraft_doc::hit::HitOptions::default();
-    let h = vectorcraft_doc::hit::hit_test(&s.doc().unwrap().doc, Point::new(3.0, 3.0), opt).unwrap();
+    let opt = splinewright_doc::hit::HitOptions::default();
+    let h = splinewright_doc::hit::hit_test(&s.doc().unwrap().doc, Point::new(3.0, 3.0), opt).unwrap();
     assert_eq!((h.leaf, h.top_object(None)), (a, g), "the key is hit; the Selection tool still takes the blend");
-    let h = vectorcraft_doc::hit::hit_test(&s.doc().unwrap().doc, Point::new(55.0, 5.0), opt).unwrap();
+    let h = splinewright_doc::hit::hit_test(&s.doc().unwrap().doc, Point::new(55.0, 5.0), opt).unwrap();
     assert_eq!(h.leaf, g, "a step hits as the blend");
-    let mut r = vectorcraft_render::Renderer::new();
+    let mut r = splinewright_render::Renderer::new();
     let before = r.render_region(&s.doc().unwrap().doc, Rect::new(0.0, 0.0, 120.0, 20.0), 1.0, true).pixel(55, 5);
     s.execute("paint.setFill", &json!({"ids": [a.0], "color": "#ff0000"})).unwrap();
     let after = r.render_region(&s.doc().unwrap().doc, Rect::new(0.0, 0.0, 120.0, 20.0), 1.0, true).pixel(55, 5);
@@ -182,7 +182,7 @@ fn key_anchors_round_trip() {
     let (_, _, g) = blend(&mut s);
     s.execute("object.blend.spine.addAnchor", &json!({"id": g.0, "x": 55, "y": 5})).unwrap();
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = splinewright_format::load(&splinewright_format::save(d, false)).unwrap();
     assert_eq!(&back.layers, &d.layers);
     let old: BlendSpec = serde_json::from_value(json!({"spine": {"subpaths": []}})).unwrap();
     assert!(old.key_anchors.is_empty());

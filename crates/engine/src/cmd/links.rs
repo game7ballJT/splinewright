@@ -21,9 +21,9 @@ use std::collections::BTreeMap;
 use std::path::{Component, Path};
 
 use serde_json::{Value, json};
-use vectorcraft_doc::links::{Align, Preserve, hash_bytes};
-use vectorcraft_doc::{Appearance, Document, ImageBlob, ImageObject, LinkInfo, Node, NodeId, NodeKind, PlacementOptions};
-use vectorcraft_geom::{Affine, Rect, shapes};
+use splinewright_doc::links::{Align, Preserve, hash_bytes};
+use splinewright_doc::{Appearance, Document, ImageBlob, ImageObject, LinkInfo, Node, NodeId, NodeKind, PlacementOptions};
+use splinewright_geom::{Affine, Rect, shapes};
 
 use super::fileio::{self, RasterImage, absolute_path, file_created, file_stamp, read_file, write_file};
 use super::*;
@@ -370,7 +370,7 @@ fn clip_image(d: &mut Document, id: NodeId, (frame, room): Clip) -> Result<()> {
     }
     let (par, index, _) = d.position(id).ok_or(EngineError::NoNode(id))?;
     let image = d.remove(id)?;
-    let none = vectorcraft_color::Paint::None;
+    let none = splinewright_color::Paint::None;
     let mut clip = Node::path(d.alloc_id(), path, Appearance::basic(none.clone(), none, 0.0));
     if let NodeKind::Path { clipping, .. } = &mut clip.kind {
         *clipping = true;
@@ -848,7 +848,7 @@ fn unembed(s: &mut Session, p: &Value) -> Result<Value> {
     let Some(path) = path else {
         let name = n.display_name();
         let stem = Path::new(&name).file_stem().map_or_else(|| name.clone(), |s| s.to_string_lossy().into_owned());
-        return Ok(json!({ "name": format!("{stem}.{ext}"), "dataBase64": vectorcraft_format::base64_encode(&bytes) }));
+        return Ok(json!({ "name": format!("{stem}.{ext}"), "dataBase64": splinewright_format::base64_encode(&bytes) }));
     };
     let path = absolute_path(&if fileio::extension(path).is_empty() { format!("{path}.{ext}") } else { path.to_string() });
     write_file(&path, &bytes)?;

@@ -6,7 +6,7 @@ use serde_json::{Value, json};
 use super::*;
 
 fn b64(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
+    splinewright_format::base64_decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
 }
 
 fn warnings(v: &Value) -> Vec<String> {
@@ -29,17 +29,17 @@ fn export_pdf_create_layers_writes_layers_that_reopen_as_layers() {
     let mut s = session();
     let v = s.execute("document.exportPdf", &json!({"createLayers": true, "preserveEditing": false})).unwrap();
     assert!(warnings(&v).is_empty(), "{:?}", warnings(&v));
-    let back = vectorcraft_pdf::import(&b64(&v)).unwrap();
+    let back = splinewright_pdf::import(&b64(&v)).unwrap();
     let layers: Vec<(String, bool, bool)> = back
         .layers
         .iter()
-        .map(|l| (l.name.clone().unwrap_or_default(), l.visible, matches!(l.kind, vectorcraft_doc::NodeKind::Layer { printable: true, .. })))
+        .map(|l| (l.name.clone().unwrap_or_default(), l.visible, matches!(l.kind, splinewright_doc::NodeKind::Layer { printable: true, .. })))
         .collect();
     assert_eq!(layers, [("Layer 1".to_string(), true, true), ("Notes".to_string(), false, false)]);
     // The default preset carries the editing data too.
     let v = s.execute("document.exportPdf", &json!({"createLayers": true})).unwrap();
     assert!(warnings(&v).is_empty(), "{:?}", warnings(&v));
-    assert!(vectorcraft_pdf::editing(&b64(&v)).is_some_and(|e| e.intact));
+    assert!(splinewright_pdf::editing(&b64(&v)).is_some_and(|e| e.intact));
     // At PDF 1.4 there are no PDF layers.
     let v = s.execute("document.exportPdf", &json!({"createLayers": true, "compatibility": "1.4"})).unwrap();
     assert!(warnings(&v).iter().any(|w| w.contains("PDF 1.5")), "{:?}", warnings(&v));

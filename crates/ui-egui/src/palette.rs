@@ -5,13 +5,13 @@ use std::sync::Arc;
 use serde_json::json;
 
 use crate::theme::Tokens;
-use crate::{VectorcraftApp, menus};
+use crate::{SplinewrightApp, menus};
 
 /// Everything the palette searches: (label, command id or `tool:<id>`, shortcut).
 pub fn items() -> Vec<(String, String, String)> {
     let mut items = vec![];
     // Aliases kept for older scripts run a command that is listed already.
-    for c in vectorcraft_engine::command_specs().iter().filter(|c| !vectorcraft_engine::cmd::is_alias(c.id)) {
+    for c in splinewright_engine::command_specs().iter().filter(|c| !splinewright_engine::cmd::is_alias(c.id)) {
         let path = c.menu.join(" › ");
         let label = if path.is_empty() { c.label.to_string() } else { format!("{path} › {}", c.label) };
         items.push((label, c.id.to_string(), menus::shortcut_of(c.id).unwrap_or("").to_string()));
@@ -19,7 +19,7 @@ pub fn items() -> Vec<(String, String, String)> {
     for c in menus::UI_COMMANDS {
         items.push((c.1.to_string(), c.0.to_string(), menus::shortcut_of(c.0).unwrap_or("").to_string()));
     }
-    for tool in vectorcraft_tools::catalog::all_tools() {
+    for tool in splinewright_tools::catalog::all_tools() {
         items.push((tool.label.to_string(), format!("tool:{}", tool.id), crate::shortcut_editor::tool_shortcut(tool.id).unwrap_or("").to_string()));
     }
     items
@@ -69,7 +69,7 @@ fn entries(ctx: &egui::Context, lang: crate::i18n::Lang) -> Arc<Vec<Entry>> {
     built
 }
 
-pub fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
+pub fn show(app: &mut SplinewrightApp, ctx: &egui::Context) {
     if !app.ui.palette_open {
         return;
     }

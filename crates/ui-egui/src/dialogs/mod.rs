@@ -71,6 +71,7 @@ pub mod save_style_library;
 pub mod save_swatch_library;
 mod shapes;
 pub mod slices;
+pub mod spelling;
 pub mod spot_colors;
 pub(crate) mod svg_options;
 pub mod swatch_conflict;
@@ -100,7 +101,7 @@ pub use save_pdf::{open as open_save_pdf, open_preset as open_pdf_preset};
 pub use tools::open_tool_dialog;
 
 use crate::state::Dialog;
-use crate::{VectorcraftApp, widgets};
+use crate::{SplinewrightApp, widgets};
 
 type DialogResult = Result<Value, String>;
 
@@ -112,14 +113,14 @@ const EDGE_GAP: f32 = 8.0;
 /// differs.
 pub(crate) struct DialogSpec {
     /// Draws its own window instead of the shared frame (the frame fields below are then unused).
-    pub window: Option<fn(&mut VectorcraftApp, &egui::Context)>,
+    pub window: Option<fn(&mut SplinewrightApp, &egui::Context)>,
     /// The heading (and window title), in the UI language: the spec translates its own text and
     /// leaves names in it (a document's, a plug-in's) as they are.
     pub heading: fn(&Dialog) -> String,
     /// Draws the fields. Returns true to close the dialog as Cancel would.
-    pub body: fn(&mut VectorcraftApp, &mut egui::Ui, &mut Dialog) -> bool,
+    pub body: fn(&mut SplinewrightApp, &mut egui::Ui, &mut Dialog) -> bool,
     /// OK, Enter or `ui.dialog.confirm`: applies the dialog and closes it when done.
-    pub confirm: fn(&mut VectorcraftApp, &Dialog) -> DialogResult,
+    pub confirm: fn(&mut SplinewrightApp, &Dialog) -> DialogResult,
     /// The OK button's label. None: no OK button, Enter does nothing and Cancel reads "Close".
     pub ok: Option<&'static str>,
     /// An extra button left of Cancel that sets `discard: true` and confirms ("Don't Save").
@@ -130,7 +131,7 @@ pub(crate) struct DialogSpec {
     pub preview: bool,
     /// The OK button's label when it depends on the app (Export for Screens' "Download" on the
     /// web); `ok` when none. Only with an `ok`.
-    pub ok_label: Option<fn(&VectorcraftApp) -> &'static str>,
+    pub ok_label: Option<fn(&SplinewrightApp) -> &'static str>,
 }
 
 impl DialogSpec {
@@ -155,7 +156,7 @@ impl DialogSpec {
     };
 
     /// A dialog that draws its own window and confirms through its module.
-    const fn window(show: fn(&mut VectorcraftApp, &egui::Context), confirm: fn(&mut VectorcraftApp, &Dialog) -> DialogResult) -> Self {
+    const fn window(show: fn(&mut SplinewrightApp, &egui::Context), confirm: fn(&mut SplinewrightApp, &Dialog) -> DialogResult) -> Self {
         Self { window: Some(show), confirm, ..Self::FORM }
     }
 }
@@ -229,6 +230,7 @@ registry! {
     FlattenerPresets: [flattener_presets::KIND] => flattener_presets::SPEC,
     SaveStyleLibrary: [save_style_library::KIND] => save_style_library::SPEC,
     Expand: [expand::KIND] => expand::SPEC,
+    Spelling: [spelling::KIND] => spelling::SPEC,
     SpotColors: [spot_colors::KIND] => spot_colors::SPEC,
     TransformEach: [transform_each::KIND] => transform_each::SPEC,
     WidthPoint: [width_point::KIND] => width_point::SPEC,
@@ -299,26 +301,26 @@ fn spec(kind: &str) -> &'static DialogSpec {
 }
 
 /// Run a command and close the dialog (whether or not the command succeeded).
-fn run_and_close(app: &mut VectorcraftApp, id: &str, params: Value) -> DialogResult {
+fn run_and_close(app: &mut SplinewrightApp, id: &str, params: Value) -> DialogResult {
     let r = app.run(id, params);
     app.ui.dialog = None;
     r
 }
 
 /// Close the open dialog as Cancel does, rolling back a live preview (`ui.dialog.cancel`).
-pub fn cancel(app: &mut VectorcraftApp) {
+pub fn cancel(app: &mut SplinewrightApp) {
     if app.ui.dialog.take().is_some_and(|d| spec(&d.kind).preview) {
         let _ = app.session.cancel_interaction();
     }
 }
 
 /// Apply the open dialog (OK).
-pub fn confirm(app: &mut VectorcraftApp) -> DialogResult {
+pub fn confirm(app: &mut SplinewrightApp) -> DialogResult {
     let Some(d) = app.ui.dialog.clone() else { return Err("no dialog open".into()) };
     (spec(&d.kind).confirm)(app, &d)
 }
 
-pub fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
+pub fn show(app: &mut SplinewrightApp, ctx: &egui::Context) {
     about::show(app, ctx);
     // The kind of dialog shown last frame: a different one (or none) means this one just opened, and
     // its first field is to take the keyboard focus (`focus_id`, until a field takes it).

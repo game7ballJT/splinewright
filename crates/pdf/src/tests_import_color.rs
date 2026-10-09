@@ -1,11 +1,11 @@
 //! Imported colours keep their model: CMYK, Gray, spot inks (Separation, DeviceN) at a tint, in
 //! solid paints and shading stops; a CMYK file opens as a CMYK document.
 
-use vectorcraft_color::swatch::REGISTRATION;
-use vectorcraft_color::{Color, Gradient, GradientKind, GradientPaint, GradientStop, Paint, Swatch};
-use vectorcraft_doc::{Appearance, AppearanceItem, ColorMode, Document, Node, NodeId, NodeKind};
-use vectorcraft_geom::{Rect, shapes};
-use vectorcraft_testkit::pdf::{PdfPage, first_extra, pdf, pdf_with};
+use splinewright_color::swatch::REGISTRATION;
+use splinewright_color::{Color, Gradient, GradientKind, GradientPaint, GradientStop, Paint, Swatch};
+use splinewright_doc::{Appearance, AppearanceItem, ColorMode, Document, Node, NodeId, NodeKind};
+use splinewright_geom::{Rect, shapes};
+use splinewright_testkit::pdf::{PdfPage, first_extra, pdf, pdf_with};
 
 use crate::import_color::{Colors, Space};
 use crate::*;

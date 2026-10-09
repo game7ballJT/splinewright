@@ -4,16 +4,16 @@
 
 use egui::{Color32, Rect, Sense, Stroke, StrokeKind, Ui, pos2, vec2};
 use serde_json::json;
-use vectorcraft_geom::{Point, Rect as DRect};
+use splinewright_geom::{Point, Rect as DRect};
 
 use super::{pstate, set_pstate};
-use crate::VectorcraftApp;
+use crate::SplinewrightApp;
 use crate::theme::Tokens;
 use crate::widgets::{self, menu_item};
 
 #[derive(Default)]
 struct Cache {
-    renderer: Option<vectorcraft_render::Renderer>,
+    renderer: Option<splinewright_render::Renderer>,
     key: Option<(usize, u64, u32, u32, bool)>,
     tex: Option<egui::TextureHandle>,
 }
@@ -46,7 +46,7 @@ pub fn slider_to_zoom(t: f64) -> f64 {
     (3.13f64.ln() + t.clamp(0.0, 1.0) * (64000f64.ln() - 3.13f64.ln())).exp()
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let Some(st) = app.session.active() else {
         super::empty_state(ui, "map", tl!("No document"), tl!("Open a document to navigate it."));
@@ -72,7 +72,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
         let mut c = c.borrow_mut();
         if c.key != Some(key) || c.tex.is_none() {
             let s = (pw as f64 / region.width()).min(ph as f64 / region.height());
-            let r = c.renderer.get_or_insert_with(vectorcraft_render::Renderer::new).render_region(&doc, region, s, false);
+            let r = c.renderer.get_or_insert_with(splinewright_render::Renderer::new).render_region(&doc, region, s, false);
             let img = egui::ColorImage::from_rgba_premultiplied([r.width as usize, r.height as usize], &r.pixels);
             match &mut c.tex {
                 Some(tx) => tx.set(img, egui::TextureOptions::LINEAR),
@@ -136,7 +136,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     });
 }
 
-pub fn menu(_app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(_app: &mut SplinewrightApp, ui: &mut Ui) {
     let ab: bool = pstate(ui.ctx(), "nav-ab-only");
     if menu_item(ui, tl!("View Artboard Only"), true, ab) {
         set_pstate(ui.ctx(), "nav-ab-only", !ab);

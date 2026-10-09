@@ -2,10 +2,10 @@
 //! driven through `Session::execute`.
 
 use serde_json::{Value, json};
-use vectorcraft_color::BlendMode;
-use vectorcraft_doc::live::{self, EnvelopeKind, EnvelopeOptions, PreserveShape};
-use vectorcraft_doc::{Knockout, Node, NodeKind, OpacityMask};
-use vectorcraft_geom::Rect;
+use splinewright_color::BlendMode;
+use splinewright_doc::live::{self, EnvelopeKind, EnvelopeOptions, PreserveShape};
+use splinewright_doc::{Knockout, Node, NodeKind, OpacityMask};
+use splinewright_geom::Rect;
 
 use super::*;
 
@@ -96,7 +96,7 @@ fn reset_with_warp_and_mesh_switch_the_kind_and_keep_the_content() {
     assert!(s.execute("object.envelope.resetWithWarp", &json!({"style": "nope"})).is_err());
     // Back to a mesh that keeps the arch's shape: the top middle point is where the warp put it.
     s.execute("object.envelope.resetWithWarp", &json!({"style": "arch", "bend": 50, "horizontal": true})).unwrap();
-    let top = live::EnvelopeMap::of(&node(&s, e)).unwrap().surface_mesh(2, 2, vectorcraft_color::Color::BLACK);
+    let top = live::EnvelopeMap::of(&node(&s, e)).unwrap().surface_mesh(2, 2, splinewright_color::Color::BLACK);
     s.execute("object.envelope.resetWithMesh", &json!({"rows": 2, "cols": 2})).unwrap();
     let EnvelopeKind::Mesh { rows: 2, cols: 2, points, .. } = kind(&s, e) else { panic!("{:?}", kind(&s, e)) };
     assert!(points[1].distance(top.points[1].p) < 1e-9 && points[1].y < 99.0, "{:?}", points[1]);
@@ -120,7 +120,7 @@ fn release_gives_back_the_warp_shape_as_a_mesh_and_keeps_the_transparency() {
     let mut s = session();
     let (a, e) = enveloped(&mut s, "object.envelope.makeWithWarp", json!({"style": "arc", "bend": 50}));
     s.execute("transparency.set", &json!({"opacity": 40, "blend": "multiply"})).unwrap();
-    let mask = Node::path(NodeId(0), vectorcraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 50.0, 50.0)), Default::default());
+    let mask = Node::path(NodeId(0), splinewright_geom::shapes::rectangle(Rect::new(0.0, 0.0, 50.0, 50.0)), Default::default());
     s.edit("mask", |d, _| {
         d.node_mut(e).unwrap().mask = Some(Box::new(OpacityMask::new(mask, true)));
         Ok(())
@@ -160,7 +160,7 @@ fn expand_keeps_name_transparency_knockout_and_mask() {
     let mut s = session();
     let (_, e) = enveloped(&mut s, "object.envelope.makeWithWarp", json!({"style": "bulge", "bend": 40}));
     s.execute("transparency.set", &json!({"opacity": 70, "isolate": true, "knockout": "on"})).unwrap();
-    let mask = Node::path(NodeId(0), vectorcraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 50.0, 50.0)), Default::default());
+    let mask = Node::path(NodeId(0), splinewright_geom::shapes::rectangle(Rect::new(0.0, 0.0, 50.0, 50.0)), Default::default());
     s.edit("name and mask", |d, _| {
         let n = d.node_mut(e).unwrap();
         n.name = Some("Banner".into());
@@ -198,7 +198,7 @@ fn envelope_options_round_trip_natively_and_old_files_load() {
     let (_, e) = enveloped(&mut s, "object.envelope.makeWithWarp", json!({}));
     s.execute("object.envelope.options", &json!({"preserveShape": "transparency", "distortPatternFills": true})).unwrap();
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = splinewright_format::load(&splinewright_format::save(d, false)).unwrap();
     assert_eq!(back.node(e), d.node(e));
     // An envelope saved before the options existed loads with its old behaviour.
     let mut old = serde_json::to_value(node(&s, e)).unwrap();
@@ -224,7 +224,7 @@ fn enveloped_type_exports_distorted_in_every_format() {
     // The export's bytes without its time stamps (EPS and PDF date their files to the second).
     let export = |s: &mut Session, format: &str| -> Vec<u8> {
         let data = s.execute("document.export", &json!({"format": format})).unwrap()["dataBase64"].as_str().unwrap().to_string();
-        let bytes = vectorcraft_format::base64_decode(&data).unwrap();
+        let bytes = splinewright_format::base64_decode(&data).unwrap();
         let dated = |line: &&[u8]| line.windows(12).any(|w| w == b"CreationDate") || line.windows(7).any(|w| w == b"ModDate");
         bytes.split(|b| *b == b'\n').filter(|l| !dated(l)).flat_map(|l| l.iter().copied().chain(*b"\n")).collect()
     };
@@ -246,8 +246,8 @@ fn enveloped_type_keeps_each_runs_colour_on_the_canvas() {
     let t = id_of(&s.execute("text.create", &json!({"x": 100, "y": 200, "text": "MMMMMMMM", "size": 60, "fill": "#000000"})).unwrap());
     s.edit("red half", |d, _| {
         if let NodeKind::Text(tx) = &mut d.node_mut(t).unwrap().kind {
-            vectorcraft_text::edit::style_range(&mut tx.runs, 0, 4, |st| {
-                st.fill = vectorcraft_color::Paint::solid(vectorcraft_color::Color::rgb(1.0, 0.0, 0.0))
+            splinewright_text::edit::style_range(&mut tx.runs, 0, 4, |st| {
+                st.fill = splinewright_color::Paint::solid(splinewright_color::Color::rgb(1.0, 0.0, 0.0))
             });
         }
         Ok(())
@@ -256,7 +256,7 @@ fn enveloped_type_keeps_each_runs_colour_on_the_canvas() {
     sel(&mut s, &[t]);
     s.execute("object.envelope.makeWithWarp", &json!({"style": "flag", "bend": 0})).unwrap();
     let b = node(&s, t).geometric_bounds().unwrap();
-    let img = vectorcraft_render::Renderer::new().render_region(&s.doc().unwrap().doc, Rect::new(0.0, 0.0, 800.0, 400.0), 1.0, true);
+    let img = splinewright_render::Renderer::new().render_region(&s.doc().unwrap().doc, Rect::new(0.0, 0.0, 800.0, 400.0), 1.0, true);
     // Inked pixels of each half of the line: red at the start, black at the end.
     let (mut red, mut black) = (0, 0);
     for y in (b.y0 as u32)..(b.y1 as u32) {

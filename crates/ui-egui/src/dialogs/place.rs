@@ -10,7 +10,7 @@ use serde_json::{Value, json};
 use super::DialogSpec;
 use crate::state::Dialog;
 use crate::theme::{self, Tokens};
-use crate::{VectorcraftApp, widgets};
+use crate::{SplinewrightApp, widgets};
 
 /// The dialog kind of Place.
 pub const KIND: &str = "place";
@@ -32,7 +32,7 @@ const OPTIONS: [(&str, &str, &str); 3] = [
     ("replace", "Replace", "Swap the selected object for the file, keeping its place and transform"),
 ];
 
-fn body(_: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
+fn body(_: &mut SplinewrightApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     let t = Tokens::get(ui.ctx());
     let files: Vec<Value> = d.fields.get("files").and_then(Value::as_array).cloned().unwrap_or_default();
     let info = d.fields.get("__info").cloned().unwrap_or_default();
@@ -43,7 +43,7 @@ fn body(_: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
             for (i, f) in files.iter().enumerate() {
                 let path = f.get("path").and_then(Value::as_str);
                 let name = path
-                    .map(vectorcraft_engine::cmd::fileio::file_name)
+                    .map(splinewright_engine::cmd::fileio::file_name)
                     .or_else(|| f.get("name").and_then(Value::as_str).map(str::to_string))
                     .unwrap_or_default();
                 ui.horizontal(|ui| {

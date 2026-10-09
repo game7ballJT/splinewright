@@ -2,10 +2,10 @@
 //! the art below the group unless Isolate Blending is on (checked against the reference formulas).
 
 use super::*;
-use vectorcraft_color::blend::{blend_rgb, composite};
-use vectorcraft_color::{BlendMode as Blend, Color, Paint};
-use vectorcraft_doc::{Appearance, Knockout, Node};
-use vectorcraft_geom::shapes;
+use splinewright_color::blend::{blend_rgb, composite};
+use splinewright_color::{BlendMode as Blend, Color, Paint};
+use splinewright_doc::{Appearance, Knockout, Node};
+use splinewright_geom::shapes;
 
 /// The backdrop colour (a full-page rectangle) and the blended child's colour.
 const B: [f32; 3] = [0.8, 0.6, 0.2];
@@ -138,7 +138,7 @@ fn a_masked_object_blends_with_the_backdrop() {
         let mut g = group(d, vec![m], 1.0, Blend::Normal, false);
         // A 50% grey mask over the whole group.
         let art = rect(d, Rect::new(0.0, 0.0, 100.0, 100.0), [0.5; 3]);
-        g.mask = Some(Box::new(vectorcraft_doc::OpacityMask::new(art, true)));
+        g.mask = Some(Box::new(splinewright_doc::OpacityMask::new(art, true)));
         g
     });
     assert_near(render(&d).pixel(50, 50), lerp(B, blend_rgb(Blend::Multiply, B, S), 0.5), "masked multiply");

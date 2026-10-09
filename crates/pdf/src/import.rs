@@ -1,4 +1,4 @@
-//! PDF → Document (hayro-interpret device that builds a VectorCraft node tree).
+//! PDF → Document (hayro-interpret device that builds a Splinewright node tree).
 
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
@@ -12,12 +12,12 @@ use hayro_interpret::{
 };
 use hayro_syntax::object::Name;
 use kurbo::{Affine, BezPath, PathEl, Rect, Shape};
-use vectorcraft_color::{BlendMode, Color, Paint, Swatch};
-use vectorcraft_doc::{
+use splinewright_color::{BlendMode, Color, Paint, Swatch};
+use splinewright_doc::{
     Appearance, AppearanceItem, Artboard, ColorMode, Dash, Document, FillLayer, ImageBlob, ImageObject, Knockout, LayerColor, LineCap, LineJoin,
     Node, NodeId, NodeKind, OpacityMask, PatternDef, StrokeLayer,
 };
-use vectorcraft_geom::{FillRule, PathData};
+use splinewright_geom::{FillRule, PathData};
 
 use crate::import_color::{Colors, Native};
 use crate::import_mask::{MaskSpec, contains, is_rectangle, luminance, mask_spec, white_cover};
@@ -231,7 +231,7 @@ pub fn import_with_report(bytes: &[u8], opts: &ImportOptions) -> Result<ImportRe
         placeholder &= ai && only_text(&children);
         let mut right = ab.x1;
         if opts.crop == CropTo::Bounding
-            && let Some(art) = vectorcraft_doc::live::nodes_bounds(&children)
+            && let Some(art) = splinewright_doc::live::nodes_bounds(&children)
         {
             right = right.max(art.x1);
             ab = art;
@@ -310,7 +310,7 @@ pub fn import_with_report(bytes: &[u8], opts: &ImportOptions) -> Result<ImportRe
     // A file painted mostly in CMYK opens as a CMYK document (with CMYK default swatches).
     if b.colors.cmyk_document() {
         doc.color_mode = ColorMode::Cmyk;
-        (doc.swatches, doc.swatch_groups) = vectorcraft_color::default_swatches(ColorMode::Cmyk.model());
+        (doc.swatches, doc.swatch_groups) = splinewright_color::default_swatches(ColorMode::Cmyk.model());
     }
     doc.swatches.extend(b.colors.swatches());
     // Tiling patterns are pattern swatches.
@@ -395,14 +395,14 @@ const KANGXI: &str = "一丨丶丿乙亅二亠人儿入八冂冖冫几凵刀力�
 /// largest difference between their boxes, in thousandths of an em. `None` when they are clearly
 /// different glyphs (or the face lacks the character); `Some(0)` when there is nothing to compare
 /// (several characters, a vertical form, no ink in either).
-fn glyph_deviation(face: &vectorcraft_text::FontFace, text: &str, o: &hayro_interpret::font::OutlineGlyph, vertical: bool) -> Option<f64> {
+fn glyph_deviation(face: &splinewright_text::FontFace, text: &str, o: &hayro_interpret::font::OutlineGlyph, vertical: bool) -> Option<f64> {
     let Some(c) = comparable(text, vertical) else { return Some(0.0) };
     let gid = face.glyph_for(c);
     if gid == 0 {
         return None;
     }
     let embedded = o.outline();
-    let installed = vectorcraft_text::FontDb::global().outline(face, gid);
+    let installed = splinewright_text::FontDb::global().outline(face, gid);
     match (embedded.elements().is_empty(), installed.elements().is_empty()) {
         (true, true) => Some(0.0),
         (false, false) => {
@@ -423,16 +423,16 @@ fn glyph_deviation(face: &vectorcraft_text::FontFace, text: &str, o: &hayro_inte
 /// tell its styles apart, draw a character differently in each style). `None`: no style of the
 /// family has that glyph, so the font isn't the installed one.
 fn matching_face(
-    face: &Arc<vectorcraft_text::FontFace>,
+    face: &Arc<splinewright_text::FontFace>,
     text: &str,
     o: &hayro_interpret::font::OutlineGlyph,
     vertical: bool,
-) -> Option<Arc<vectorcraft_text::FontFace>> {
+) -> Option<Arc<splinewright_text::FontFace>> {
     let own = glyph_deviation(face, text, o, vertical);
     if own == Some(0.0) {
         return Some(face.clone());
     }
-    let db = vectorcraft_text::FontDb::global();
+    let db = splinewright_text::FontDb::global();
     let others =
         db.styles(&face.family).into_iter().filter(|s| !s.eq_ignore_ascii_case(&face.style)).take(64).filter_map(|s| db.face(&face.family, &s));
     let mut best = own.map(|d| (d, face.clone()));
@@ -468,7 +468,7 @@ struct FontInfo {
     family: String,
     style: String,
     /// The installed face of its PostScript name.
-    face: Option<Arc<vectorcraft_text::FontFace>>,
+    face: Option<Arc<splinewright_text::FontFace>>,
 }
 
 /// The page a PDF-compatible `.ai` paints under its layers is the editor's page, not art: an opaque
@@ -594,7 +594,7 @@ struct Builder<'p> {
     cid_text: HashMap<u128, Option<Arc<CidText>>>,
     /// Font (cache key) → the installed face that draws its glyphs, decided from its first glyph
     /// that can be compared ([`matching_face`]); `None`: its glyphs differ, so it stays outlines.
-    matched: HashMap<u128, Option<Arc<vectorcraft_text::FontFace>>>,
+    matched: HashMap<u128, Option<Arc<splinewright_text::FontFace>>>,
     /// The soft mask of the graphics state, the art drawn through it so far, and the masks read.
     mask: Option<Arc<MaskSpec>>,
     masked: Vec<Arc<Node>>,
@@ -1020,7 +1020,7 @@ impl<'p> Builder<'p> {
         self.push_node(n);
     }
 
-    /// Convert a hayro paint to a VectorCraft paint and opacity (`stroke`: for a stroke).
+    /// Convert a hayro paint to a Splinewright paint and opacity (`stroke`: for a stroke).
     fn paint(&mut self, p: &hayro_interpret::Paint<'_>, stroke: bool) -> (Paint, f32) {
         match p {
             hayro_interpret::Paint::Color(c) => {
@@ -1153,7 +1153,7 @@ impl<'p> Builder<'p> {
 
     /// Mesh shadings filling `region` (document space): gradient meshes, clipped to the region
     /// when they reach past it.
-    fn draw_meshes(&mut self, meshes: Vec<vectorcraft_doc::live::GradientMesh>, region: &BezPath, opacity: f32) {
+    fn draw_meshes(&mut self, meshes: Vec<splinewright_doc::live::GradientMesh>, region: &BezPath, opacity: f32) {
         let nodes: Vec<Arc<Node>> = meshes.into_iter().map(|m| Arc::new(Node::new(self.id(), NodeKind::Mesh(m)))).collect();
         let Some(art) = bounds(&nodes) else { return };
         let mut content = match <[Arc<Node>; 1]>::try_from(nodes) {
@@ -1182,7 +1182,7 @@ impl<'p> Builder<'p> {
             Some((tag, rest)) if tag.len() == 6 && tag.chars().all(|c| c.is_ascii_uppercase()) => rest.to_string(),
             _ => n.to_string(),
         });
-        let installed = ps.as_deref().and_then(|ps| vectorcraft_text::FontDb::global().find_postscript(ps));
+        let installed = ps.as_deref().and_then(|ps| splinewright_text::FontDb::global().find_postscript(ps));
         let n = match (installed, name) {
             (Some(face), _) => FontInfo { family: face.family.clone(), style: face.style.clone(), face: Some(face) },
             (None, Some(name)) => {
@@ -1194,7 +1194,7 @@ impl<'p> Builder<'p> {
                 FontInfo { family, style, face: None }
             }
             (None, None) => {
-                let d = vectorcraft_doc::CharStyle::default();
+                let d = splinewright_doc::CharStyle::default();
                 FontInfo { family: d.font_family, style: d.font_style, face: None }
             }
         };

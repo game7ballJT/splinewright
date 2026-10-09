@@ -161,7 +161,7 @@ fn gpu_preference_defaults_to_automatic_and_validates() {
 /// (#394).
 #[test]
 fn selection_preferences_drive_the_selection_tool() {
-    use vectorcraft_tools::{Mods, PointerEvent, PointerKind};
+    use splinewright_tools::{Mods, PointerEvent, PointerKind};
     let mut s = Session::new();
     s.execute("file.new", &json!({"width": 400, "height": 400})).unwrap();
     let rect = |s: &mut Session, x: f64| {
@@ -218,12 +218,12 @@ fn selection_preferences_drive_the_selection_tool() {
 /// tool's arrow stays.
 #[test]
 fn use_precise_cursors_makes_drawing_cursors_crosshairs() {
-    use vectorcraft_tools::{Cursor, Mods};
+    use splinewright_tools::{Cursor, Mods};
     let mut s = Session::new();
     s.execute("file.new", &json!({"width": 400, "height": 400})).unwrap();
     let cursor = |s: &mut Session, tool: &str| {
         s.select_tool(tool, ViewInfo::default()).unwrap();
-        s.cursor(vectorcraft_geom::Point::new(300.0, 300.0), Mods::default(), ViewInfo::default())
+        s.cursor(splinewright_geom::Point::new(300.0, 300.0), Mods::default(), ViewInfo::default())
     };
     assert_eq!(cursor(&mut s, "pen"), Cursor::Pen);
     s.execute("prefs.set", &json!({"key": "usePreciseCursors", "value": true})).unwrap();
@@ -247,9 +247,9 @@ fn set_pref(s: &mut Session, key: &str, value: Value) {
     s.execute("prefs.set", &json!({"key": key, "value": value})).unwrap();
 }
 
-fn gesture(s: &mut Session, v: ViewInfo, events: &[(vectorcraft_tools::PointerKind, f64, f64)]) {
+fn gesture(s: &mut Session, v: ViewInfo, events: &[(splinewright_tools::PointerKind, f64, f64)]) {
     for (k, x, y) in events {
-        s.pointer(&vectorcraft_tools::PointerEvent::new(*k, *x, *y), v).unwrap();
+        s.pointer(&splinewright_tools::PointerEvent::new(*k, *x, *y), v).unwrap();
     }
 }
 
@@ -262,7 +262,7 @@ fn top_left(s: &Session, id: NodeId) -> (f64, f64) {
 /// Smart Guides off, the point a selection is dragged by lands on an anchor within 2 px.
 #[test]
 fn snap_to_point_lands_a_dragged_selection_on_anchors() {
-    use vectorcraft_tools::PointerKind::{Down, Drag, Up};
+    use splinewright_tools::PointerKind::{Down, Drag, Up};
     let mut s = new_doc();
     let a = square(&mut s, 100.0, 100.0);
     square(&mut s, 300.0, 100.0);
@@ -288,8 +288,8 @@ fn snap_to_point_lands_a_dragged_selection_on_anchors() {
 /// snaps.
 #[test]
 fn smart_guide_display_preferences_filter_the_overlays() {
-    use vectorcraft_tools::Overlay;
-    use vectorcraft_tools::PointerKind::{Down, Drag, Up};
+    use splinewright_tools::Overlay;
+    use splinewright_tools::PointerKind::{Down, Drag, Up};
     let mut s = new_doc();
     square(&mut s, 100.0, 100.0);
     let b = square(&mut s, 200.0, 100.0);
@@ -312,7 +312,7 @@ fn smart_guide_display_preferences_filter_the_overlays() {
     assert_eq!(drag_to(&mut s, 3.0), 150.0, "3 px off: into line");
     assert!(count(&mut s, &line) > 0 && count(&mut s, &measure) == 1);
     let magenta = s.overlays(v).iter().find_map(|o| if let Overlay::Line { color, .. } = o { Some(*color) } else { None });
-    assert_eq!(magenta, Some(vectorcraft_tools::guides::MAGENTA), "the default colour");
+    assert_eq!(magenta, Some(splinewright_tools::guides::MAGENTA), "the default colour");
     release(&mut s);
     set_pref(&mut s, "smartGuideColor", json!("#00ff00"));
     drag_to(&mut s, 3.0);
@@ -361,8 +361,8 @@ fn smart_guide_display_preferences_filter_the_overlays() {
 /// Enable Rubber Band for Pen Tool / Curvature Tool (#394): off, no segment follows the pointer.
 #[test]
 fn rubber_band_preferences_hide_the_preview_to_the_pointer() {
-    use vectorcraft_tools::Overlay;
-    use vectorcraft_tools::PointerKind::{Down, Move, Up};
+    use splinewright_tools::Overlay;
+    use splinewright_tools::PointerKind::{Down, Move, Up};
     let v = ViewInfo::default();
     for (tool, key) in [("pen", "penRubberBand"), ("curvature", "curvatureRubberBand")] {
         let mut s = new_doc();
@@ -400,7 +400,7 @@ fn move_locked_and_hidden_artwork_with_artboard() {
 /// `patterns` param says otherwise (the dialogs' Transform Patterns).
 #[test]
 fn transform_pattern_tiles_is_the_transforms_default() {
-    use vectorcraft_color::Paint;
+    use splinewright_color::Paint;
     let mut s = new_doc();
     let tile = square(&mut s, 0.0, 0.0);
     s.execute("select.set", &json!({"ids": [tile.0]})).unwrap();
@@ -451,8 +451,8 @@ fn select_same_tint_percent() {
     assert_eq!(same(&mut s), 2, "only Ink 40%");
 }
 
-fn style_at(s: &Session, id: NodeId, byte: usize) -> vectorcraft_doc::CharStyle {
-    let Some(vectorcraft_doc::NodeKind::Text(t)) = s.doc().unwrap().doc.node(id).map(|n| &n.kind) else { panic!("not text") };
+fn style_at(s: &Session, id: NodeId, byte: usize) -> splinewright_doc::CharStyle {
+    let Some(splinewright_doc::NodeKind::Text(t)) = s.doc().unwrap().doc.node(id).map(|n| &n.kind) else { panic!("not text") };
     let mut at = 0;
     for r in &t.runs {
         if byte < at + r.text.len() {
@@ -468,8 +468,8 @@ fn style_at(s: &Session, id: NodeId, byte: usize) -> vectorcraft_doc::CharStyle 
 /// (Alt+arrows; Cmd/Ctrl too: five steps).
 #[test]
 fn type_increments_step_the_type() {
-    use vectorcraft_tools::PointerKind::{Down, Up};
-    use vectorcraft_tools::{Mods, ToolKey};
+    use splinewright_tools::PointerKind::{Down, Up};
+    use splinewright_tools::{Mods, ToolKey};
     let mut s = new_doc();
     let id = NodeId(s.execute("text.create", &json!({"x": 100, "y": 100, "text": "Hello world", "size": 20})).unwrap()["id"].as_u64().unwrap());
     s.execute("select.set", &json!({"ids": [id.0]})).unwrap();
@@ -515,14 +515,14 @@ fn type_increments_step_the_type() {
 /// places starts with placeholder text, selected, so typing replaces it; off, it starts empty.
 #[test]
 fn new_type_starts_with_placeholder_text() {
-    use vectorcraft_tools::PointerKind::{Down, Drag, Up};
+    use splinewright_tools::PointerKind::{Down, Drag, Up};
     let v = ViewInfo::default();
     let mut s = new_doc();
     s.select_tool("type", v).unwrap();
     let text = |s: &Session| {
         let st = s.doc().unwrap();
         match &st.doc.node(st.selection.objects[0]).unwrap().kind {
-            vectorcraft_doc::NodeKind::Text(t) => t.plain_text(),
+            splinewright_doc::NodeKind::Text(t) => t.plain_text(),
             _ => panic!("not text"),
         }
     };
@@ -545,7 +545,7 @@ fn new_type_starts_with_placeholder_text() {
 #[test]
 fn missing_glyph_protection_keeps_glyphs_a_new_font_lacks() {
     let (from, to, c) = ("Source Sans 3", "JetBrains Mono", '\u{180}');
-    let db = vectorcraft_text::FontDb::global();
+    let db = splinewright_text::FontDb::global();
     let covers = |f: &str| db.face(f, "Regular").is_some_and(|face| face.covers(c));
     if !covers(from) || covers(to) {
         return; // Installed fonts of these names cover other characters.
@@ -572,7 +572,7 @@ fn missing_glyph_protection_keeps_glyphs_a_new_font_lacks() {
 /// anywhere in its bounds selects it.
 #[test]
 fn type_selection_by_path_only_picks_type_on_its_baseline() {
-    use vectorcraft_tools::{PointerEvent, PointerKind};
+    use splinewright_tools::{PointerEvent, PointerKind};
     let mut s = new_doc();
     let id = NodeId(s.execute("text.create", &json!({"x": 100, "y": 100, "text": "Hello world", "size": 20})).unwrap()["id"].as_u64().unwrap());
     s.execute("select.none", &json!({})).unwrap();
@@ -602,7 +602,7 @@ fn type_selection_by_path_only_picks_type_on_its_baseline() {
 /// characters, and the Eyedropper still samples it there.
 #[test]
 fn type_selection_by_path_only_takes_every_line_and_spares_the_type_tool_and_eyedropper() {
-    use vectorcraft_tools::{PointerEvent, PointerKind};
+    use splinewright_tools::{PointerEvent, PointerKind};
     let v = ViewInfo::default();
     let mut s = new_doc();
     let created = s

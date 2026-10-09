@@ -5,10 +5,10 @@
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::text::{CharStyle, TextObject};
-use vectorcraft_doc::{Appearance, Effect, ImageBlob, ImageObject, Node, NodeKind, Symbol};
-use vectorcraft_geom::{Point, shapes};
+use splinewright_color::{Color, Paint};
+use splinewright_doc::text::{CharStyle, TextObject};
+use splinewright_doc::{Appearance, Effect, ImageBlob, ImageObject, Node, NodeKind, Symbol};
+use splinewright_geom::{Point, shapes};
 
 use super::*;
 
@@ -130,7 +130,7 @@ fn geometry_effects_reshape_type_through_its_outlines() {
     assert!(changed > 100, "{changed} pixels changed");
     // The reshaped art is plain paths painted with the text's fill.
     let n = &d.layers[0].children().unwrap()[0];
-    let art = vectorcraft_effects::reshape(n, None).unwrap();
+    let art = splinewright_effects::reshape(n, None).unwrap();
     let (mut text, mut black) = (0, 0);
     art.walk(&mut |m| {
         text += usize::from(matches!(m.kind, NodeKind::Text(_)));

@@ -1,9 +1,9 @@
 //! Menu long-tail commands (Object/Edit/Select/Type/View/File), driven through `Session::execute`.
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{ColorMode, LiveShape, Node, NodeKind, TextKind};
-use vectorcraft_geom::Rect;
+use splinewright_color::{Color, Paint};
+use splinewright_doc::{ColorMode, LiveShape, Node, NodeKind, TextKind};
+use splinewright_geom::Rect;
 
 use super::*;
 
@@ -333,7 +333,7 @@ fn blend_make_release_options() {
     assert_eq!(undo_len(&s), n + 1);
     let gn = node(&s, g);
     assert!(matches!(gn.kind, NodeKind::Blend { .. }), "live blend");
-    let ch = vectorcraft_doc::live::expand_live(&gn);
+    let ch = splinewright_doc::live::expand_live(&gn);
     assert_eq!(ch.len(), 5);
     // Middle step: halfway in position, size and colour.
     let mid = &ch[2];
@@ -343,7 +343,7 @@ fn blend_make_release_options() {
     assert!((c[0] - 0.5).abs() < 1e-3);
     // Options: 1 step.
     s.execute("object.blend.options", &json!({"steps": 1})).unwrap();
-    assert_eq!(vectorcraft_doc::live::expand_live(&node(&s, g)).len(), 3);
+    assert_eq!(splinewright_doc::live::expand_live(&node(&s, g)).len(), 3);
     // Release: keys only, back in the layer.
     let r = s.execute("object.blend.release", &json!({})).unwrap();
     assert_eq!(r["ids"].as_array().unwrap().len(), 2);
@@ -580,7 +580,7 @@ fn saved_selections_live_in_the_document() {
     sel(&mut s, &[a, b]);
     s.execute("select.save", &json!({"name": "Both"})).unwrap();
     // They travel with the file.
-    let loaded = vectorcraft_format::load(&vectorcraft_format::save_file(&s.doc().unwrap().doc)).unwrap();
+    let loaded = splinewright_format::load(&splinewright_format::save_file(&s.doc().unwrap().doc)).unwrap();
     assert_eq!(loaded.saved_selections.iter().map(|x| x.name.as_str()).collect::<Vec<_>>(), ["A", "Both"]);
     // Saving is an undo step.
     s.execute("edit.undo", &json!({})).unwrap();
@@ -889,7 +889,7 @@ fn artboard_guides_go_with_their_artboard() {
 /// canvas; with the Artboard tool it is an artboard guide of the active artboard.
 #[test]
 fn guides_dragged_out_of_a_ruler_snap_and_take_the_artboard_tool_s_artboard() {
-    use vectorcraft_tools::{Overlay, PointerEvent, PointerKind};
+    use splinewright_tools::{Overlay, PointerEvent, PointerKind};
     let mut s = session();
     rect(&mut s, 100.0, 100.0, 100.0, 100.0);
     let v = ViewInfo::default();
@@ -927,7 +927,7 @@ fn guides_dragged_out_of_a_ruler_snap_and_take_the_artboard_tool_s_artboard() {
 /// Guides).
 #[test]
 fn moved_art_snaps_to_the_artboard_edges_and_centre() {
-    use vectorcraft_tools::{PointerEvent, PointerKind};
+    use splinewright_tools::{PointerEvent, PointerKind};
     let mut s = session();
     let a = rect(&mut s, 100.0, 100.0, 100.0, 100.0);
     let v = ViewInfo::default();
@@ -947,7 +947,7 @@ fn moved_art_snaps_to_the_artboard_edges_and_centre() {
 /// guides hidden or locked the press goes to the art.
 #[test]
 fn selection_tool_drags_a_ruler_guide() {
-    use vectorcraft_tools::{PointerEvent, PointerKind};
+    use splinewright_tools::{PointerEvent, PointerKind};
     let mut s = session();
     let a = rect(&mut s, 100.0, 100.0, 100.0, 100.0);
     s.execute("guide.add", &json!({"vertical": true, "pos": 150})).unwrap();
@@ -1100,7 +1100,7 @@ fn opening_in_cmyk_can_put_rgb_greys_on_the_black_plate() {
         fill(&mut s, id, hex);
     }
     let svg = s.execute("document.serialize", &json!({"format": "svg"})).unwrap()["text"].as_str().unwrap().to_string();
-    let data = vectorcraft_format::base64_encode(svg.as_bytes());
+    let data = splinewright_format::base64_encode(svg.as_bytes());
     let mut o = Session::new();
     o.execute("document.open", &json!({"name": "greys.svg", "dataBase64": data, "colorMode": "cmyk", "grays": "black"})).unwrap();
     let d = &o.doc().unwrap().doc;
@@ -1154,8 +1154,8 @@ fn saved_selection_names_are_trimmed_and_capped() {
     sel(&mut s, &[a]);
     let long = "n".repeat(1000);
     let name = s.execute("select.save", &json!({ "name": format!(" {long} ") })).unwrap()["name"].clone();
-    assert_eq!(name.as_str().map(|n| n.chars().count()), Some(vectorcraft_doc::SavedSelection::MAX_NAME));
+    assert_eq!(name.as_str().map(|n| n.chars().count()), Some(splinewright_doc::SavedSelection::MAX_NAME));
     s.execute("select.editSaved", &json!({"name": name, "newName": format!("{long}é")})).unwrap();
     let list = s.execute("select.savedList", &json!({})).unwrap();
-    assert_eq!(list[0].as_str().map(|n| n.chars().count()), Some(vectorcraft_doc::SavedSelection::MAX_NAME));
+    assert_eq!(list[0].as_str().map(|n| n.chars().count()), Some(splinewright_doc::SavedSelection::MAX_NAME));
 }

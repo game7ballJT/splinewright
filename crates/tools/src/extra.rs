@@ -5,7 +5,7 @@
 //! engine's `path.reshape` adds an anchor there if needed and moves the neighbourhood smoothly.
 
 use serde_json::{Value, json};
-use vectorcraft_geom::{Point, Vec2};
+use splinewright_geom::{Point, Vec2};
 
 use crate::distort::{BLUE, ellipse_path};
 use crate::{Action, Cursor, Mods, Overlay, PointerEvent, PointerKind, Tool, ToolContext, ToolKey};
@@ -15,7 +15,7 @@ pub fn create(id: &str) -> Option<Box<dyn Tool>> {
         "flare" => Box::new(FlareTool::default()),
         "reshape" => Box::new(ReshapeTool::default()),
         "shaper" => Box::new(ShaperTool::default()),
-        id if vectorcraft_doc::GraphKind::parse(id).is_some() && id.ends_with("Graph") => Box::new(GraphTool::new(id)),
+        id if splinewright_doc::GraphKind::parse(id).is_some() && id.ends_with("Graph") => Box::new(GraphTool::new(id)),
         _ => return None,
     })
 }
@@ -148,13 +148,13 @@ impl Tool for FlareTool {
 #[derive(Default)]
 pub struct ReshapeTool {
     /// (path, grab point) while dragging.
-    grab: Option<(vectorcraft_doc::NodeId, Point)>,
+    grab: Option<(splinewright_doc::NodeId, Point)>,
     began: bool,
 }
 
 impl ReshapeTool {
     /// The selected path under `p` (Reshape works on selected paths only, like Illustrator).
-    fn hit(cx: &ToolContext, p: Point) -> Option<(vectorcraft_doc::NodeId, Point)> {
+    fn hit(cx: &ToolContext, p: Point) -> Option<(splinewright_doc::NodeId, Point)> {
         let tol = cx.tol(4.0);
         cx.selection.objects.iter().copied().filter(|id| cx.doc.is_editable(*id)).find_map(|id| {
             let pd = cx.doc.node(id)?.path_data()?;
@@ -182,7 +182,7 @@ impl Tool for ReshapeTool {
                 let Some((id, at)) = self.grab else { return vec![] };
                 let mut d: Vec2 = ev.pos - at;
                 if ev.mods.shift {
-                    d = vectorcraft_geom::constrain_angle(d, 45.0);
+                    d = splinewright_geom::constrain_angle(d, 45.0);
                 }
                 let mut out = vec![];
                 if !self.began {
@@ -231,7 +231,7 @@ impl Tool for ShaperTool {
         !self.points.is_empty()
     }
     fn pointer(&mut self, cx: &ToolContext, ev: &PointerEvent) -> Vec<Action> {
-        use vectorcraft_geom::recognize::{Recognized, recognize};
+        use splinewright_geom::recognize::{Recognized, recognize};
         match ev.kind {
             PointerKind::Down => {
                 self.points = vec![ev.pos];
@@ -245,7 +245,7 @@ impl Tool for ShaperTool {
             }
             PointerKind::Up => {
                 let pts = std::mem::take(&mut self.points);
-                let r = |x: vectorcraft_geom::Rect| json!({ "x": x.x0, "y": x.y0, "width": x.width(), "height": x.height() });
+                let r = |x: splinewright_geom::Rect| json!({ "x": x.x0, "y": x.y0, "width": x.width(), "height": x.height() });
                 match recognize(&pts) {
                     Some(Recognized::Line { a, b }) => vec![Action::Exec("shape.line".into(), json!({ "x1": a.x, "y1": a.y, "x2": b.x, "y2": b.y }))],
                     Some(Recognized::Rectangle(x)) => vec![Action::Exec("shape.rectangle".into(), r(x))],
@@ -260,7 +260,7 @@ impl Tool for ShaperTool {
                         // Delete the topmost objects the scribble crosses.
                         let mut ids: Vec<u64> = vec![];
                         for p in &pts {
-                            if let Some(h) = vectorcraft_doc::hit::hit_test(cx.doc, *p, cx.hit_options()) {
+                            if let Some(h) = splinewright_doc::hit::hit_test(cx.doc, *p, cx.hit_options()) {
                                 let id = h.top_object(cx.isolation).0;
                                 if !ids.contains(&id) {
                                     ids.push(id);
@@ -309,7 +309,7 @@ impl GraphTool {
         Self { id, start: None, began: false }
     }
     fn kind(&self) -> &'static str {
-        vectorcraft_doc::GraphKind::parse(self.id).unwrap_or_default().id()
+        splinewright_doc::GraphKind::parse(self.id).unwrap_or_default().id()
     }
     fn params(&self, s: Point, p: Point, m: Mods) -> Value {
         let mut d = p - s;
@@ -317,7 +317,7 @@ impl GraphTool {
             let k = d.x.abs().max(d.y.abs());
             d = Vec2::new(k * d.x.signum(), k * d.y.signum());
         }
-        let r = if m.alt { vectorcraft_geom::Rect::from_points(s - d, s + d) } else { vectorcraft_geom::Rect::from_points(s, s + d) };
+        let r = if m.alt { splinewright_geom::Rect::from_points(s - d, s + d) } else { splinewright_geom::Rect::from_points(s, s + d) };
         json!({ "type": self.kind(), "x": r.x0, "y": r.y0, "width": r.width().max(1.0), "height": r.height().max(1.0) })
     }
 }

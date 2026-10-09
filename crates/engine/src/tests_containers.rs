@@ -2,8 +2,8 @@
 //! Contents (Characters) slot, `target: "contents"`, Target Contents and effects on layers.
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Node, NodeKind};
+use splinewright_color::{Color, Paint};
+use splinewright_doc::{Node, NodeKind};
 
 use super::*;
 
@@ -36,8 +36,8 @@ fn group(s: &mut Session) -> (NodeId, [NodeId; 2]) {
 
 fn pixel(s: &Session, x: u32, y: u32) -> [u8; 4] {
     let doc = s.doc().unwrap().doc.clone();
-    let opts = vectorcraft_render::RenderOptions { background: Some([255, 255, 255, 255]), ..Default::default() };
-    vectorcraft_render::Renderer::new().render(&doc, 200, 200, vectorcraft_geom::Affine::IDENTITY, &opts).pixel(x, y)
+    let opts = splinewright_render::RenderOptions { background: Some([255, 255, 255, 255]), ..Default::default() };
+    splinewright_render::Renderer::new().render(&doc, 200, 200, splinewright_geom::Affine::IDENTITY, &opts).pixel(x, y)
 }
 
 const GREEN: [u8; 4] = [0, 255, 0, 255];
@@ -131,7 +131,7 @@ fn group_appearance_round_trips_and_expands() {
     run(&mut s, "appearance.moveItem", json!({"from": "contents", "to": 1}));
     run(&mut s, "effect.apply", json!({"effect": "distort.transform", "params": {"moveV": 50}}));
     let doc = s.doc().unwrap().doc.clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let back = splinewright_format::load(&splinewright_format::save(&doc, false)).unwrap();
     assert_eq!(back.node(g).unwrap().appearance, doc.node(g).unwrap().appearance);
     assert_eq!(back.node(g).unwrap().appearance.contents_index, Some(1));
     // Expand Appearance: the fill and stroke become paths below and above the moved members.

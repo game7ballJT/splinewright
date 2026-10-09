@@ -7,8 +7,8 @@
 //! placed or dragged snaps to Smart Guides ([`DrawSnap`]), as the Pen's anchors do.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{NodeId, Selection};
-use vectorcraft_geom::Point;
+use splinewright_doc::{NodeId, Selection};
+use splinewright_geom::Point;
 
 use super::{FEEDBACK, catmull_rom};
 use crate::guides::{DrawSnap, Leave, Targets};
@@ -195,7 +195,7 @@ impl Tool for CurvatureTool {
             let mut pts = self.pts.clone();
             pts.push((h, false));
             let sp = catmull_rom(&pts, false);
-            let mut bp = vectorcraft_geom::BezPath::new();
+            let mut bp = splinewright_geom::BezPath::new();
             sp.to_bezpath_into(&mut bp);
             o.push(Overlay::Path { path: bp, color: FEEDBACK, width: 1.0, dashed: false });
         }
@@ -213,7 +213,7 @@ impl Tool for CurvatureTool {
 mod tests {
     use super::*;
     use crate::testutil::*;
-    use vectorcraft_doc::Selection;
+    use splinewright_doc::Selection;
 
     #[test]
     fn first_click_creates_then_notify_tracks_path() {

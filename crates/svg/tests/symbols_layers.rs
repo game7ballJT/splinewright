@@ -6,12 +6,12 @@
 
 use std::sync::Arc;
 
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::pattern::pattern_paint;
-use vectorcraft_doc::{Appearance, Document, Node, NodeKind, PatternDef, Symbol};
-use vectorcraft_geom::{Affine, Rect, shapes};
-use vectorcraft_svg::{ExportOptions, editing, export, export_full, import};
-use vectorcraft_testkit::raster::{Image, assert_similar, render_artboard};
+use splinewright_color::{Color, Paint};
+use splinewright_doc::pattern::pattern_paint;
+use splinewright_doc::{Appearance, Document, Node, NodeKind, PatternDef, Symbol};
+use splinewright_geom::{Affine, Rect, shapes};
+use splinewright_svg::{ExportOptions, editing, export, export_full, import};
+use splinewright_testkit::raster::{Image, assert_similar, render_artboard};
 
 /// The exported SVG rendered by resvg on white at 1 px/pt.
 fn resvg_render(svg: &str, w: u32, h: u32) -> Image {
@@ -79,7 +79,7 @@ fn instances_the_def_cant_stand_for_get_their_own_art() {
     let mut stained = instance(&mut d, "My Mark", Affine::translate((40.0, 20.0)));
     stained.appearance = Appearance::basic(Paint::solid(Color::rgb8(255, 0, 0)), Paint::None, 0.0);
     stained.appearance.items.retain(|i| i.is_fill());
-    if let vectorcraft_doc::AppearanceItem::Fill(f) = &mut stained.appearance.items[0] {
+    if let splinewright_doc::AppearanceItem::Fill(f) = &mut stained.appearance.items[0] {
         f.opacity = 0.5;
     }
     let id = stained.id;
@@ -125,7 +125,7 @@ fn expanded(d: &Document) -> Document {
     for c in l.children_mut().unwrap().iter_mut() {
         if let NodeKind::SymbolInstance { symbol, xf } = &c.kind {
             let sym = d.symbols.iter().find(|s| s.name == *symbol).unwrap();
-            let mut art = vectorcraft_brush::instance_art(&sym.art, c);
+            let mut art = splinewright_brush::instance_art(&sym.art, c);
             art.transform(*xf, false);
             *c = Arc::new(art);
         }
@@ -140,7 +140,7 @@ fn masks_in_symbols_move_with_the_art_when_linked() {
         let fill = |c| Appearance::basic(Paint::solid(c), Paint::None, 0.0);
         let mut art = Node::path(d.alloc_id(), shapes::rectangle(Rect::new(0.0, 0.0, 60.0, 60.0)), fill(Color::rgb8(200, 0, 0)));
         let shape = Node::path(d.alloc_id(), shapes::rectangle(Rect::new(0.0, 0.0, 30.0, 60.0)), fill(Color::WHITE));
-        let mut mask = vectorcraft_doc::OpacityMask::new(shape, true);
+        let mut mask = splinewright_doc::OpacityMask::new(shape, true);
         mask.linked = linked;
         art.mask = Some(Box::new(mask));
         d.symbols.push(Symbol { name: "Half".into(), art: Arc::new(art) });
@@ -173,7 +173,7 @@ fn layered() -> Document {
     let a = Node::path(d.alloc_id(), shapes::rectangle(Rect::new(10.0, 10.0, 40.0, 40.0)), fill(Color::rgb8(255, 0, 0)));
     let l = d.layers[0].id;
     d.insert(Some(l), 0, a).unwrap();
-    let mut hidden = Node::layer(d.alloc_id(), "Notes", vectorcraft_doc::LayerColor::Preset(1));
+    let mut hidden = Node::layer(d.alloc_id(), "Notes", splinewright_doc::LayerColor::Preset(1));
     let b = Node::path(d.alloc_id(), shapes::rectangle(Rect::new(50.0, 50.0, 90.0, 90.0)), fill(Color::rgb8(0, 0, 255)));
     hidden.children_mut().unwrap().push(Arc::new(b));
     hidden.visible = false;
@@ -189,8 +189,8 @@ fn hidden_layers_are_kept_hidden_when_asked() {
     // Page isolation wraps the layers in one more group.
     let mut isolated = d.clone();
     isolated.page_isolate = true;
-    let styles = [vectorcraft_svg::Styling::PresentationAttributes, vectorcraft_svg::Styling::InlineStyle, vectorcraft_svg::Styling::InternalCss];
-    for (d, styling) in styles.iter().map(|s| (&d, *s)).chain([(&isolated, vectorcraft_svg::Styling::InternalCss)]) {
+    let styles = [splinewright_svg::Styling::PresentationAttributes, splinewright_svg::Styling::InlineStyle, splinewright_svg::Styling::InternalCss];
+    for (d, styling) in styles.iter().map(|s| (&d, *s)).chain([(&isolated, splinewright_svg::Styling::InternalCss)]) {
         let kept = export(d, &ExportOptions { hidden_layers: true, styling, ..Default::default() });
         assert!(kept.contains("id=\"Notes\"") && kept.contains("display") && kept.matches("<path").count() == 2, "{kept}");
         // Viewers don't show it.
@@ -301,7 +301,7 @@ fn editing_data_notices_edits_made_elsewhere() {
     let svg = export_full(&d, &opts, Some(b"native bytes")).svg;
     assert!(svg.contains("<![CDATA[") && svg.contains(" hash=\""), "{svg}");
     let e = editing(&svg).unwrap();
-    assert!(e.intact && e.data == vectorcraft_svg::base64_encode(b"native bytes"));
+    assert!(e.intact && e.data == splinewright_svg::base64_encode(b"native bytes"));
     // Re-indented, with other line endings: still the same picture.
     let reformatted = svg.replace("\n  ", "\r\n\t\t");
     assert!(editing(&reformatted).unwrap().intact);
@@ -315,6 +315,6 @@ fn editing_data_notices_edits_made_elsewhere() {
     let retitled = svg.replacen("<dc:format>", "<dc:creator>someone</dc:creator><dc:format>", 1);
     assert!(editing(&retitled).unwrap().intact);
     // Unique ids hash the final output.
-    let unique = export_full(&d, &ExportOptions { object_ids: vectorcraft_svg::ObjectIds::Unique, ..opts }, Some(b"native bytes")).svg;
+    let unique = export_full(&d, &ExportOptions { object_ids: splinewright_svg::ObjectIds::Unique, ..opts }, Some(b"native bytes")).svg;
     assert!(editing(&unique).unwrap().intact);
 }

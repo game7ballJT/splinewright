@@ -28,12 +28,12 @@ use std::ops::{Range, RangeInclusive};
 use std::rc::Rc;
 use std::str::FromStr;
 
+use splinewright_color::{Color, Paint};
+use splinewright_doc::{CharStyle, Dash, Justify, LineCap, LineJoin, ParaDirection, StrokeLayer, TextKind, TextObject, TextRun};
+use splinewright_geom::kurbo::ParamCurveArclen;
+use splinewright_geom::{Affine, BezPath, PathData, Point, Rect};
+use splinewright_text::{FontDb, TextLayout};
 use usvg::roxmltree;
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{CharStyle, Dash, Justify, LineCap, LineJoin, ParaDirection, StrokeLayer, TextKind, TextObject, TextRun};
-use vectorcraft_geom::kurbo::ParamCurveArclen;
-use vectorcraft_geom::{Affine, BezPath, PathData, Point, Rect};
-use vectorcraft_text::{FontDb, TextLayout};
 
 use super::css::{Styles, XNode};
 use super::{DEFAULT_FONT_SIZE, PT_PER_IN, href, vector_effect};
@@ -167,7 +167,7 @@ impl TextSlots {
 
 /// Replace every `<text>` usvg would draw by a placeholder group (see the module docs).
 pub(super) fn prepare<'s>(svg: &'s str, xml: &roxmltree::Document, dpi: f64, warnings: &mut Vec<String>) -> (Cow<'s, str>, TextSlots) {
-    let mut prefix = String::from("vectorcraft-text-");
+    let mut prefix = String::from("splinewright-text-");
     while xml.descendants().any(|n| n.attribute("id").is_some_and(|id| id.starts_with(&prefix))) {
         prefix.insert(0, '_');
     }
@@ -620,7 +620,7 @@ impl Ctx {
         // strong character: pinned when that would read as right to left.
         if self.css.prop(t, "direction").is_some_and(|d| d.trim() == "rtl") {
             obj.para.direction = Some(ParaDirection::RightToLeft);
-        } else if obj.plain_text().split('\n').any(|p| vectorcraft_text::paragraph_is_rtl(p, None)) {
+        } else if obj.plain_text().split('\n').any(|p| splinewright_text::paragraph_is_rtl(p, None)) {
             obj.para.direction = Some(ParaDirection::LeftToRight);
         }
         // The placeholder covers the text (laid out when a paint server needs its bounding box).
@@ -834,7 +834,7 @@ fn point_text(cells: &[Cell]) -> TextObject {
 }
 
 fn measure(t: &TextObject) -> TextLayout {
-    vectorcraft_text::layout(FontDb::global(), t)
+    splinewright_text::layout(FontDb::global(), t)
 }
 
 /// Total advance of a laid-out single line.

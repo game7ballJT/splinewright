@@ -1,7 +1,7 @@
 use serde_json::json;
 
 use super::*;
-use vectorcraft_tools::{PointerEvent, PointerKind, ToolKey};
+use splinewright_tools::{PointerEvent, PointerKind, ToolKey};
 
 fn session() -> Session {
     let mut s = Session::new();
@@ -125,7 +125,7 @@ fn fill_and_stroke_commands() {
     assert_eq!(n.appearance.fill_paint().color().unwrap().to_hex(), "#ff0000");
     let st = n.appearance.stroke().unwrap();
     assert_eq!(st.width, 4.0);
-    assert_eq!(st.cap, vectorcraft_doc::LineCap::Round);
+    assert_eq!(st.cap, splinewright_doc::LineCap::Round);
     assert_eq!(st.dash.as_ref().unwrap().pattern, vec![3.0, 2.0]);
     s.execute("paint.swap", &json!({})).unwrap();
     assert_eq!(s.doc().unwrap().doc.node(a).unwrap().appearance.stroke_paint().color().unwrap().to_hex(), "#ff0000");
@@ -290,8 +290,8 @@ fn direct_selection_moves_one_anchor() {
     s.pointer(&PointerEvent::new(PointerKind::Drag, 90.0, 90.0), v).unwrap();
     s.pointer(&PointerEvent::new(PointerKind::Up, 90.0, 90.0), v).unwrap();
     let p = s.doc().unwrap().doc.node(a).unwrap().path_data().unwrap().clone();
-    assert_eq!(p.subpaths[0].anchors[0].p, vectorcraft_geom::Point::new(90.0, 90.0));
-    assert_eq!(p.subpaths[0].anchors[1].p, vectorcraft_geom::Point::new(200.0, 100.0));
+    assert_eq!(p.subpaths[0].anchors[0].p, splinewright_geom::Point::new(90.0, 90.0));
+    assert_eq!(p.subpaths[0].anchors[1].p, splinewright_geom::Point::new(200.0, 100.0));
 }
 
 /// Dragging a curved segment with Direct Selection bends it (its anchors stay), and dragging a
@@ -317,7 +317,7 @@ fn direct_selection_drags_segments() {
     drag(&mut s, (200.0, 125.0), (200.0, 85.0));
     let sp = s.doc().unwrap().doc.node(arch).unwrap().path_data().unwrap().subpaths[0].clone();
     let (a, b) = (sp.anchors[0], sp.anchors[1]);
-    assert_eq!((a.p, b.p), (vectorcraft_geom::Point::new(100.0, 200.0), vectorcraft_geom::Point::new(300.0, 200.0)), "the anchors stay");
+    assert_eq!((a.p, b.p), (splinewright_geom::Point::new(100.0, 200.0), splinewright_geom::Point::new(300.0, 200.0)), "the anchors stay");
     assert!(a.h_out.y < 100.0 && b.h_in.y < 100.0, "the curve bent up: {a:?} {b:?}");
     assert_eq!(steps(&s), before + 1);
     // The square's top edge, 40 up: its two anchors move, the bottom two stay.
@@ -334,7 +334,7 @@ fn direct_selection_drags_segments() {
 #[test]
 fn text_create_has_bounds() {
     let mut s = session();
-    let r = s.execute("text.create", &json!({"x": 10, "y": 50, "text": "Hello VectorCraft", "size": 24})).unwrap();
+    let r = s.execute("text.create", &json!({"x": 10, "y": 50, "text": "Hello Splinewright", "size": 24})).unwrap();
     let n = s.doc().unwrap().doc.node(NodeId(r["id"].as_u64().unwrap())).unwrap().clone();
     let b = n.geometric_bounds().unwrap();
     assert!(b.width() > 100.0, "{b:?}");
@@ -594,8 +594,8 @@ fn graph_tool_drag_creates_a_graph_and_asks_for_data() {
     let st = s.doc().unwrap();
     assert_eq!(st.history.undo.len(), undo_before + 1);
     let g = st.doc.node(st.selection.objects[0]).unwrap();
-    assert_eq!(g.graph.as_ref().unwrap().kind, vectorcraft_doc::GraphKind::Pie);
-    assert_eq!(g.graph.as_ref().unwrap().rect, vectorcraft_geom::Rect::new(100.0, 100.0, 300.0, 250.0));
+    assert_eq!(g.graph.as_ref().unwrap().kind, splinewright_doc::GraphKind::Pie);
+    assert_eq!(g.graph.as_ref().unwrap().rect, splinewright_geom::Rect::new(100.0, 100.0, 300.0, 250.0));
 }
 
 #[test]
@@ -636,12 +636,12 @@ fn object_mosaic_tiles_follow_the_image_colours() {
     let st = s.doc().unwrap();
     let g = st.doc.node(NodeId(r["id"].as_u64().unwrap())).unwrap();
     let tiles = g.children().unwrap();
-    let fill = |n: &vectorcraft_doc::Node| n.appearance.fill_paint();
-    assert_eq!(fill(&tiles[0]), vectorcraft_color::Paint::solid(vectorcraft_color::Color::rgb(1.0, 0.0, 0.0)));
-    assert_eq!(fill(&tiles[1]), vectorcraft_color::Paint::solid(vectorcraft_color::Color::rgb(0.0, 0.0, 1.0)));
+    let fill = |n: &splinewright_doc::Node| n.appearance.fill_paint();
+    assert_eq!(fill(&tiles[0]), splinewright_color::Paint::solid(splinewright_color::Color::rgb(1.0, 0.0, 0.0)));
+    assert_eq!(fill(&tiles[1]), splinewright_color::Paint::solid(splinewright_color::Color::rgb(0.0, 0.0, 1.0)));
     // 4 pt spacing: each 50 pt tile shrinks to 46 pt; the image is gone.
     assert!((tiles[0].geometric_bounds().unwrap().width() - 46.0).abs() < 1e-6);
-    assert!(!st.doc.layers[0].children().unwrap().iter().any(|n| matches!(n.kind, vectorcraft_doc::NodeKind::Image(_))));
+    assert!(!st.doc.layers[0].children().unwrap().iter().any(|n| matches!(n.kind, splinewright_doc::NodeKind::Image(_))));
 }
 
 #[test]
@@ -690,7 +690,7 @@ fn shaper_turns_rough_strokes_into_live_shapes_and_scribbles_delete() {
     let id = s.doc().unwrap().selection.objects[0];
     let n = s.doc().unwrap().doc.node(id).unwrap().clone();
     assert!(
-        matches!(n.kind, vectorcraft_doc::NodeKind::Path { live: Some(vectorcraft_doc::LiveShape::Rectangle { .. }), .. }),
+        matches!(n.kind, splinewright_doc::NodeKind::Path { live: Some(splinewright_doc::LiveShape::Rectangle { .. }), .. }),
         "{:?}",
         n.kind_label()
     );

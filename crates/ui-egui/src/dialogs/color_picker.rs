@@ -9,17 +9,17 @@
 
 use egui::{Rect, Sense, Ui, vec2};
 use serde_json::{Value, json};
-use vectorcraft_color::cms::{self, Lab};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::ColorMode;
-use vectorcraft_engine::cmd::color_value;
+use splinewright_color::cms::{self, Lab};
+use splinewright_color::{Color, Paint};
+use splinewright_doc::ColorMode;
+use splinewright_engine::cmd::color_value;
 
 use super::DialogSpec;
 use crate::panels::color::{GAMUT_WARNING, WEB_WARNING, gamut_fix, hex_digits, is_web_safe, parse_hex, warning_chip, web_safe};
 use crate::panels::{c32, color_json};
 use crate::state::Dialog;
 use crate::theme::Tokens;
-use crate::{VectorcraftApp, widgets};
+use crate::{SplinewrightApp, widgets};
 
 pub(super) const KIND: &str = "colorPicker";
 
@@ -152,7 +152,7 @@ fn store(d: &mut Dialog, p: &Picked) {
 }
 
 /// The colour the proxy shows (a gradient's first stop; the last colour for None and patterns).
-fn proxy_color(app: &VectorcraftApp, stroke: bool) -> Color {
+fn proxy_color(app: &SplinewrightApp, stroke: bool) -> Color {
     let (f, s) = crate::panels::current_paints(app);
     match if stroke { s } else { f } {
         Paint::Solid { color, .. } => color,
@@ -163,7 +163,7 @@ fn proxy_color(app: &VectorcraftApp, stroke: bool) -> Color {
 
 /// `ui.colorPicker {stroke?, color?}`: open the picker for the fill (or stroke) proxy, starting
 /// from `color` or the proxy's colour.
-pub fn open(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
+pub fn open(app: &mut SplinewrightApp, p: &Value) -> Result<Value, String> {
     let stroke = p.get("stroke").and_then(Value::as_bool).unwrap_or(!app.session.fill_active);
     let color = match p.get("color") {
         Some(v) => color_value(v).ok_or_else(|| format!("bad color {v}"))?,
@@ -178,7 +178,7 @@ pub fn open(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
     Ok(Value::Null)
 }
 
-fn body(app: &mut VectorcraftApp, ui: &mut Ui, d: &mut Dialog) -> bool {
+fn body(app: &mut SplinewrightApp, ui: &mut Ui, d: &mut Dialog) -> bool {
     let channel = Channel::parse(&d.str("channel")).unwrap_or_default();
     let web = d.bool("webOnly");
     let swatches = d.bool("swatches");
@@ -326,7 +326,7 @@ fn value_fields(ui: &mut Ui, p: &Picked, channel: Channel) -> (Option<Picked>, O
 }
 
 /// The document's colour swatches as a list; returns the clicked swatch's colour.
-fn swatch_list(app: &VectorcraftApp, ui: &mut Ui, current: &Color) -> Option<Color> {
+fn swatch_list(app: &SplinewrightApp, ui: &mut Ui, current: &Color) -> Option<Color> {
     let t = Tokens::get(ui.ctx());
     let mut chosen = None;
     ui.allocate_ui(vec2(FIELD + 28.0, FIELD), |ui| {
@@ -364,7 +364,7 @@ fn swatch_list(app: &VectorcraftApp, ui: &mut Ui, current: &Color) -> Option<Col
 }
 
 /// OK: apply the colour to the proxy (as CMYK in a CMYK document).
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut SplinewrightApp, d: &Dialog) -> Result<Value, String> {
     let mut c = picked(d).color;
     if matches!(c, Color::Rgb { .. }) && app.session.active().is_some_and(|s| s.doc.color_mode == ColorMode::Cmyk) {
         let [cy, m, y, k] = c.to_cmyk_managed(cms::active().settings().intent);
@@ -376,26 +376,26 @@ fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
 
 #[cfg(test)]
 mod tests {
-    use vectorcraft_engine::Session;
+    use splinewright_engine::Session;
 
     use super::*;
     use crate::panels::color::in_gamut;
 
-    fn app() -> VectorcraftApp {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    fn app() -> SplinewrightApp {
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
         app.run("shape.rectangle", json!({"x": 10, "y": 10, "width": 50, "height": 50})).unwrap();
         app
     }
 
-    fn frame(app: &mut VectorcraftApp) {
+    fn frame(app: &mut SplinewrightApp) {
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
         let mut out = ctx.run_ui(Default::default(), |ui| super::super::show(app, ui.ctx()));
         out.textures_delta.clear();
     }
 
-    fn fill_hex(app: &VectorcraftApp) -> String {
+    fn fill_hex(app: &SplinewrightApp) -> String {
         crate::panels::current_paints(app).0.color().unwrap().to_hex()
     }
 

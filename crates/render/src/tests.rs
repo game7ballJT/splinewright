@@ -1,7 +1,7 @@
 use super::*;
-use vectorcraft_color::{Color, Gradient, GradientPaint, Paint};
-use vectorcraft_doc::{Appearance, Node};
-use vectorcraft_geom::shapes;
+use splinewright_color::{Color, Gradient, GradientPaint, Paint};
+use splinewright_doc::{Appearance, Node};
+use splinewright_geom::shapes;
 
 fn rect_node(d: &mut Document, r: Rect, fill: Paint, stroke: Paint, w: f64) -> Node {
     let id = d.alloc_id();
@@ -90,7 +90,7 @@ fn multiply_blend() {
     let mut d = Document::new(100.0, 100.0);
     let a = rect_node(&mut d, Rect::new(0.0, 0.0, 100.0, 100.0), Paint::solid(Color::rgb(1.0, 1.0, 0.0)), Paint::None, 0.0);
     let mut b = rect_node(&mut d, Rect::new(0.0, 0.0, 100.0, 100.0), Paint::solid(Color::rgb(0.0, 1.0, 1.0)), Paint::None, 0.0);
-    b.blend = vectorcraft_color::BlendMode::Multiply;
+    b.blend = splinewright_color::BlendMode::Multiply;
     let l = d.layers[0].id;
     d.insert(Some(l), 0, a).unwrap();
     d.insert(Some(l), 1, b).unwrap();
@@ -207,8 +207,8 @@ fn arrowheads_render() {
     assert!(r.pixel(85, 50)[0] > 200, "nothing past the tip");
 }
 
-use vectorcraft_doc::Arrowhead;
-use vectorcraft_geom::Point;
+use splinewright_doc::Arrowhead;
+use splinewright_geom::Point;
 
 /// A red 10..90 square masked by a white square covering only its left half (10..50),
 /// plus a mid-grey strip (50..70) — rendered both multi- and single-threaded.
@@ -219,7 +219,7 @@ fn masked_doc(clip: bool, invert: bool) -> Document {
     let grey = rect_node(&mut d, Rect::new(50.0, 10.0, 70.0, 90.0), Paint::solid(Color::rgb(0.5, 0.5, 0.5)), Paint::None, 0.0);
     let gid = d.alloc_id();
     let art = Node::group(gid, vec![Arc::new(white), Arc::new(grey)]);
-    let mut m = vectorcraft_doc::OpacityMask::new(art, clip);
+    let mut m = splinewright_doc::OpacityMask::new(art, clip);
     m.invert = invert;
     n.mask = Some(Box::new(m));
     let l = d.layers[0].id;
@@ -289,7 +289,7 @@ fn trim_view_clips_to_artboards() {
 fn drop_shadow_profile_and_cache() {
     let mut d = Document::new(100.0, 100.0);
     let mut n = rect_node(&mut d, Rect::new(20.0, 20.0, 60.0, 60.0), Paint::solid(Color::WHITE), Paint::None, 0.0);
-    n.appearance.effects.push(vectorcraft_doc::Effect {
+    n.appearance.effects.push(splinewright_doc::Effect {
         id: "stylize.dropShadow".into(),
         params: serde_json::json!({"x": 10.0, "y": 10.0, "blur": 4.0, "opacity": 75.0}),
         visible: true,
@@ -321,7 +321,7 @@ fn blend_mode_on_a_single_fill_is_exact_without_a_layer() {
     let mut d = Document::new(100.0, 100.0);
     let red = rect_node(&mut d, Rect::new(0.0, 0.0, 50.0, 100.0), Paint::solid(Color::rgb(1.0, 0.0, 0.0)), Paint::None, 0.0);
     let mut over = rect_node(&mut d, Rect::new(25.0, 0.0, 75.0, 100.0), Paint::solid(Color::rgb(0.5, 0.5, 1.0)), Paint::None, 0.0);
-    over.blend = vectorcraft_color::BlendMode::Multiply;
+    over.blend = splinewright_color::BlendMode::Multiply;
     let l = d.layers[0].id;
     d.insert(Some(l), 0, red).unwrap();
     d.insert(Some(l), 1, over).unwrap();
@@ -347,8 +347,8 @@ fn invalid_dash_pattern_strokes_solid() {
         bp.move_to((10.0, 50.0));
         bp.line_to((90.0, 50.0));
         let id = d.alloc_id();
-        let mut n = Node::path(id, vectorcraft_geom::PathData::from_bezpath(&bp), Appearance::basic(Paint::None, Paint::solid(Color::BLACK), 6.0));
-        n.appearance.stroke_mut().unwrap().dash = dash.map(|pattern| vectorcraft_doc::Dash { pattern, ..Default::default() });
+        let mut n = Node::path(id, splinewright_geom::PathData::from_bezpath(&bp), Appearance::basic(Paint::None, Paint::solid(Color::BLACK), 6.0));
+        n.appearance.stroke_mut().unwrap().dash = dash.map(|pattern| splinewright_doc::Dash { pattern, ..Default::default() });
         let l = d.layers[0].id;
         d.insert(Some(l), 0, n).unwrap();
         d

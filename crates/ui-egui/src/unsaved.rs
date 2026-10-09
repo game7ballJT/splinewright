@@ -10,14 +10,14 @@
 use serde_json::{Value, json};
 
 use crate::state::Dialog;
-use crate::{VectorcraftApp, io};
+use crate::{SplinewrightApp, io};
 
 /// Dialog kind. Fields: `index` (document), `name` (its title), `then` (`close`, `closeAll` or
 /// `quit`: what continues after this document) and `discard` (Don't Save).
 pub const KIND: &str = "saveChanges";
 
 /// File → Close (or a tab's ×) for document `i`.
-pub fn close(app: &mut VectorcraftApp, i: usize) -> Result<Value, String> {
+pub fn close(app: &mut SplinewrightApp, i: usize) -> Result<Value, String> {
     // A save still running decides whether there is anything left to save.
     crate::background::wait_all(app);
     let dirty = app.session.documents().get(i).ok_or("no such document")?.is_dirty();
@@ -26,14 +26,14 @@ pub fn close(app: &mut VectorcraftApp, i: usize) -> Result<Value, String> {
 
 /// File → Close All (`then` = `closeAll`) or Quit (`quit`): ask about the next modified document,
 /// or finish once none is left.
-pub fn close_all(app: &mut VectorcraftApp, then: &str) -> Result<Value, String> {
+pub fn close_all(app: &mut SplinewrightApp, then: &str) -> Result<Value, String> {
     crate::background::wait_all(app);
     if let Some(i) = app.session.documents().iter().position(|d| d.is_dirty()) {
         return ask(app, i, then);
     }
     if then == "quit" {
         // Nothing unsaved is left: no recovery copies either.
-        vectorcraft_engine::cmd::recovery::forget_all(&mut app.session);
+        splinewright_engine::cmd::recovery::forget_all(&mut app.session);
         // The host closes the window.
         app.ui.status = "quit".into();
         return Ok(Value::Null);
@@ -47,12 +47,12 @@ pub fn close_all(app: &mut VectorcraftApp, then: &str) -> Result<Value, String> 
 }
 
 /// Is any open document modified (the window's close button must ask first)?
-pub fn any_dirty(app: &VectorcraftApp) -> bool {
+pub fn any_dirty(app: &SplinewrightApp) -> bool {
     app.session.documents().iter().any(|d| d.is_dirty())
 }
 
 /// Show document `i` and ask whether to save it.
-fn ask(app: &mut VectorcraftApp, i: usize, then: &str) -> Result<Value, String> {
+fn ask(app: &mut SplinewrightApp, i: usize, then: &str) -> Result<Value, String> {
     app.session.set_active(i);
     let name = app.session.documents()[i].title();
     app.ui.dialog = Some(Dialog::new(KIND, json!({ "index": i, "name": name, "then": then })));
@@ -60,7 +60,7 @@ fn ask(app: &mut VectorcraftApp, i: usize, then: &str) -> Result<Value, String> 
 }
 
 /// Close document `i` through the engine command, keeping `views` aligned with the documents.
-fn close_now(app: &mut VectorcraftApp, i: usize) -> Result<Value, String> {
+fn close_now(app: &mut SplinewrightApp, i: usize) -> Result<Value, String> {
     let r = app.session.execute("file.close", &json!({ "index": i })).map_err(|e| e.to_string())?;
     if i < app.views.len() {
         app.views.remove(i);
@@ -70,13 +70,13 @@ fn close_now(app: &mut VectorcraftApp, i: usize) -> Result<Value, String> {
 }
 
 /// Answer the open dialog: save (or, with `discard`, don't), close the document and carry on.
-pub fn confirm(app: &mut VectorcraftApp) -> Result<Value, String> {
+pub fn confirm(app: &mut SplinewrightApp) -> Result<Value, String> {
     let d = app.ui.dialog.take().ok_or("no dialog open")?;
     let i = d.fields.get("index").and_then(Value::as_u64).map(|i| i as usize).filter(|i| *i < app.session.documents().len());
     let i = i.ok_or("no such document")?;
     if !d.bool("discard") {
         app.session.set_active(i);
-        let r = io::save(app, vectorcraft_engine::cmd::fileio::SaveMode::Save, &json!({}), false)?;
+        let r = io::save(app, splinewright_engine::cmd::fileio::SaveMode::Save, &json!({}), false)?;
         // Closing needs the file written: wait for a background save, and stop if it failed.
         if r["background"] == true {
             crate::background::wait_all(app);
@@ -95,36 +95,36 @@ pub fn confirm(app: &mut VectorcraftApp) -> Result<Value, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use splinewright_engine::Session;
     use std::sync::{Arc, Mutex};
-    use vectorcraft_engine::Session;
 
-    /// An app whose Save As picks `out.vectorcraft` and records written paths.
-    fn app() -> (VectorcraftApp, Arc<Mutex<Vec<String>>>) {
+    /// An app whose Save As picks `out.splinewright` and records written paths.
+    fn app() -> (SplinewrightApp, Arc<Mutex<Vec<String>>>) {
         let written = Arc::new(Mutex::new(vec![]));
         let w = written.clone();
         let services = crate::Services {
-            pick_save: Some(Box::new(|_: &crate::FilePick| Some("out.vectorcraft".to_string()))),
+            pick_save: Some(Box::new(|_: &crate::FilePick| Some("out.splinewright".to_string()))),
             write: Some(Box::new(move |p: &str, _: &[u8]| {
                 w.lock().unwrap().push(p.to_string());
                 Ok(())
             })),
             ..Default::default()
         };
-        (VectorcraftApp::new(Session::new(), services), written)
+        (SplinewrightApp::new(Session::new(), services), written)
     }
 
-    fn new_doc(app: &mut VectorcraftApp, dirty: bool) {
+    fn new_doc(app: &mut SplinewrightApp, dirty: bool) {
         app.run("file.new", json!({ "width": 100, "height": 100 })).unwrap();
         if dirty {
             app.run("shape.rectangle", json!({ "x": 0, "y": 0, "width": 10, "height": 10 })).unwrap();
         }
     }
 
-    fn docs(app: &VectorcraftApp) -> usize {
+    fn docs(app: &SplinewrightApp) -> usize {
         app.session.documents().len()
     }
 
-    fn pending(app: &VectorcraftApp) -> Option<usize> {
+    fn pending(app: &SplinewrightApp) -> Option<usize> {
         app.ui.dialog.as_ref().filter(|d| d.kind == KIND).and_then(|d| d.fields["index"].as_u64()).map(|i| i as usize)
     }
 
@@ -159,7 +159,7 @@ mod tests {
         // Save writes the file (Save As for an untitled document), then closes it.
         app.run("file.close", json!({ "index": 0 })).unwrap();
         confirm(&mut app).unwrap();
-        assert_eq!(*written.lock().unwrap(), vec!["out.vectorcraft".to_string()]);
+        assert_eq!(*written.lock().unwrap(), vec!["out.splinewright".to_string()]);
         assert_eq!((docs(&app), app.views.len()), (1, 1));
     }
 

@@ -1,16 +1,16 @@
 [package]
-name = "vectorcraft-text"
+name = "splinewright-text"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "VectorCraft text: font database, shaping, layout, glyph outlines"
+description = "Splinewright text: font database, shaping, layout, glyph outlines"
 
 [lints]
 workspace = true
 
 [dependencies]
-vectorcraft-geom = { workspace = true }
-vectorcraft-doc = { workspace = true }
+splinewright-geom = { workspace = true }
+splinewright-doc = { workspace = true }
 kurbo = { workspace = true }
 skrifa = { workspace = true }
 harfrust = { workspace = true }
@@ -26,7 +26,7 @@ unicode-script = "0.5"
 write-fonts = { version = "0.48", optional = true }
 
 [features]
-# `vectorcraft_text::test_fonts` for other crates' tests (dev-dependencies only).
+# `splinewright_text::test_fonts` for other crates' tests (dev-dependencies only).
 test-fonts = ["dep:write-fonts"]
 
 [dev-dependencies]

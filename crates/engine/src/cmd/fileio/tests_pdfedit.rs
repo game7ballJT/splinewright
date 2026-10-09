@@ -8,11 +8,11 @@ use super::tests_svgedit::{comparable, rich};
 use super::*;
 
 fn b64(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap_or_else(|| panic!("no dataBase64 in {v}"))).unwrap()
+    splinewright_format::base64_decode(v["dataBase64"].as_str().unwrap_or_else(|| panic!("no dataBase64 in {v}"))).unwrap()
 }
 
 fn open(s: &mut Session, name: &str, bytes: &[u8]) -> Value {
-    s.execute("document.open", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes)})).unwrap()
+    s.execute("document.open", &json!({"name": name, "dataBase64": splinewright_format::base64_encode(bytes)})).unwrap()
 }
 
 fn tmp(name: &str) -> String {
@@ -43,15 +43,15 @@ fn a_pdf_saved_with_preserve_editing_reopens_as_the_same_document() {
     assert_eq!(comparable(&s.doc().unwrap().doc), before, "the document came back exactly");
     assert_eq!(s.doc().unwrap().path, None, "a PDF is not saved over");
     // Picking pages imports them as artwork.
-    let r = s.execute("document.open", &json!({"name": "rich.pdf", "dataBase64": vectorcraft_format::base64_encode(&pdf), "pages": "1"})).unwrap();
+    let r = s.execute("document.open", &json!({"name": "rich.pdf", "dataBase64": splinewright_format::base64_encode(&pdf), "pages": "1"})).unwrap();
     assert_eq!(r["restored"], false, "{r}");
     // Off: the pages import as artwork.
     let plain = b64(&s.execute("document.exportPdf", &json!({"preserveEditing": false})).unwrap());
-    assert!(vectorcraft_pdf::editing(&plain).is_none());
+    assert!(splinewright_pdf::editing(&plain).is_none());
     assert_eq!(open(&mut s, "plain.pdf", &plain)["restored"], false);
     // document.export and serialize take the same option.
     let v = s.execute("document.serialize", &json!({"format": "pdf"})).unwrap();
-    assert!(vectorcraft_pdf::editing(&b64(&v)).is_some_and(|e| e.intact));
+    assert!(splinewright_pdf::editing(&b64(&v)).is_some_and(|e| e.intact));
 }
 
 #[test]
@@ -64,7 +64,7 @@ fn pages_changed_elsewhere_open_as_artwork_with_a_warning() {
     assert_eq!((&r["warnings"][0], &r["restored"]), (&json!(load::EDITING_STALE), &json!(false)), "{r}");
     assert!(s.doc().unwrap().doc.symbols.is_empty(), "plain import: no symbols");
     // Editing data that isn't a native document can't be read.
-    let damaged = patched(&pdf, b"{\"format\":\"vectorcraft\"", b"{\"format\":\"vectorcrafX\"");
+    let damaged = patched(&pdf, b"{\"format\":\"splinewright\"", b"{\"format\":\"splinewrighX\"");
     let r = open(&mut s, "damaged.pdf", &damaged);
     assert_eq!(r["warnings"][0], load::EDITING_DAMAGED, "{r}");
 }
@@ -74,13 +74,13 @@ fn the_legacy_payload_name_is_accepted() {
     let mut s = rich();
     let before = comparable(&s.doc().unwrap().doc);
     let pdf = b64(&s.execute("document.exportPdf", &json!({"compression": {"compressText": false}})).unwrap());
-    let (name, legacy) = (format!("({})", vectorcraft_pdf::EDITING_FILE), format!("({})", vectorcraft_pdf::LEGACY_EDITING_FILE));
+    let (name, legacy) = (format!("({})", splinewright_pdf::EDITING_FILE), format!("({})", splinewright_pdf::LEGACY_EDITING_FILE));
     let legacy = format!("{legacy}{}", " ".repeat(name.len() - legacy.len()));
     let mut old = pdf.clone();
     while let Some(at) = old.windows(name.len()).position(|w| w == name.as_bytes()) {
         old[at..at + name.len()].copy_from_slice(legacy.as_bytes());
     }
-    assert!(!String::from_utf8_lossy(&old).contains(vectorcraft_pdf::EDITING_FILE));
+    assert!(!String::from_utf8_lossy(&old).contains(splinewright_pdf::EDITING_FILE));
     assert_eq!(open(&mut s, "old.pdf", &old)["restored"], true);
     assert_eq!(comparable(&s.doc().unwrap().doc), before);
 }
@@ -95,7 +95,7 @@ fn ai_files_are_pdfs_that_save_and_reopen_editable() {
     let before = comparable(&s.doc().unwrap().doc);
     let bytes = std::fs::read(&path).unwrap();
     assert!(bytes.starts_with(b"%PDF"), ".ai is PDF-compatible");
-    assert!(vectorcraft_pdf::editing(&bytes).is_some_and(|e| e.intact), "always carries the document");
+    assert!(splinewright_pdf::editing(&bytes).is_some_and(|e| e.intact), "always carries the document");
     assert_eq!(s.doc().unwrap().path.as_deref(), Some(path.as_str()), "the document takes the path");
     // Reopening restores it and keeps the path: Save writes .ai again.
     let r = s.execute("document.open", &json!({"path": path})).unwrap();
@@ -104,8 +104,8 @@ fn ai_files_are_pdfs_that_save_and_reopen_editable() {
     assert_eq!(s.doc().unwrap().path.as_deref(), Some(path.as_str()));
     s.execute("shape.rectangle", &json!({"x": 1, "y": 1, "width": 5, "height": 5})).unwrap();
     s.execute("document.save", &json!({})).unwrap();
-    let again = vectorcraft_pdf::editing(&std::fs::read(&path).unwrap()).unwrap();
-    assert_eq!(vectorcraft_format::load(&again.data).unwrap().layers, s.doc().unwrap().doc.layers);
+    let again = splinewright_pdf::editing(&std::fs::read(&path).unwrap()).unwrap();
+    assert_eq!(splinewright_format::load(&again.data).unwrap().layers, s.doc().unwrap().doc.layers);
     // Save As also writes a plain PDF (the document then saves back as PDF); PNG stays an export.
     assert_eq!(s.execute("document.save", &json!({"path": tmp("x.pdf")})).unwrap()["format"], "pdf");
     assert!(s.execute("document.save", &json!({"path": tmp("x.png")})).is_err(), "PNG is written with document.export");
@@ -137,20 +137,20 @@ fn standards_and_screens_leave_the_editing_data_out() {
     let mut s = rich();
     // Choosing PDF/A turns Preserve Editing off unless it is asked for, which PDF/A refuses.
     let pdf_a = b64(&s.execute("document.exportPdf", &json!({"standard": "pdfA2b"})).unwrap());
-    assert!(vectorcraft_pdf::editing(&pdf_a).is_none());
+    assert!(splinewright_pdf::editing(&pdf_a).is_none());
     let e = s.execute("document.exportPdf", &json!({"standard": "pdfA2b", "preserveEditing": true})).unwrap_err();
     assert!(matches!(e, crate::EngineError::BadParams { .. }), "{e}");
     // Export for Screens writes a PDF per artboard for viewing.
     let r = s.execute("document.exportForScreens", &json!({"formats": [{"format": "pdf"}]})).unwrap();
-    let file = vectorcraft_format::base64_decode(r["files"][0]["dataBase64"].as_str().unwrap()).unwrap();
-    assert!(vectorcraft_pdf::editing(&file).is_none());
+    let file = splinewright_format::base64_decode(r["files"][0]["dataBase64"].as_str().unwrap()).unwrap();
+    assert!(splinewright_pdf::editing(&file).is_none());
 }
 
 #[test]
 fn save_dialogs_offer_every_format_save_writes() {
     let labels = |name: &str| save_filters(name).into_iter().map(|(l, _)| l).collect::<Vec<_>>();
     assert_eq!(labels("a.ai")[0], "PDF-compatible .ai");
-    assert_eq!(labels("a.vectorcraft").len(), SAVE_FORMATS.len());
+    assert_eq!(labels("a.splinewright").len(), SAVE_FORMATS.len());
     assert_eq!(labels("a.svg")[0], "SVG");
     assert!(labels("a.png").is_empty() && labels("noext").is_empty(), "exports pick their own name");
     assert_eq!(save_format(Some("ai"), None).unwrap().id, "ai");
@@ -164,7 +164,7 @@ fn a_pdf_of_some_artboards_carries_no_editing_data() {
     s.execute("file.new", &json!({"width": 100, "height": 80, "artboards": 3})).unwrap();
     for (range, kept) in [("2", false), ("1,3", false), ("3,2,1", false), ("1-3", true), ("all", true)] {
         let v = s.execute("document.exportPdf", &json!({ "range": range })).unwrap();
-        assert_eq!(vectorcraft_pdf::editing(&b64(&v)).is_some(), kept, "{range}");
+        assert_eq!(splinewright_pdf::editing(&b64(&v)).is_some(), kept, "{range}");
         let warned = v["warnings"].as_array().unwrap().iter().any(|w| w == super::pdf::EDITING_NEEDS_EVERY_ARTBOARD);
         assert_eq!(warned, !kept, "{range}: {v}");
     }

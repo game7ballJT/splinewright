@@ -1,7 +1,7 @@
-use vectorcraft_color::cms::{self, IccProfile, ProfileKind};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Appearance, Node};
-use vectorcraft_geom::shapes;
+use splinewright_color::cms::{self, IccProfile, ProfileKind};
+use splinewright_color::{Color, Paint};
+use splinewright_doc::{Appearance, Node};
+use splinewright_geom::shapes;
 
 use super::jpeg::{self, ColorModel, JpegOptions, Method};
 use super::*;

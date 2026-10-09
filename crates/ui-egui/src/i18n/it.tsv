@@ -1,7 +1,7 @@
 # Italian (it) catalog. Same format as zh-hant.tsv:  context <TAB> source <TAB> translation
 # (empty context = a plain UI string; `@id` = a command id; `@plural` = "one|other" forms).
 #
-# Clean-room: written from the meaning of VectorCraft's English labels in standard Italian, using the
+# Clean-room: written from the meaning of Splinewright's English labels in standard Italian, using the
 # feature names Italian users of vector illustration software know (Tavola da disegno, Campioni, Traccia,
 # Riempimento, Tracciato, Punto di ancoraggio, Penna, Selezione diretta, Elaborazione tracciati, Motivo,
 # Preset). No other application's Italian localisation was copied. Labels use sentence case (only the
@@ -40,7 +40,7 @@
 	A lower value follows the stroke closely; a higher one gives fewer points and smoother curves.	Un valore più basso segue fedelmente il tratto; uno più alto produce meno punti e curve più morbide.
 	A new preset starting from the selected one	Un nuovo preset basato su quello selezionato
 	A saved copy of the selected preset	Una copia salvata del preset selezionato
-	About VectorCraft	Informazioni su VectorCraft
+	About Splinewright	Informazioni su Splinewright
 	above	sopra
 	Absolute Position	Posizione assoluta
 	Accurate	Preciso
@@ -142,7 +142,7 @@
 	Appearance Panel	Pannello Aspetto
 	Appearance panel	Pannello Aspetto
 	Applies when the linked file is relinked or updated.	Si applica quando il file collegato viene ricollegato o aggiornato.
-	Applies the next time VectorCraft starts.	Si applica al prossimo avvio di VectorCraft.
+	Applies the next time Splinewright starts.	Si applica al prossimo avvio di Splinewright.
 	Apply Brush	Applica pennello
 	Apply Character Style	Applica stile carattere
 	Apply Effect	Applica effetto
@@ -179,8 +179,6 @@
 	Artboard {number}	Tavola da disegno {number}
 	Artboard:	Tavola da disegno:
 	Artboards	Tavole da disegno
-	ArtCraft Website	Sito web di ArtCraft
-	ArtCraft website	Sito web di ArtCraft
 	Artwork Colors	Colori della grafica
 	As Multiple Assets	Come più risorse
 	As Single Asset	Come risorsa unica
@@ -628,7 +626,6 @@
 	Discard Recovered Documents	Scarta documenti recuperati
 	Discard White Overprint in Output	Scarta sovrastampa del bianco nell'output
 	Discarded {} recovered document(s)	Documenti recuperati scartati: {}
-	Discord	Discord
 	Discretionary Hyphen	Trattino facoltativo
 	Discretionary Ligatures	Legature facoltative
 	Display All Blacks Accurately	Visualizza tutti i neri con precisione
@@ -1212,9 +1209,6 @@
 	Italian	Italiano
 	Japanese	Giapponese
 	Join	Unisci
-	Join Our Discord	Unisciti al nostro Discord
-	Join our Discord	Unisciti al nostro Discord
-	Join the ArtCraft community on Discord (discord.gg/artcraft)	Unisciti alla comunità di ArtCraft su Discord (discord.gg/artcraft)
 	Join the lines of each paragraph	Unisci le righe di ogni paragrafo
 	Join Tool	Strumento Unisci
 	Justification…	Giustificazione…
@@ -1742,7 +1736,6 @@
 	Paragraph Style Options	Opzioni stile paragrafo
 	Paragraph Styles	Stili paragrafo
 	Paragraph Symbol	Segno di paragrafo
-	Part of ArtCraft. MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VectorCraft.	Parte di ArtCraft. MIT OR Apache-2.0. Font: Source Sans 3, Inter, JetBrains Mono (OFL). Icone: Lucide (ISC) + VectorCraft.
 	Password	Password
 	Paste	Incolla
 	Paste in Back	Incolla dietro
@@ -1915,7 +1908,7 @@
 	Quarter Space	Quarto di spazio
 	Quick Actions	Azioni rapide
 	Quickly start a new file	Inizia rapidamente un nuovo file
-	Quit VectorCraft	Esci da VectorCraft
+	Quit Splinewright	Esci da Splinewright
 	Radar Graph Tool	Strumento Grafico radar
 	Radial	Radiale
 	Radial Glows	Bagliori radiali
@@ -2241,7 +2234,7 @@
 	Saves the current bars, toolbar and panel layout.	Salva la disposizione corrente di barre, barra degli strumenti e pannelli.
 	Save…	Salva…
 	Saving	Salvataggio
-	Saving Poster.vectorcraft	Salvataggio di Poster.vectorcraft
+	Saving Poster.splinewright	Salvataggio di Poster.splinewright
 	Saving recovery data for {}	Salvataggio dei dati di recupero per {}
 	Saving {}	Salvataggio di {}
 	Scale	Scala
@@ -2831,10 +2824,9 @@
 	Vector Halftone	Retino vettoriale
 	Vector Halftone…	Retino vettoriale…
 	Vector illustration — fast, open, scriptable.	Illustrazione vettoriale — veloce, aperta, programmabile.
-	VectorCraft didn't quit normally last time. These documents had unsaved changes:	VectorCraft non si è chiuso correttamente l'ultima volta. Questi documenti avevano modifiche non salvate:
-	VectorCraft Help…	Aiuto di VectorCraft…
-	VectorCraft on getartcraft.com	VectorCraft su getartcraft.com
-	VectorCraft on GitHub	VectorCraft su GitHub
+	Splinewright didn't quit normally last time. These documents had unsaved changes:	Splinewright non si è chiuso correttamente l'ultima volta. Questi documenti avevano modifiche non salvate:
+	Splinewright Help…	Aiuto di Splinewright…
+	Splinewright on GitHub	Splinewright su GitHub
 	Vectors	Vettori
 	Version {version} — open-source vector illustration in pure Rust.	Versione {version} — illustrazione vettoriale open source in puro Rust.
 	Version:	Versione:
@@ -2873,7 +2865,7 @@
 	Web Snap:	Aggancio ai colori Web:
 	Weight	Spessore
 	Weight:	Spessore:
-	Welcome to VectorCraft	Ti diamo il benvenuto in VectorCraft
+	Welcome to Splinewright	Ti diamo il benvenuto in Splinewright
 	When pasting text	Quando incolli testo
 	White	Bianco
 	Widget Position:	Posizione widget:
@@ -3211,7 +3203,7 @@ axis	Both	Entrambi
 @msg	can't encode the document: {0}	impossibile codificare il documento: {0}
 @msg	can't parse shortcut `{c}`	impossibile interpretare la scelta rapida `{c}`
 @msg	can't parse shortcut `{s}` for `{k}`	impossibile interpretare la scelta rapida `{s}` per `{k}`
-@msg	can't save version {0}: VectorCraft writes versions {MIN_VERSION} to {VERSION}	impossibile salvare la versione {0}: VectorCraft scrive le versioni da {MIN_VERSION} a {VERSION}
+@msg	can't save version {0}: Splinewright writes versions {MIN_VERSION} to {VERSION}	impossibile salvare la versione {0}: Splinewright scrive le versioni da {MIN_VERSION} a {VERSION}
 @msg	can't write .{ext} images	impossibile scrivere immagini .{ext}
 @msg	cannot distort a zero-size bounding box	impossibile distorcere un riquadro di delimitazione di dimensione zero
 @msg	cannot read PDF: {0}	impossibile leggere il PDF: {0}
@@ -3234,7 +3226,7 @@ axis	Both	Entrambi
 @msg	empty brush stroke	traccia di pennello vuota
 @msg	empty cutter	oggetto di taglio vuoto
 @msg	empty path	tracciato vuoto
-@msg	file version {0} is newer than this VectorCraft supports ({VERSION})	la versione del file {0} è più recente di quelle supportate da questo VectorCraft ({VERSION})
+@msg	file version {0} is newer than this Splinewright supports ({VERSION})	la versione del file {0} è più recente di quelle supportate da questo Splinewright ({VERSION})
 @msg	freeform point {i} needs `at` [x, y] and a valid `color`	il punto a forma libera {i} richiede `at` [x, y] e un `color` valido
 @msg	give both `start` and `end` [x, y] (or neither)	specifica sia `start` sia `end` [x, y] (o nessuno dei due)
 @msg	give corners of the path: anchors between two straight sides	specifica angoli del tracciato: punti di ancoraggio tra due lati diritti
@@ -3251,9 +3243,9 @@ axis	Both	Entrambi
 @msg	invalid PDF setting: {0}	impostazione PDF non valida: {0}
 @msg	invalid image data for `{0}`	dati immagine non validi per `{0}`
 @msg	invalid parameters for `{cmd}`: {msg}	parametri non validi per `{cmd}`: {msg}
-@msg	is not an image VectorCraft reads	non è un'immagine che VectorCraft sa leggere
-@msg	it uses `{at}`, which VectorCraft's PostScript reader doesn't know	usa `{at}`, che il lettore PostScript di VectorCraft non conosce
-@msg	it uses `{at}`, which VectorCraft's PostScript reader doesn't know, in {procs}	usa `{at}`, che il lettore PostScript di VectorCraft non conosce, in {procs}
+@msg	is not an image Splinewright reads	non è un'immagine che Splinewright sa leggere
+@msg	it uses `{at}`, which Splinewright's PostScript reader doesn't know	usa `{at}`, che il lettore PostScript di Splinewright non conosce
+@msg	it uses `{at}`, which Splinewright's PostScript reader doesn't know, in {procs}	usa `{at}`, che il lettore PostScript di Splinewright non conosce, in {procs}
 @msg	its Windows metafile preview was opened instead, which may simplify the art	è stata aperta invece la sua anteprima metafile di Windows, che potrebbe semplificare la grafica
 @msg	its preview was placed instead, at screen resolution	è stata inserita invece la sua anteprima, a risoluzione dello schermo
 @msg	join needs open paths	per unire servono tracciati aperti
@@ -3354,8 +3346,8 @@ axis	Both	Entrambi
 @msg	no user workspace `{from}`	nessuna area di lavoro utente `{from}`
 @msg	node {_1} is not text	il nodo {_1} non è testo
 @msg	not a DXF drawing	non è un disegno DXF
-@msg	not a VectorCraft file: {0}	non è un file VectorCraft: {0}
-@msg	not a VectorCraft shortcut set (missing `overrides`)	non è un set di scelte rapide VectorCraft (manca `overrides`)
+@msg	not a Splinewright file: {0}	non è un file Splinewright: {0}
+@msg	not a Splinewright shortcut set (missing `overrides`)	non è un set di scelte rapide Splinewright (manca `overrides`)
 @msg	not a graphic style library (format `{_1}`)	non è una libreria di stili grafici (formato `{_1}`)
 @msg	not a stored central record	non è un record centrale archiviato
 @msg	not a valid plug-in module: {0}	non è un modulo plug-in valido: {0}
@@ -3570,9 +3562,9 @@ axis	Both	Entrambi
 @msg	Sent to {_1}	Inviato a {_1}
 @msg	{_1} files	{_1} file
 @msg	The graphics were lost and have been restarted	Il contesto grafico è stato perso ed è stato riavviato
-@msg	The graphics processor tried first couldn't show the window, so VectorCraft started again on {summary}	Il processore grafico provato per primo non è riuscito a mostrare la finestra, quindi VectorCraft è stato riavviato con {summary}
-@msg	Loading VectorCraft…	Caricamento di VectorCraft…
-@msg	VectorCraft failed to start: {e}	Impossibile avviare VectorCraft: {e}
+@msg	The graphics processor tried first couldn't show the window, so Splinewright started again on {summary}	Il processore grafico provato per primo non è riuscito a mostrare la finestra, quindi Splinewright è stato riavviato con {summary}
+@msg	Loading Splinewright…	Caricamento di Splinewright…
+@msg	Splinewright failed to start: {e}	Impossibile avviare Splinewright: {e}
 @msg	A browser with WebGPU or WebGL2 is required.	È necessario un browser con WebGPU o WebGL2.
 @msg	The graphics were lost and couldn't be restarted.	Il contesto grafico è stato perso e non è stato possibile riavviarlo.
 @msg	Your unsaved changes are kept in this browser: reload the page to get them back.	Le modifiche non salvate sono conservate in questo browser: ricarica la pagina per recuperarle.
@@ -3584,7 +3576,29 @@ axis	Both	Entrambi
 
 # The macOS menu bar (native_menu): the app and Window menus' system items, Settings pages.
 	Services	Servizi
-	Hide VectorCraft	Nascondi VectorCraft
+	Hide Splinewright	Nascondi Splinewright
 	Zoom	Zoom
 	Bring All to Front	Porta tutto in primo piano
 	Settings	Impostazioni
+	Splinewright Website	Sito web Splinewright
+	GitHub	GitHub
+	Based on VectorCraft	Basato su VectorCraft
+	A fork of VectorCraft. MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + Splinewright.	Un fork di VectorCraft. MIT OR Apache-2.0. Font: Source Sans 3, Inter, JetBrains Mono (OFL). Icone: Lucide (ISC) + Splinewright.
+	Report an Issue…	Segnala un problema…
+	Based on VectorCraft…	Basato su VectorCraft…
+	Add to the custom dictionary	Aggiungi al dizionario personalizzato
+	Add to Custom Dictionary	Aggiungi al dizionario personalizzato
+	Change To	Cambia in
+	Check Spelling	Controllo ortografico
+	Contrast {fg} on {bg}: {summary}	Contrasto di {fg} su {bg}: {summary}
+	Ignore All	Ignora tutto
+	No suggestions.	Nessun suggerimento.
+	Not in Dictionary	Non presente nel dizionario
+	The spelling check is complete.	Il controllo ortografico è completato.
+	There is no type to check.	Non c'è testo da controllare.
+	{n} of {total}	{n} di {total}
+	{n} words changed.	{n} parole modificate.
+	Change Misspellings	Correggi errori ortografici
+	Check Contrast	Controlla contrasto
+	Custom Dictionary	Dizionario personalizzato
+	Spelling Suggestions	Suggerimenti ortografici

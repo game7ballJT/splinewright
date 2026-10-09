@@ -8,7 +8,7 @@
 </p>
 
 
-<h1 align="center">VectorCraft</h1>
+<h1 align="center">Splinewright</h1>
 
 <p align="center">
   <b>Vector illustration; an open-source, clean-room reimplementation of Adobe Illustrator, rebuilt in pure Rust.</b>
@@ -32,7 +32,7 @@
 </p>
 
 <p align="center">
-  <a href="https://getartcraft.com/apps/vectorcraft"><b>VectorCraft on getartcraft.com</b></a> ·
+  <a href="https://getartcraft.com/apps/splinewright"><b>Splinewright on getartcraft.com</b></a> ·
   <a href="https://getartcraft.com/">ArtCraft</a> ·
   <a href="https://getartcraft.com/apps">All Crafting Apps</a>
 </p>
@@ -40,8 +40,8 @@
 <br>
 
 <p align="center">
-  <img src="docs/images/shot-1-neon.png" alt="VectorCraft editing the Neon Drive poster: the title is selected, the Appearance panel shows the settings of its live Outer Glow, and the Properties panel shows its character settings" width="100%">
-  <br><sub><b>Neon Drive</b>: a Pathfinder-cut sun, live Outer Glow on the type and grid, and clipping masks · <code>examples/neon-drive.vectorcraft</code></sub>
+  <img src="docs/images/shot-1-neon.png" alt="Splinewright editing the Neon Drive poster: the title is selected, the Appearance panel shows the settings of its live Outer Glow, and the Properties panel shows its character settings" width="100%">
+  <br><sub><b>Neon Drive</b>: a Pathfinder-cut sun, live Outer Glow on the type and grid, and clipping masks · <code>examples/neon-drive.splinewright</code></sub>
 </p>
 
 > [!NOTE]
@@ -50,8 +50,8 @@
 
 <p align="center">
   <a href="#a-look-around">A look around</a> ·
-  <a href="#made-in-vectorcraft">Made in VectorCraft</a> ·
-  <a href="#why-vectorcraft">Why VectorCraft</a> ·
+  <a href="#made-in-splinewright">Made in Splinewright</a> ·
+  <a href="#why-splinewright">Why Splinewright</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="#status">Status</a> ·
   <a href="#downloads">Downloads</a> ·
@@ -75,19 +75,19 @@
 <tr>
 <td width="50%" valign="top">
   <img src="docs/images/shot-5-perspective.png" alt="Two lit building facades drawn on the left and right planes of a two-point perspective grid at sunset, with the Perspective Selection tool and the Plane Switching Widget" width="100%">
-  <p align="center"><sub><b>Perspective Grid</b>: art attached to its planes stays editable in perspective · <code>examples/perspective-city.vectorcraft</code></sub></p>
+  <p align="center"><sub><b>Perspective Grid</b>: art attached to its planes stays editable in perspective · <code>examples/perspective-city.splinewright</code></sub></p>
 </td>
 <td width="50%" valign="top">
   <img src="docs/images/shot-3-sheet.png" alt="Four artboards in the light UI theme: Pathfinder, Gradient Mesh, radial Repeat and Envelope Distort" width="100%">
-  <p align="center"><sub><b>Multiple artboards, light theme</b>: Pathfinder · Gradient Mesh · live radial Repeat · Envelope Distort · <code>examples/feature-sheet.vectorcraft</code></sub></p>
+  <p align="center"><sub><b>Multiple artboards, light theme</b>: Pathfinder · Gradient Mesh · live radial Repeat · Envelope Distort · <code>examples/feature-sheet.splinewright</code></sub></p>
 </td>
 </tr>
 </table>
 
-## Made in VectorCraft
+## Made in Splinewright
 
-Every piece below was built entirely through VectorCraft's command API, the same one the MCP server
-exposes to agents, and exported by VectorCraft's own renderer. The source files are in
+Every piece below was built entirely through Splinewright's command API, the same one the MCP server
+exposes to agents, and exported by Splinewright's own renderer. The source files are in
 [`examples/`](examples).
 
 <table>
@@ -129,7 +129,7 @@ exposes to agents, and exported by VectorCraft's own renderer. The source files 
 </tr>
 </table>
 
-## Why VectorCraft
+## Why Splinewright
 
 - **Familiar.** Illustrator's layout, tools, menus, panels and shortcuts: the Pen, Direct Selection,
   Pathfinder, Smart Guides, Appearance, Swatches, Layers and more. You already know how to use it.
@@ -137,7 +137,7 @@ exposes to agents, and exported by VectorCraft's own renderer. The source files 
   full retina resolution while the interface stays at 120 fps.
 - **Robust.** Exact curve booleans (no "cannot perform operation"), unlimited undo via structural
   sharing, and property-tested file round trips.
-- **Open.** A documented native format (`.vectorcraft`, JSON), first-class SVG, PDF (and
+- **Open.** A documented native format (`.splinewright`, JSON), first-class SVG, PDF (and
   PDF-compatible `.ai`) import and export, PNG/JPEG/WebP export, Export for Screens, and SVGZ,
   templates, GIF, TIFF and BMP on open.
 - **Agent-native.** Every menu item, tool gesture, panel and dialog can be driven over a JSON
@@ -148,29 +148,29 @@ exposes to agents, and exported by VectorCraft's own renderer. The source files 
 ## Quick start
 
 ```sh
-cargo run --release -p vectorcraft                          # desktop app
-cargo run --release -p vectorcraft -- examples/dusk-poster.vectorcraft
-cargo run --release -p vectorcraft -- --control 7979        # + JSON control channel
-cargo run --release -p vectorcraft-cli -- mcp               # MCP server (stdio)
-cargo run --release -p vectorcraft-cli -- run --in examples/ribbons.vectorcraft --export out.pdf   # headless batch
-cargo run --release -p vectorcraft-cli -- bench examples/neon-drive.vectorcraft                   # render timing
-cargo xtask bundle                                        # dist/VectorCraft.app (macOS)
-cd apps/vectorcraft-web && trunk build --release            # web build → dist/web
+cargo run --release -p splinewright                          # desktop app
+cargo run --release -p splinewright -- examples/dusk-poster.splinewright
+cargo run --release -p splinewright -- --control 7979        # + JSON control channel
+cargo run --release -p splinewright-cli -- mcp               # MCP server (stdio)
+cargo run --release -p splinewright-cli -- run --in examples/ribbons.splinewright --export out.pdf   # headless batch
+cargo run --release -p splinewright-cli -- bench examples/neon-drive.splinewright                   # render timing
+cargo xtask bundle                                        # dist/Splinewright.app (macOS)
+cd apps/splinewright-web && trunk build --release            # web build → dist/web
 cargo xtask ci                                            # fmt, clippy, tests, layering, wasm, vendor names
 ```
 
 Japanese fonts come from [storytold/craft-fonts](https://github.com/storytold/craft-fonts), an optional
-build input (releases always use it): `CRAFT_FONTS_DIR="$PWD/../craft-fonts" cargo run --release -p vectorcraft` (an absolute path).
+build input (releases always use it): `CRAFT_FONTS_DIR="$PWD/../craft-fonts" cargo run --release -p splinewright` (an absolute path).
 Without it, Japanese text uses the installed system fonts. See [`docs/development.md`](docs/development.md#fonts-craft-fonts-optional-build-input).
 
-On machines with two graphics processors, VectorCraft renders on the power-saving (integrated) one by default on
+On machines with two graphics processors, Splinewright renders on the power-saving (integrated) one by default on
 Windows and macOS, and on the one the desktop runs on under Linux. To choose, use **Preferences › Performance ›
-Graphics Processor** and restart. If a graphics processor can't show the window, VectorCraft starts again on the
+Graphics Processor** and restart. If a graphics processor can't show the window, Splinewright starts again on the
 next one. To pick one when starting the app, set `WGPU_POWER_PREF=high` (or `low`), or `WGPU_ADAPTER_NAME` to part of
 its name, such as `WGPU_ADAPTER_NAME=nvidia` (see [`docs/development.md`](docs/development.md#desktop-graphics-processor)).
 
-On Linux under KDE Plasma 6.3 or later with Wayland, a drawing tablet's pen moves the cursor but VectorCraft doesn't
-respond to it yet (#491). Start the app under XWayland instead: `WAYLAND_DISPLAY= vectorcraft` (see
+On Linux under KDE Plasma 6.3 or later with Wayland, a drawing tablet's pen moves the cursor but Splinewright doesn't
+respond to it yet (#491). Start the app under XWayland instead: `WAYLAND_DISPLAY= splinewright` (see
 [`docs/development.md`](docs/development.md#linux-wayland-and-x11)).
 
 ### Use it from Claude Code and other agents
@@ -178,7 +178,7 @@ respond to it yet (#491). Start the app under XWayland instead: `WAYLAND_DISPLAY
 Register the MCP server with Claude Code:
 
 ```sh
-claude mcp add vectorcraft -- /path/to/vectorcraft-cli mcp
+claude mcp add splinewright -- /path/to/splinewright-cli mcp
 ```
 
 The details are in [`docs/mcp.md`](docs/mcp.md) and [`docs/control-protocol.md`](docs/control-protocol.md).
@@ -187,7 +187,7 @@ For the experimental, unsupported 64-bit Windows 7 build, see [Windows 7 instruc
 
 ## Status
 
-VectorCraft is under active development. [**ROADMAP.md**](ROADMAP.md) covers what ships today, the
+Splinewright is under active development. [**ROADMAP.md**](ROADMAP.md) covers what ships today, the
 milestones, and honest time-to-parity estimates.
 
 **Where we are (2026-10-07):** roughly 69–75% of Illustrator's features exist and work, and about 40–55% of
@@ -211,17 +211,17 @@ advanced type, then hardening and packaging for 1.0. The prioritized list is in
 [Where we're lacking](ROADMAP.md#where-were-lacking-in-priority-order).
 
 **Workspace:** `crates/{geom, color, doc, pathops, text, effects, trace, brush, render, svg, pdf, eps, cad, metafile, format, tools, engine, ui-egui, mcp, testkit}`
-and `apps/{vectorcraft, vectorcraft-cli, vectorcraft-web}`. The egui frontend is its own crate, so
+and `apps/{splinewright, splinewright-cli, splinewright-web}`. The egui frontend is its own crate, so
 the UI can be swapped without touching the engine.
 
 Agent and contributor rules (clean-room, the asset policy, no panics in shipped code, quality gates) are in
-[`AGENTS.md`](AGENTS.md); [`docs/development.md`](docs/development.md#robustness-vectorcraft-never-crashes)
-explains how VectorCraft avoids crashing, and [`docs/releasing.md`](docs/releasing.md) how releases are built,
+[`AGENTS.md`](AGENTS.md); [`docs/development.md`](docs/development.md#robustness-splinewright-never-crashes)
+explains how Splinewright avoids crashing, and [`docs/releasing.md`](docs/releasing.md) how releases are built,
 signed and published. Every bundled asset is listed with its licence in [`ASSETS.md`](ASSETS.md).
 
 ## Downloads
 
-**New to VectorCraft?** Download it from the [VectorCraft page on getartcraft.com](https://getartcraft.com/apps/vectorcraft). That's the easiest way to install it.
+**New to Splinewright?** Download it from the [Splinewright page on getartcraft.com](https://getartcraft.com/apps/splinewright). That's the easiest way to install it.
 
 **Want a specific build or format?** On GitHub, the [latest release](https://github.com/storytold/vectorcraft/releases/latest) has every build listed below, and [all releases](https://github.com/storytold/vectorcraft/releases) has earlier versions and their notes. `<ver>` in the file names is the version number, and `SHA256SUMS.txt` lists a checksum for every file.
 
@@ -229,9 +229,9 @@ signed and published. Every bundled asset is listed with its licence in [`ASSETS
 
 | Build | Installer | Portable |
 |---|---|---|
-| x64 (64-bit Intel/AMD) | `vectorcraft-<ver>-windows-x64.msi` | `vectorcraft-<ver>-windows-x64-portable.zip` |
-| arm64 (Snapdragon and other ARM PCs) | `vectorcraft-<ver>-windows-arm64.msi` | `vectorcraft-<ver>-windows-arm64-portable.zip` |
-| x86 (32-bit) | `vectorcraft-<ver>-windows-x86.msi` | `vectorcraft-<ver>-windows-x86-portable.zip` |
+| x64 (64-bit Intel/AMD) | `splinewright-<ver>-windows-x64.msi` | `splinewright-<ver>-windows-x64-portable.zip` |
+| arm64 (Snapdragon and other ARM PCs) | `splinewright-<ver>-windows-arm64.msi` | `splinewright-<ver>-windows-arm64-portable.zip` |
+| x86 (32-bit) | `splinewright-<ver>-windows-x86.msi` | `splinewright-<ver>-windows-x86-portable.zip` |
 
 Installers and executables are code-signed.
 
@@ -239,46 +239,46 @@ Installers and executables are code-signed.
 
 | Build | File | Notes |
 |---|---|---|
-| App, universal (Apple silicon + Intel) | `vectorcraft-<ver>-macos-universal.dmg` | Signed and notarized |
-| Command-line tool, universal | `vectorcraft-cli-<ver>-macos-universal.zip` | Signed and notarized |
+| App, universal (Apple silicon + Intel) | `splinewright-<ver>-macos-universal.dmg` | Signed and notarized |
+| Command-line tool, universal | `splinewright-cli-<ver>-macos-universal.zip` | Signed and notarized |
 
 ### Linux
 
 | Format | x86_64 | aarch64 (ARM64) | Notes |
 |---|---|---|---|
-| AppImage | `vectorcraft-<ver>-linux-x86_64.AppImage` | `vectorcraft-<ver>-linux-aarch64.AppImage` | Runs anywhere; updates itself with [AppImageUpdate](https://github.com/AppImageCommunity/AppImageUpdate) (`.zsync` files) |
-| Flatpak | `vectorcraft-<ver>-linux-x86_64.flatpak` | `vectorcraft-<ver>-linux-aarch64.flatpak` | Sandboxed; `flatpak install --user <file>` |
-| Debian/Ubuntu | `vectorcraft-<ver>-linux-x86_64.deb` | `vectorcraft-<ver>-linux-aarch64.deb` | |
-| Fedora/RHEL/openSUSE | `vectorcraft-<ver>-linux-x86_64.rpm` | `vectorcraft-<ver>-linux-aarch64.rpm` | |
-| Tarball | `vectorcraft-<ver>-linux-x86_64.tar.gz` | `vectorcraft-<ver>-linux-aarch64.tar.gz` | Unpack anywhere |
+| AppImage | `splinewright-<ver>-linux-x86_64.AppImage` | `splinewright-<ver>-linux-aarch64.AppImage` | Runs anywhere; updates itself with [AppImageUpdate](https://github.com/AppImageCommunity/AppImageUpdate) (`.zsync` files) |
+| Flatpak | `splinewright-<ver>-linux-x86_64.flatpak` | `splinewright-<ver>-linux-aarch64.flatpak` | Sandboxed; `flatpak install --user <file>` |
+| Debian/Ubuntu | `splinewright-<ver>-linux-x86_64.deb` | `splinewright-<ver>-linux-aarch64.deb` | |
+| Fedora/RHEL/openSUSE | `splinewright-<ver>-linux-x86_64.rpm` | `splinewright-<ver>-linux-aarch64.rpm` | |
+| Tarball | `splinewright-<ver>-linux-x86_64.tar.gz` | `splinewright-<ver>-linux-aarch64.tar.gz` | Unpack anywhere |
 
 ### FreeBSD
 
 | Build | File |
 |---|---|
-| x86_64 | `vectorcraft-<ver>-freebsd-x86_64.tar.gz` |
+| x86_64 | `splinewright-<ver>-freebsd-x86_64.tar.gz` |
 
 ### Web (WebAssembly)
 
 | Build | File | Notes |
 |---|---|---|
-| Static site | `vectorcraft-web-<ver>.zip` | Runs in a modern browser; host it on any static server |
+| Static site | `splinewright-web-<ver>.zip` | Runs in a modern browser; host it on any static server |
 
 ## The Crafting Apps
 
-VectorCraft is one of the **Crafting Apps**: free, open-source creative tools from the
+Splinewright is one of the **Crafting Apps**: free, open-source creative tools from the
 [ArtCraft](https://getartcraft.com/) team, each written from scratch in Rust and each able to
 stand on its own.
 
 | | App | What it's for | Code | Learn more |
 |:-:|---|---|---|---|
-| <img src="https://raw.githubusercontent.com/storytold/photocraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.photocraft.png" alt="" width="32" height="32"> | **PhotoCraft** | Image editing: layers, masks, type and real PSD files | [GitHub](https://github.com/storytold/photocraft) | [Website](https://getartcraft.com/apps/photocraft) |
-| <img src="https://raw.githubusercontent.com/storytold/vectorcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.vectorcraft.png" alt="" width="32" height="32"> | **VectorCraft** | **Vector illustration · you are here** | [GitHub](https://github.com/storytold/vectorcraft) | [Website](https://getartcraft.com/apps/vectorcraft) |
-| <img src="https://raw.githubusercontent.com/storytold/filmcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.filmcraft.png" alt="" width="32" height="32"> | **FilmCraft** | Video editing, color and sound | [GitHub](https://github.com/storytold/filmcraft) | [Website](https://getartcraft.com/apps/filmcraft) |
-| <img src="https://raw.githubusercontent.com/storytold/lightcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.lightcraft.png" alt="" width="32" height="32"> | **LightCraft** | Photo library and raw development | [GitHub](https://github.com/storytold/lightcraft) | [Website](https://getartcraft.com/apps/lightcraft) |
-| <img src="https://raw.githubusercontent.com/storytold/pdfcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.pdfcraft.png" alt="" width="32" height="32"> | **PdfCraft** | Reading, organizing and protecting PDFs | [GitHub](https://github.com/storytold/pdfcraft) | [Website](https://getartcraft.com/apps/pdfcraft) |
-| <img src="https://raw.githubusercontent.com/storytold/effectcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.effectcraft.png" alt="" width="32" height="32"> | **EffectCraft** | Motion graphics and visual effects | [GitHub](https://github.com/storytold/effectcraft) | [Website](https://getartcraft.com/apps/effectcraft) |
-| <img src="https://raw.githubusercontent.com/storytold/designcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.designcraft.png" alt="" width="32" height="32"> | **DesignCraft** | Page layout and publishing | [GitHub](https://github.com/storytold/designcraft) | [Website](https://getartcraft.com/apps/designcraft) |
+| <img src="https://raw.githubusercontent.com/storytold/photocraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.photocraft.png" alt="" width="32" height="32"> | **Pixelwright** | Image editing: layers, masks, type and real PSD files | [GitHub](https://github.com/storytold/photocraft) | [Website](https://getartcraft.com/apps/pixelwright) |
+| <img src="https://raw.githubusercontent.com/storytold/vectorcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.vectorcraft.png" alt="" width="32" height="32"> | **Splinewright** | **Vector illustration · you are here** | [GitHub](https://github.com/storytold/vectorcraft) | [Website](https://getartcraft.com/apps/splinewright) |
+| <img src="https://raw.githubusercontent.com/storytold/filmcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.filmcraft.png" alt="" width="32" height="32"> | **Reelwright** | Video editing, color and sound | [GitHub](https://github.com/storytold/filmcraft) | [Website](https://getartcraft.com/apps/reelwright) |
+| <img src="https://raw.githubusercontent.com/storytold/lightcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.lightcraft.png" alt="" width="32" height="32"> | **Lumenwright** | Photo library and raw development | [GitHub](https://github.com/storytold/lightcraft) | [Website](https://getartcraft.com/apps/lumenwright) |
+| <img src="https://raw.githubusercontent.com/storytold/pdfcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.pdfcraft.png" alt="" width="32" height="32"> | **Foliowright** | Reading, organizing and protecting PDFs | [GitHub](https://github.com/storytold/pdfcraft) | [Website](https://getartcraft.com/apps/foliowright) |
+| <img src="https://raw.githubusercontent.com/storytold/effectcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.effectcraft.png" alt="" width="32" height="32"> | **Tweenwright** | Motion graphics and visual effects | [GitHub](https://github.com/storytold/effectcraft) | [Website](https://getartcraft.com/apps/tweenwright) |
+| <img src="https://raw.githubusercontent.com/storytold/designcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.designcraft.png" alt="" width="32" height="32"> | **Spreadwright** | Page layout and publishing | [GitHub](https://github.com/storytold/designcraft) | [Website](https://getartcraft.com/apps/spreadwright) |
 
 And [**ArtCraft**](https://getartcraft.com/) itself, our AI image and video studio for artists who want real control.
 
@@ -301,32 +301,32 @@ And [**ArtCraft**](https://getartcraft.com/) itself, our AI image and video stud
   <a href="https://discord.gg/artcraft"><b>discord.gg/artcraft</b></a> ·
   <a href="https://getartcraft.com/">getartcraft.com</a> ·
   <a href="https://getartcraft.com/apps">The Crafting Apps</a> ·
-  <a href="https://getartcraft.com/apps/vectorcraft">VectorCraft</a>
+  <a href="https://getartcraft.com/apps/splinewright">Splinewright</a>
 </p>
 
 ## Star history
 
-[![Star History Chart](https://api.star-history.com/svg?repos=storytold/vectorcraft&type=Date&legend=top-left)](https://www.star-history.com/?repos=storytold%2Fvectorcraft&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/svg?repos=storytold/vectorcraft&type=Date&legend=top-left)](https://www.star-history.com/?repos=storytold%2Fsplinewright&type=date&legend=top-left)
 
 ## License and credits
 
-VectorCraft is dual-licensed under [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option.
-Copyright (c) 2026 ArtCraft Team and the VectorCraft contributors. Required notices are in [NOTICE](NOTICE).
+Splinewright is dual-licensed under [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option.
+Copyright (c) 2026 ArtCraft Team and the Splinewright contributors. Required notices are in [NOTICE](NOTICE).
 
 Bundled fonts, icons, images and other assets keep their own open licenses; each one is listed
 with its author, source and license in [ASSETS.md](ASSETS.md). Release builds also embed the
 fonts of [craft-fonts](https://github.com/storytold/craft-fonts/blob/main/ATTRIBUTION.md) (Japanese,
 Simplified Chinese and Arabic faces; SIL Open Font License 1.1).
 
-The app icon (an engraved dragon on VectorCraft red, `#e8573f`) is the owner's original artwork; its
+The app icon (an engraved dragon on Splinewright red, `#e8573f`) is the owner's original artwork; its
 palette and files are in [`assets/app-icon/`](assets/app-icon/README.md).
 
 The ArtCraft name, wordmark and logos in [`docs/brand/`](docs/brand/) are trademarks of the
 ArtCraft Team and are not covered by this license. They may be used only unmodified, and only as
-part of this repository and VectorCraft, under [`docs/brand/LICENSE-brand.txt`](docs/brand/LICENSE-brand.txt).
+part of this repository and Splinewright, under [`docs/brand/LICENSE-brand.txt`](docs/brand/LICENSE-brand.txt).
 Forks and modified versions must remove them.
 
-<sub>Adobe, Photoshop, Illustrator, Premiere Pro, Lightroom, Acrobat, After Effects and InDesign are trademarks or registered trademarks of Adobe Inc. in the United States and/or other countries. VectorCraft is an independent, open-source project and is not affiliated with, sponsored by or endorsed by Adobe Inc.; these names are used only to describe the workflows it is compatible with.</sub>
+<sub>Adobe, Photoshop, Illustrator, Premiere Pro, Lightroom, Acrobat, After Effects and InDesign are trademarks or registered trademarks of Adobe Inc. in the United States and/or other countries. Splinewright is an independent, open-source project and is not affiliated with, sponsored by or endorsed by Adobe Inc.; these names are used only to describe the workflows it is compatible with.</sub>
 
 <p align="center">
   <a href="https://getartcraft.com/"><img alt="ArtCraft" src="docs/brand/artcraft-mark.svg" width="28"></a><br>

@@ -1,7 +1,7 @@
 //! Window → Type → Tabs: tab stops of the selected text objects' paragraphs.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{NodeKind, TabAlign, TabStop};
+use splinewright_doc::{NodeKind, TabAlign, TabStop};
 
 use super::typecmd::{refresh_bounds, text_targets};
 use super::*;

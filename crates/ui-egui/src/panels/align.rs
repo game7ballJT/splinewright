@@ -5,7 +5,7 @@ use egui::Ui;
 use serde_json::{Value, json};
 
 use super::{pstate, selection_len, set_pstate};
-use crate::VectorcraftApp;
+use crate::SplinewrightApp;
 use crate::widgets::{self, menu_item};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -52,7 +52,7 @@ pub const DISTRIBUTE: [(&str, &str, &str, &str); 6] = [
     ("dc-dist-right", "Horizontal Distribute Right", "horizontal", "right"),
 ];
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut SplinewrightApp, ui: &mut Ui) {
     let n = selection_len(app);
     let to: AlignTo = pstate(ui.ctx(), "align-to");
     widgets::subheader(ui, tl!("Align Objects:"));
@@ -123,7 +123,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     });
 }
 
-pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(app: &mut SplinewrightApp, ui: &mut Ui) {
     let hidden: bool = pstate(ui.ctx(), "align-hide-options");
     if menu_item(ui, if hidden { tl!("Show Options") } else { tl!("Hide Options") }, true, false) {
         set_pstate(ui.ctx(), "align-hide-options", !hidden);

@@ -1,7 +1,7 @@
 use super::*;
 use kurbo::{Affine, Shape};
-use vectorcraft_doc::{CharStyle, Justify, TextKind, TextRun};
-use vectorcraft_geom::PathData;
+use splinewright_doc::{CharStyle, Justify, TextKind, TextRun};
+use splinewright_geom::PathData;
 
 /// The bundled fonts only: what these tests measure doesn't change with the fonts installed.
 fn db() -> &'static FontDb {
@@ -297,7 +297,7 @@ fn on_path_placement() {
 
 #[test]
 fn on_path_effects_orient_glyphs() {
-    use vectorcraft_doc::PathEffect;
+    use splinewright_doc::PathEffect;
     let mut diag = BezPath::new();
     diag.move_to((0.0, 0.0));
     diag.line_to((400.0, 400.0));
@@ -394,7 +394,7 @@ fn layout_is_fast() {
 
 #[test]
 fn tab_stops_position_text() {
-    use vectorcraft_doc::{TabAlign, TabStop};
+    use splinewright_doc::{TabAlign, TabStop};
     let stop = |position: f64, align: TabAlign| TabStop { position, align, leader: String::new(), align_on: '.' };
     let x_of = |t: &TextObject, byte: usize| layout(db(), t).glyphs.iter().find(|g| g.byte == byte).map(|g| g.origin.x).unwrap();
     // Default stops every 36 pt.
@@ -528,7 +528,7 @@ fn justified_japanese_lines_spread_between_characters() {
 /// with sizes mixed, a line's leading is the space below it (baseline leading: above it).
 #[test]
 fn em_box_top_leading_hangs_lines_from_the_line_above() {
-    use vectorcraft_doc::{LeadingModel, TextRun};
+    use splinewright_doc::{LeadingModel, TextRun};
     let st = |size: f64| CharStyle { size, leading: Some(size * 1.5), ..style(size) };
     let lay = |t: &TextObject, m: LeadingModel| {
         let mut t = t.clone();
@@ -564,7 +564,7 @@ fn em_box_top_leading_hangs_lines_from_the_line_above() {
 /// the column (top → right).
 #[test]
 fn character_alignment_lines_small_characters_up_with_the_largest_em_box() {
-    use vectorcraft_doc::{CharAlign, TextRun};
+    use splinewright_doc::{CharAlign, TextRun};
     for vertical_type in [false, true] {
         let place = |a: CharAlign| {
             let mut t = point("", style(40.0));
@@ -591,7 +591,7 @@ fn character_alignment_lines_small_characters_up_with_the_largest_em_box() {
 /// Latin line ending in a full stop isn't shortened by Forced.
 #[test]
 fn burasagari_leaves_latin_commas_and_full_stops_inside_the_line() {
-    use vectorcraft_doc::Burasagari;
+    use splinewright_doc::Burasagari;
     let measure = width(&point("abcd", style(20.0)));
     let lay = |text: &str, b: Burasagari| {
         let mut t = area(text, style(20.0), Rect::new(0.0, 0.0, measure + 0.01, 400.0), Justify::JustifyLeft);

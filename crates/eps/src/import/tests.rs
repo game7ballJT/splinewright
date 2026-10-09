@@ -3,9 +3,9 @@
 
 use std::sync::Arc;
 
-use vectorcraft_color::{Color, GradientKind, Paint};
-use vectorcraft_doc::{AppearanceItem, ColorMode, Document, LineCap, LineJoin, Node, NodeKind};
-use vectorcraft_geom::{Point, Rect};
+use splinewright_color::{Color, GradientKind, Paint};
+use splinewright_doc::{AppearanceItem, ColorMode, Document, LineCap, LineJoin, Node, NodeKind};
+use splinewright_geom::{Point, Rect};
 
 use crate::import::{Dsc, import};
 use crate::{EpsOptions, Level, Preview, Raster};
@@ -46,7 +46,7 @@ pub(super) fn fill(n: &Node) -> Option<&Paint> {
     })
 }
 
-pub(super) fn stroke(n: &Node) -> Option<&vectorcraft_doc::StrokeLayer> {
+pub(super) fn stroke(n: &Node) -> Option<&splinewright_doc::StrokeLayer> {
     n.appearance.items.iter().find_map(|i| match i {
         AppearanceItem::Stroke(s) => Some(s),
         _ => None,
@@ -205,7 +205,7 @@ fn clips_nest_only_so_deep() {
         depth += 1;
         n = children.last().unwrap().clone();
     }
-    assert_eq!(depth, vectorcraft_doc::clipnest::MAX_NEST);
+    assert_eq!(depth, splinewright_doc::clipnest::MAX_NEST);
     assert!(r.warnings.iter().any(|w| w.contains("clips nested more than")), "{:?}", r.warnings);
 }
 
@@ -284,8 +284,8 @@ fn type_becomes_point_type_in_the_font_named() {
 
 #[test]
 fn the_writers_own_output_reads_back() {
-    use vectorcraft_doc::{Appearance, Dash};
-    use vectorcraft_geom::shapes;
+    use splinewright_doc::{Appearance, Dash};
+    use splinewright_geom::shapes;
     let mut d = Document::new(200.0, 100.0);
     let layer = d.layers[0].id;
     let look = Appearance::basic(Paint::solid(Color::rgb(1.0, 0.0, 0.0)), Paint::solid(Color::rgb(0.0, 0.0, 1.0)), 4.0);
@@ -295,8 +295,8 @@ fn the_writers_own_output_reads_back() {
         s.cap = LineCap::Round;
     }
     d.insert(Some(layer), 0, red).unwrap();
-    let mut g = vectorcraft_color::GradientPaint::new(vectorcraft_color::Gradient::default());
-    g.geom = Some(vectorcraft_color::GradientGeom { start: Point::new(110.0, 50.0), end: Point::new(190.0, 50.0), aspect: 1.0, focal: None });
+    let mut g = splinewright_color::GradientPaint::new(splinewright_color::Gradient::default());
+    g.geom = Some(splinewright_color::GradientGeom { start: Point::new(110.0, 50.0), end: Point::new(190.0, 50.0), aspect: 1.0, focal: None });
     let grad = Node::path(
         d.alloc_id(),
         shapes::ellipse(Rect::new(110.0, 10.0, 190.0, 90.0)),
@@ -380,9 +380,9 @@ fn embedded_font_programs_are_skipped() {
 /// A document with what the writer writes in its own ways: gradients, type, an image with
 /// transparent pixels, a clipping group, a spot colour, dashes.
 fn rich_doc() -> Document {
-    use vectorcraft_color::{Gradient, GradientGeom, GradientPaint, Swatch};
-    use vectorcraft_doc::{Appearance, CharStyle, ImageBlob, ImageObject, TextObject};
-    use vectorcraft_geom::{Affine, shapes};
+    use splinewright_color::{Gradient, GradientGeom, GradientPaint, Swatch};
+    use splinewright_doc::{Appearance, CharStyle, ImageBlob, ImageObject, TextObject};
+    use splinewright_geom::{Affine, shapes};
     let mut d = Document::new(300.0, 200.0);
     let layer = d.layers[0].id;
     let add = |d: &mut Document, n: Node| d.insert(Some(layer), usize::MAX, n).unwrap();
@@ -427,8 +427,8 @@ fn rich_doc() -> Document {
     }
     let mut inner = Node::path(d.alloc_id(), shapes::rectangle(Rect::new(190.0, 100.0, 300.0, 150.0)), Appearance::basic(spot, Paint::None, 0.0));
     inner.appearance.items.push(AppearanceItem::Stroke({
-        let mut st = vectorcraft_doc::StrokeLayer::new(solid(0.0, 0.0, 0.0), 2.0);
-        st.dash = Some(vectorcraft_doc::Dash { pattern: vec![4.0, 2.0], offset: 0.0, align_corners: false });
+        let mut st = splinewright_doc::StrokeLayer::new(solid(0.0, 0.0, 0.0), 2.0);
+        st.dash = Some(splinewright_doc::Dash { pattern: vec![4.0, 2.0], offset: 0.0, align_corners: false });
         st
     }));
     let g = Node::new(d.alloc_id(), NodeKind::Group { children: vec![Arc::new(clip), Arc::new(inner)], clip: true });
@@ -440,7 +440,7 @@ fn rich_doc() -> Document {
 fn the_writers_output_reads_back_looking_the_same() {
     let d = rich_doc();
     let r = d.artboards[0].rect;
-    let mut renderer = vectorcraft_render::Renderer::new();
+    let mut renderer = splinewright_render::Renderer::new();
     let want = renderer.render_region(&d, r, 1.0, true);
     for level in [Level::Three, Level::Two] {
         let o = EpsOptions { region: r, origin: Point::new(r.x0, r.y1), preview: Preview::None, level, ..EpsOptions::default() };

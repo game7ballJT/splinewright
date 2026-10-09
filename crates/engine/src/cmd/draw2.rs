@@ -5,12 +5,12 @@ use std::sync::Arc;
 
 use kurbo::{ParamCurve, ParamCurveNearest};
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Appearance, Document, Node, NodeId, NodeKind, Selection};
-use vectorcraft_geom::hit::fill_contains;
-use vectorcraft_geom::{Anchor, AnchorKind, BezPath, FillRule, PathData, Point, Rect, SubPath, Vec2};
-use vectorcraft_pathops as po;
-use vectorcraft_pathops::{BoolOp, Cap, Join, SimplifyOptions};
+use splinewright_color::{Color, Paint};
+use splinewright_doc::{Appearance, Document, Node, NodeId, NodeKind, Selection};
+use splinewright_geom::hit::fill_contains;
+use splinewright_geom::{Anchor, AnchorKind, BezPath, FillRule, PathData, Point, Rect, SubPath, Vec2};
+use splinewright_pathops as po;
+use splinewright_pathops::{BoolOp, Cap, Join, SimplifyOptions};
 
 use super::create::{add_look, add_node};
 use super::*;
@@ -482,7 +482,7 @@ fn fit_freehand(pts: &[Point], tol: f64, closed: bool) -> SubPath {
             (kept[i], corner)
         })
         .collect();
-    let sp = vectorcraft_tools::draw2::catmull_rom(&marked, closed);
+    let sp = splinewright_tools::draw2::catmull_rom(&marked, closed);
     if sp.anchors.len() < 3 {
         return sp;
     }
@@ -576,7 +576,7 @@ fn curvature(s: &mut Session, p: &Value) -> Result<Value> {
     if pts.is_empty() {
         return Err(bad(C, "need at least one point"));
     }
-    let sp = vectorcraft_tools::draw2::catmull_rom(&pts, bool_or(p, "closed", false));
+    let sp = splinewright_tools::draw2::catmull_rom(&pts, bool_or(p, "closed", false));
     if let Some(id) = id_param(p, "id") {
         s.edit("Curvature", |d, sel| {
             *path_mut(d, id)? = PathData::single(sp);

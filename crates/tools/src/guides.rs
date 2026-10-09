@@ -11,10 +11,10 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use vectorcraft_doc::hit::{HitOptions, hit_test};
-use vectorcraft_doc::{Document, Node, NodeId, NodeKind, OrientedBox, Selection};
-use vectorcraft_geom::kurbo::ParamCurveNearest;
-use vectorcraft_geom::{Affine, Line, ParamCurve, PathSeg, Point, Rect, SubPath, Vec2, constrain_angle_from};
+use splinewright_doc::hit::{HitOptions, hit_test};
+use splinewright_doc::{Document, Node, NodeId, NodeKind, OrientedBox, Selection};
+use splinewright_geom::kurbo::ParamCurveNearest;
+use splinewright_geom::{Affine, Line, ParamCurve, PathSeg, Point, Rect, SubPath, Vec2, constrain_angle_from};
 
 use crate::bbox::Handle;
 use crate::{Overlay, ScreenFrame, ToolContext};
@@ -88,7 +88,7 @@ struct Ruler {
     vertical: bool,
     pos: f64,
     /// Where it runs along its line: an artboard guide across its artboard (see
-    /// [`vectorcraft_doc::Document::guide_span`]), else (None) the whole canvas.
+    /// [`splinewright_doc::Document::guide_span`]), else (None) the whole canvas.
     span: Option<(f64, f64)>,
 }
 
@@ -718,7 +718,7 @@ impl PointSnap {
             return (keep(Point::new(p.x.round(), p.y.round())), vec![]);
         }
         if cx.snap_to_grid {
-            return (keep(vectorcraft_geom::snap::snap_point_to_grid(p, cx.grid_step())), vec![]);
+            return (keep(splinewright_geom::snap::snap_point_to_grid(p, cx.grid_step())), vec![]);
         }
         match &self.targets {
             Some((t, tol)) => t.snap_from(p, from, cx.tol(*tol)),
@@ -1034,12 +1034,12 @@ mod tests {
     #[test]
     fn scale_snap_lands_the_handle_on_anchors() {
         use crate::bbox::scale_for_drag;
-        use vectorcraft_doc::{Appearance, Node};
+        use splinewright_doc::{Appearance, Node};
         let (mut d, _) = doc_with_rect();
         let l = d.layers[0].id;
         let id = d.alloc_id();
         // A triangle whose apex (320, 400) lines up with none of the edges or centres on x.
-        let tri = vectorcraft_geom::PathData::single(SubPath::polyline(
+        let tri = splinewright_geom::PathData::single(SubPath::polyline(
             &[Point::new(300.0, 300.0), Point::new(380.0, 300.0), Point::new(320.0, 400.0)],
             true,
         ));
@@ -1189,12 +1189,12 @@ mod tests {
     /// gathered them.
     #[test]
     fn bisection_finds_what_a_scan_finds() {
-        use vectorcraft_doc::{Appearance, Node};
+        use splinewright_doc::{Appearance, Node};
         let (mut d, id) = doc_with_rect();
         let l = d.layers[0].id;
         for i in 0..60 {
             let (x, y) = ((i * 37 % 450) as f64, (i * 53 % 430) as f64);
-            let tri = vectorcraft_geom::PathData::single(SubPath::polyline(
+            let tri = splinewright_geom::PathData::single(SubPath::polyline(
                 &[Point::new(x, y), Point::new(x + 13.0, y + 3.0), Point::new(x + 5.0, y + 17.0)],
                 true,
             ));
@@ -1224,7 +1224,7 @@ mod tests {
     #[test]
     fn draw_snap_gathers_once_per_document_state() {
         let (d, _) = doc_with_rect();
-        let empty = vectorcraft_doc::Document::new(500.0, 500.0);
+        let empty = splinewright_doc::Document::new(500.0, 500.0);
         let (s, p) = (Selection::default(), paint());
         let at = Point::new(202.0, 198.0);
         let mut snap = DrawSnap::default();

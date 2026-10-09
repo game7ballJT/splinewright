@@ -7,30 +7,30 @@ use serde_json::{Value, json};
 use crate::state::Dialog;
 use crate::theme::Tokens;
 use crate::widgets;
-use crate::{VectorcraftApp, font_menu};
+use crate::{SplinewrightApp, font_menu};
 
 /// Open the dialog.
-pub fn open(app: &mut VectorcraftApp) {
+pub fn open(app: &mut SplinewrightApp) {
     app.ui.dialog = Some(Dialog::new("findFont", json!({ "selected": 0, "family": "Source Sans 3", "style": "", "selectionOnly": false })));
 }
 
-fn fonts(app: &mut VectorcraftApp) -> Vec<Value> {
+fn fonts(app: &mut SplinewrightApp) -> Vec<Value> {
     app.session.execute("text.fonts", &json!({})).ok().and_then(|v| v.as_array().cloned()).unwrap_or_default()
 }
 
-pub fn confirm(app: &mut VectorcraftApp) -> Result<Value, String> {
+pub fn confirm(app: &mut SplinewrightApp) -> Result<Value, String> {
     app.ui.dialog = None;
     Ok(Value::Null)
 }
 
 /// Replace the selected document font with the chosen one (`all`: everywhere, else the selection).
-fn change(app: &mut VectorcraftApp, d: &Dialog, from: &Value, all: bool) -> Result<Value, String> {
+fn change(app: &mut SplinewrightApp, d: &Dialog, from: &Value, all: bool) -> Result<Value, String> {
     let style = d.str("style");
     let to = if style.is_empty() { json!({ "family": d.str("family") }) } else { json!({ "family": d.str("family"), "style": style }) };
     app.run("text.replaceFont", json!({ "from": { "family": from["family"], "style": from["style"] }, "to": to, "selectionOnly": !all }))
 }
 
-pub fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
+pub fn show(app: &mut SplinewrightApp, ctx: &egui::Context) {
     let Some(mut d) = app.ui.dialog.clone() else { return };
     let t = Tokens::get(ctx);
     let list = fonts(app);
@@ -67,7 +67,7 @@ pub fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
                 d.fields.insert("family".into(), json!(f));
                 d.fields.insert("style".into(), json!(style.unwrap_or_default()));
             }
-            let styles = vectorcraft_text::FontDb::global().styles(&d.str("family"));
+            let styles = splinewright_text::FontDb::global().styles(&d.str("family"));
             // "(closest)" is ours; the font's style names are shown as they are.
             let closest = tl!("(closest)");
             let mut opts: Vec<&str> = vec![closest];
@@ -141,7 +141,7 @@ mod tests {
 
     #[test]
     fn dialog_draws_and_changes_all() {
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(splinewright_engine::Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
         app.session.execute("text.create", &json!({"x": 10, "y": 40, "text": "Hi", "font": "Missing Family"})).unwrap();
         open(&mut app);

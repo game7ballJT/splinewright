@@ -2,16 +2,16 @@
 
 use serde_json::json;
 
-use crate::{VectorcraftApp, canvas};
+use crate::{SplinewrightApp, canvas};
 
-fn app_with_doc() -> VectorcraftApp {
-    let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), crate::Services::default());
+fn app_with_doc() -> SplinewrightApp {
+    let mut app = SplinewrightApp::new(splinewright_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     app
 }
 
 /// Draw one canvas frame; whether it drew the document (else the Home screen).
-fn shows_document(app: &mut VectorcraftApp) -> bool {
+fn shows_document(app: &mut SplinewrightApp) -> bool {
     app.canvas_rect = None;
     let ctx = egui::Context::default();
     crate::theme::install_fonts(&ctx);
@@ -41,7 +41,7 @@ fn home_shows_over_open_documents_until_a_document_is_chosen() {
 
 /// Draw one canvas frame; whether it drew any text (the Home screen's labels; an empty window
 /// draws none).
-fn draws_text(app: &mut VectorcraftApp) -> bool {
+fn draws_text(app: &mut SplinewrightApp) -> bool {
     fn has_text(s: &egui::Shape) -> bool {
         match s {
             egui::Shape::Text(_) => true,
@@ -62,7 +62,7 @@ fn draws_text(app: &mut VectorcraftApp) -> bool {
 /// shows an empty window instead of the Home screen, and the Home button still opens it.
 #[test]
 fn home_screen_without_documents_follows_its_preference() {
-    let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), crate::Services::default());
+    let mut app = SplinewrightApp::new(splinewright_engine::Session::new(), crate::Services::default());
     assert!(app.session.active().is_none());
     assert!(draws_text(&mut app), "Home with no document open (the default)");
     assert!(crate::menus::home_showing(&app));

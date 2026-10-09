@@ -1,4 +1,4 @@
-//! Document → PDF (krilla). Mirrors the tree walk of `vectorcraft-render`.
+//! Document → PDF (krilla). Mirrors the tree walk of `splinewright-render`.
 
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -16,12 +16,12 @@ use krilla::paint::{Fill, LinearGradient, RadialGradient, SpreadMethod, Stop, St
 use krilla::surface::Surface;
 use krilla::text::{GlyphId, KrillaGlyph};
 use kurbo::{PathEl, Shape, Vec2};
-use vectorcraft_color::{BlendMode, Color, GradientKind, Paint};
-use vectorcraft_doc::{AppearanceItem, Document, LineCap, LineJoin, Node, NodeKind, StrokeAlign, StrokeLayer, TextObject};
-use vectorcraft_effects::stroke::{self, WrittenShape};
-use vectorcraft_geom::{Affine, BezPath, FillRule, Rect};
-use vectorcraft_text::TextLayout;
-use vectorcraft_text::embed::Embedding;
+use splinewright_color::{BlendMode, Color, GradientKind, Paint};
+use splinewright_doc::{AppearanceItem, Document, LineCap, LineJoin, Node, NodeKind, StrokeAlign, StrokeLayer, TextObject};
+use splinewright_effects::stroke::{self, WrittenShape};
+use splinewright_geom::{Affine, BezPath, FillRule, Rect};
+use splinewright_text::TextLayout;
+use splinewright_text::embed::Embedding;
 
 use crate::forms::Mark;
 use crate::lab_spot::{find, rfind};
@@ -40,14 +40,14 @@ pub fn export_with_report(doc: &Document, opts: &PdfOptions) -> Result<ExportRep
     let set = &opts.settings;
     set.check()?;
     // Live geometry effects export as their result; raster effects are reported below.
-    let baked = vectorcraft_effects::bake_document(doc);
+    let baked = splinewright_effects::bake_document(doc);
     let doc = baked.as_ref().unwrap_or(doc);
     let pages = pages(doc, opts)?;
 
     let title = crate::pdfx::title(set.standard, opts.title.clone().unwrap_or_else(|| doc.title.clone()));
-    let created_at = opts.created.or_else(vectorcraft_doc::metadata::now_unix);
+    let created_at = opts.created.or_else(splinewright_doc::metadata::now_unix);
     crate::pdfx::require_date(set.standard, created_at)?;
-    let mut w = Writer::new(doc, set, &title, created_at, doc.color_mode == vectorcraft_doc::ColorMode::Cmyk)?;
+    let mut w = Writer::new(doc, set, &title, created_at, doc.color_mode == splinewright_doc::ColorMode::Cmyk)?;
     // Preserve Editing: the native document as an embedded file (`check` refused PDF/A with it).
     let mut warnings = set.warnings();
     let native = opts.native.as_deref().filter(|_| set.preserve_editing);
@@ -130,7 +130,7 @@ pub(crate) struct Writer {
     /// `cmyk_blending`).
     cmyk: bool,
     /// Spot colours written with a Lab alternate, gathered from the exporters ([`Self::absorb`]).
-    lab_spots: Vec<(String, vectorcraft_color::cms::Lab)>,
+    lab_spots: Vec<(String, splinewright_color::cms::Lab)>,
     warnings: Vec<String>,
     /// A PDF 1.3 file ([`crate::PdfSettings::pdf13`]): flat, without page groups.
     pdf13: bool,
@@ -195,7 +195,7 @@ impl Writer {
         };
 
         let mut pdf = krilla::Document::new_with(settings);
-        let mut meta = Metadata::new().creator("VectorCraft".into()).producer("VectorCraft".into());
+        let mut meta = Metadata::new().creator("Splinewright".into()).producer("Splinewright".into());
         if !title.is_empty() {
             meta = meta.title(title.to_string());
         }
@@ -413,7 +413,7 @@ fn number(digits: &[u8]) -> Option<u32> {
 
 /// Unix seconds (UTC) → krilla date.
 fn date_time(t: i64) -> krilla::metadata::DateTime {
-    let [year, month, day, hour, minute, second] = vectorcraft_doc::metadata::civil(t);
+    let [year, month, day, hour, minute, second] = splinewright_doc::metadata::civil(t);
     krilla::metadata::DateTime::new(year as u16)
         .month(month as u8)
         .day(day as u8)
@@ -429,11 +429,11 @@ pub(crate) struct Exporter<'a> {
     warnings: Vec<String>,
     images: HashMap<String, Option<Image>>,
     /// The brush library, parsed when the first brushed stroke is written.
-    brushes: Option<Vec<vectorcraft_brush::Brush>>,
+    brushes: Option<Vec<splinewright_brush::Brush>>,
     /// Whether the group being written is a knockout group (what its neutral children inherit).
     knockout: bool,
     /// Spot colours written with a Lab alternate ([`crate::lab_spot`]): colorant name, Lab values.
-    lab_spots: Vec<(String, vectorcraft_color::cms::Lab)>,
+    lab_spots: Vec<(String, splinewright_color::cms::Lab)>,
     /// Images may ask viewers to smooth them (not in PDF/A).
     interpolate: bool,
     /// How images are resampled and compressed.
@@ -441,7 +441,7 @@ pub(crate) struct Exporter<'a> {
     /// Layers whose Print option is off are written too.
     pub non_printing: bool,
     /// How colours are separated into CMYK (the colour settings' intent unless print sets one).
-    pub intent: vectorcraft_color::cms::Intent,
+    pub intent: splinewright_color::cms::Intent,
     /// Whether a layer shows transparency (found out on the first page that asks).
     transparent: Option<bool>,
     /// How colours are written (the Output settings; print writes them as they are).
@@ -478,7 +478,7 @@ impl<'a> Exporter<'a> {
             interpolate: set.standard != Standard::PdfA2b,
             compression: &set.compression,
             non_printing: false,
-            intent: vectorcraft_color::cms::active().settings().intent,
+            intent: splinewright_color::cms::active().settings().intent,
             transparent: None,
             out: Arc::default(),
             convert: true,
@@ -573,7 +573,7 @@ fn color(c: &Color) -> krilla::color::Color {
     match *c {
         Color::Rgb { r, g, b } => rgb::Color::new(q(r), q(g), q(b)).into(),
         Color::Cmyk { c, m, y, k } => cmyk::Color::new(q(c), q(m), q(y), q(k)).into(),
-        // VectorCraft grey is ink coverage (0 = white); PDF DeviceGray is lightness.
+        // Splinewright grey is ink coverage (0 = white); PDF DeviceGray is lightness.
         Color::Gray { k } => luma::Color::new(q(1.0 - k)).into(),
         Color::Lab { .. } => {
             let [r, g, b] = c.to_rgb();
@@ -610,7 +610,7 @@ impl Exporter<'_> {
     /// conversion, RGB and Lab colours of CMYK documents are separated into CMYK through the
     /// active colour settings, so the file carries press values.
     fn col(&mut self, c: &Color) -> krilla::color::Color {
-        let cmyk_doc = self.doc.color_mode == vectorcraft_doc::ColorMode::Cmyk;
+        let cmyk_doc = self.doc.color_mode == splinewright_doc::ColorMode::Cmyk;
         let c = self.out.color(c, self.intent, cmyk_doc, self.convert);
         if let (Color::Rgb { .. }, Some(note)) = (c, &self.out.srgb_note) {
             let note = note.clone();
@@ -629,7 +629,7 @@ impl Exporter<'_> {
         if let Color::Lab { l, a, b } = color
             && !self.lab_spots.iter().any(|(n, _)| n == name)
         {
-            self.lab_spots.push((name.to_string(), vectorcraft_color::cms::Lab::new(l, a, b)));
+            self.lab_spots.push((name.to_string(), splinewright_color::cms::Lab::new(l, a, b)));
         }
         let full = self.out.cmyk(&color, self.intent);
         let alt = krilla::color::RegularColor::Cmyk(cmyk::Color::new(q(full[0]), q(full[1]), q(full[2]), q(full[3])));
@@ -639,7 +639,7 @@ impl Exporter<'_> {
     /// A solid paint, in the Separation colour space at its tint when it's linked to a spot swatch
     /// or to Registration (`/All`: every plate).
     fn solid(&mut self, c: &Color, link: Option<&str>, tint: f32) -> krilla::color::Color {
-        if link == Some(vectorcraft_color::swatch::REGISTRATION) {
+        if link == Some(splinewright_color::swatch::REGISTRATION) {
             let alt = krilla::color::RegularColor::Cmyk(cmyk::Color::new(255, 255, 255, 255));
             return SepColor::new(q(tint), SeparationSpace::new(SeparationColorant::AllColorants, alt)).into();
         }
@@ -653,7 +653,7 @@ impl Exporter<'_> {
     /// it) as tints of that ink — a Separation shading — with midpoints as explicit stops (the
     /// tint and opacity there are halfway). `None` for other gradients; one that mixes a spot ink
     /// with other colours is written in process colours (the PDF writer has no DeviceN).
-    fn spot_stops(&mut self, g: &vectorcraft_color::Gradient) -> Option<Vec<(f32, krilla::color::Color, f32)>> {
+    fn spot_stops(&mut self, g: &splinewright_color::Gradient) -> Option<Vec<(f32, krilla::color::Color, f32)>> {
         let ink = g.stops.iter().find_map(|s| s.swatch.as_deref().filter(|n| self.doc.swatch(n).is_some_and(|w| w.spot)))?;
         let paper = |c: &Color| c.to_rgba8(1.0)[..3] == [255; 3];
         let tints: Option<Vec<f32>> = g
@@ -685,10 +685,10 @@ impl Exporter<'_> {
     }
 
     /// Warn when `effects` (an object's, a fill's or a stroke's) has a visible raster effect: the
-    /// app renders them to images before export (`vectorcraft_engine::export_pdf`), so the ones
+    /// app renders them to images before export (`splinewright_engine::export_pdf`), so the ones
     /// still here (on `what`) can't be written.
-    fn warn_raster(&mut self, effects: &[vectorcraft_doc::Effect], what: impl FnOnce() -> String) {
-        if effects.iter().any(|e| e.visible && vectorcraft_effects::is_raster(&e.id)) {
+    fn warn_raster(&mut self, effects: &[splinewright_doc::Effect], what: impl FnOnce() -> String) {
+        if effects.iter().any(|e| e.visible && splinewright_effects::is_raster(&e.id)) {
             self.warn(format!("raster effects (shadows, glows, blur, feather) on {} are left out of the PDF", what()));
         }
     }
@@ -722,10 +722,10 @@ impl Exporter<'_> {
                         // models (midpoints sample in RGB) go through RGB, or stay CMYK in a CMYK
                         // document, where `col` separates the rest.
                         let mixed = stops.windows(2).any(|w| w[0].1.model() != w[1].1.model());
-                        let cmyk_doc = self.doc.color_mode == vectorcraft_doc::ColorMode::Cmyk;
+                        let cmyk_doc = self.doc.color_mode == splinewright_doc::ColorMode::Cmyk;
                         let one = |c: Color| match c {
                             Color::Cmyk { .. } if cmyk_doc => c,
-                            _ if mixed => c.in_model(vectorcraft_color::cms::Model::Rgb),
+                            _ if mixed => c.in_model(splinewright_color::cms::Model::Rgb),
                             _ => c,
                         };
                         stops.into_iter().map(|(o, c, a)| (o, self.col(&one(c)), a)).collect()
@@ -809,7 +809,7 @@ impl Exporter<'_> {
 
     /// Opacity mask → luminosity soft mask. Outside the art the backdrop is black (clip) or white;
     /// invert is a white Difference rect on top (luminance is linear, so luma(1 − c) = 1 − luma(c)).
-    fn soft_mask(&mut self, s: &mut Surface, m: &vectorcraft_doc::OpacityMask, page: Rect) -> krilla::mask::Mask {
+    fn soft_mask(&mut self, s: &mut Surface, m: &splinewright_doc::OpacityMask, page: Rect) -> krilla::mask::Mask {
         let mut sb = s.stream_builder();
         let mut ms = sb.surface();
         // An opaque backdrop when it matters: white outside the art (no clip), or black for the
@@ -944,7 +944,7 @@ impl Exporter<'_> {
                 // The region every output clips to; nothing to clip by hides the clipped art. The
                 // clipping path's fill paints behind the clipped art and its stroke over it, unclipped.
                 if let Some((clip, rest)) = children.split_first()
-                    && let Some((p, r)) = vectorcraft_effects::clip_outline(clip).and_then(|(bp, r)| to_path(&bp).map(|p| (p, r)))
+                    && let Some((p, r)) = splinewright_effects::clip_outline(clip).and_then(|(bp, r)| to_path(&bp).map(|p| (p, r)))
                 {
                     let paint = clip.clip_paint();
                     s.push_clip_path(&p, &rule(r));
@@ -983,7 +983,7 @@ impl Exporter<'_> {
             }
             // Live blends/envelopes/meshes export their evaluated (expanded) form.
             NodeKind::Blend { .. } | NodeKind::Envelope { .. } | NodeKind::Mesh(_) | NodeKind::Repeat(_) => {
-                let g = vectorcraft_effects::expand_live_deep(Some(self.doc), n);
+                let g = splinewright_effects::expand_live_deep(Some(self.doc), n);
                 for c in g.children().into_iter().flatten() {
                     self.node(s, c, page, false);
                 }
@@ -1039,7 +1039,7 @@ impl Exporter<'_> {
     /// `overprints`, paints and overprints are kept (but not a white one with Discard White
     /// Overprint).
     fn overprinting(&mut self, s: &mut Surface, overprints: bool, paint: &Paint, draw: impl FnOnce(&mut Self, &mut Surface)) {
-        let white = || self.doc.setup.discard_white_overprint && vectorcraft_doc::overprint::is_white(paint);
+        let white = || self.doc.setup.discard_white_overprint && splinewright_doc::overprint::is_white(paint);
         if overprints && self.overprint && !paint.is_none() && !white() {
             self.overprinted = true;
             crate::forms::form(s, Mark::Overprint, |s| draw(self, s));
@@ -1106,8 +1106,8 @@ impl Exporter<'_> {
 
     /// Draw freeform gradient `g`, placed on `bounds`, as an image of its colour field over `area`,
     /// sampled at the document's raster effects resolution (at most [`MAX_FIELD_PX`] a side).
-    fn field_image(&mut self, s: &mut Surface, g: &vectorcraft_color::GradientPaint, bounds: Rect, area: Rect) {
-        use vectorcraft_color::freeform::{painted_box, spread_scale};
+    fn field_image(&mut self, s: &mut Surface, g: &splinewright_color::GradientPaint, bounds: Rect, area: Rect) {
+        use splinewright_color::freeform::{painted_box, spread_scale};
         let Some(b) = painted_box(bounds) else { return };
         let area = area.abs();
         let long = area.width().max(area.height());
@@ -1141,7 +1141,7 @@ impl Exporter<'_> {
         if self.area_paint(&st.paint) {
             // The area the stroke paints (dashes, caps, joins, profile, arrowheads, alignment), as
             // Outline Stroke makes it, painted with the pattern's tiles or the freeform's image.
-            let region = stroke::outline_region(&vectorcraft_geom::PathData::from_bezpath(bp), r, st).to_bezpath();
+            let region = stroke::outline_region(&splinewright_geom::PathData::from_bezpath(bp), r, st).to_bezpath();
             if let Some(clip) = to_path(&region) {
                 let area = region.bounding_box();
                 self.area(s, &clip, krilla::paint::FillRule::NonZero, &st.paint, (st.opacity, st.blend), st.paint_bounds(bounds), area);
@@ -1251,9 +1251,9 @@ impl Exporter<'_> {
     /// over all of it). False when it has no known brush.
     fn brush_art(&mut self, s: &mut Surface, bp: &BezPath, st: &StrokeLayer, page: Rect) -> bool {
         let doc = self.doc;
-        let brushes = self.brushes.get_or_insert_with(|| vectorcraft_brush::library(doc));
+        let brushes = self.brushes.get_or_insert_with(|| splinewright_brush::library(doc));
         let Some(b) = st.brush.as_deref().and_then(|name| brushes.iter().find(|b| b.name == name)) else { return false };
-        let art = vectorcraft_brush::stroke_pieces(b, bp, st);
+        let art = splinewright_brush::stroke_pieces(b, bp, st);
         let mut pushes = 0;
         if st.blend != BlendMode::Normal {
             s.push_blend_mode(blend(st.blend));
@@ -1273,7 +1273,7 @@ impl Exporter<'_> {
     }
 
     fn text(&mut self, s: &mut Surface, n: &Node, t: &TextObject, page: Rect) {
-        let layout = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+        let layout = splinewright_text::layout(splinewright_text::FontDb::global(), t);
         let tb = t.xf.transform_rect_bbox(layout.bounds);
         // The object's own fills and strokes paint the whole outline: those below the Characters
         // row under the characters, the others over them.
@@ -1437,7 +1437,7 @@ impl Exporter<'_> {
         if let Some(f) = self.fonts.get(&id) {
             return f.clone();
         }
-        let Some(face) = vectorcraft_text::FontDb::global().face_by_id(id) else {
+        let Some(face) = splinewright_text::FontDb::global().face_by_id(id) else {
             self.fonts.insert(id, None);
             return None;
         };
@@ -1500,7 +1500,7 @@ impl Exporter<'_> {
         img
     }
 
-    fn image(&mut self, s: &mut Surface, im: &vectorcraft_doc::ImageObject) {
+    fn image(&mut self, s: &mut Surface, im: &splinewright_doc::ImageObject) {
         // The size it is placed at: its pixel grid's sides through its transform.
         let [a, b, c, d, ..] = im.xf.as_coeffs();
         let size = (im.width as f64 * a.hypot(b), im.height as f64 * c.hypot(d));
@@ -1514,7 +1514,7 @@ impl Exporter<'_> {
 
 /// Image `blob` as it is: PNG, JPEG, GIF and WebP through the PDF writer (JPEG data unchanged),
 /// other formats decoded.
-fn embed(blob: &vectorcraft_doc::ImageBlob, interpolate: bool) -> Option<Image> {
+fn embed(blob: &splinewright_doc::ImageBlob, interpolate: bool) -> Option<Image> {
     let bytes = blob.bytes.as_ref().clone();
     let direct = match blob.mime.as_str() {
         "image/png" => Image::from_png(bytes.clone().into(), interpolate).ok(),

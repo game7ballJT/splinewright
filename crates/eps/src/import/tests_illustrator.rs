@@ -3,8 +3,8 @@
 
 use std::sync::Arc;
 
-use vectorcraft_doc::clipnest::MAX_NEST;
-use vectorcraft_doc::{Node, NodeKind};
+use splinewright_doc::clipnest::MAX_NEST;
+use splinewright_doc::{Node, NodeKind};
 
 use crate::import::import;
 

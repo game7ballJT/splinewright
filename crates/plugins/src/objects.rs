@@ -9,9 +9,9 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Appearance, AppearanceItem, Document, FillLayer, Node, NodeId, NodeKind, StrokeLayer};
-use vectorcraft_geom::{FillRule, PathData, Point, Rect};
+use splinewright_color::{Color, Paint};
+use splinewright_doc::{Appearance, AppearanceItem, Document, FillLayer, Node, NodeId, NodeKind, StrokeLayer};
+use splinewright_geom::{FillRule, PathData, Point, Rect};
 
 use crate::{Error, Result};
 

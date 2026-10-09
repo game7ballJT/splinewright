@@ -3,8 +3,8 @@
 use std::io::Cursor;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{Document, ImageBlob, ImageObject, Node, NodeKind};
-use vectorcraft_geom::Affine;
+use splinewright_doc::{Document, ImageBlob, ImageObject, Node, NodeKind};
+use splinewright_geom::Affine;
 
 use super::super::*;
 use super::pdfimport::LoadOptions;
@@ -48,14 +48,14 @@ pub fn file_name(name: &str) -> String {
 /// extension of `name`.
 pub fn detect(name: &str, bytes: &[u8]) -> Option<&'static Format> {
     let by_name = format_for_name(name).filter(|f| f.read);
-    if vectorcraft_format::sniff(bytes) {
+    if splinewright_format::sniff(bytes) {
         // A template keeps its meaning from the extension, like .ait.
-        return by_name.filter(|f| f.id == "template").or_else(|| format("vectorcraft"));
+        return by_name.filter(|f| f.id == "template").or_else(|| format("splinewright"));
     }
-    if vectorcraft_svg::is_svgz(bytes) {
+    if splinewright_svg::is_svgz(bytes) {
         return format("svgz");
     }
-    if vectorcraft_pdf::is_postscript(bytes) {
+    if splinewright_pdf::is_postscript(bytes) {
         // PostScript (.eps, and .ai saved without PDF compatibility) by any name; .ai and .ait
         // keep their meaning (a template), read as PostScript all the same.
         return by_name.filter(|f| matches!(f.id, "ai" | "ait")).or_else(|| format("eps"));
@@ -64,10 +64,10 @@ pub fn detect(name: &str, bytes: &[u8]) -> Option<&'static Format> {
         // .ai and .ait files are PDF inside; the extension keeps the template meaning.
         return by_name.filter(|f| matches!(f.id, "ai" | "ait")).or_else(|| format("pdf"));
     }
-    if vectorcraft_cad::is_dxf(bytes) {
+    if splinewright_cad::is_dxf(bytes) {
         return format("dxf");
     }
-    if let Some(kind) = vectorcraft_metafile::sniff(bytes) {
+    if let Some(kind) = splinewright_metafile::sniff(bytes) {
         return format(kind.id());
     }
     if let Some(f) = image::guess_format(bytes).ok().and_then(image_format) {
@@ -115,8 +115,8 @@ fn restore_or_import(
 
 /// A native file's document and details, the colour profiles it carries installed where missing
 /// (with a warning for each that can't be used).
-pub(crate) fn native_file(bytes: &[u8]) -> Result<(Document, vectorcraft_format::FileInfo, Vec<String>)> {
-    let f = vectorcraft_format::load_file(bytes).map_err(err)?;
+pub(crate) fn native_file(bytes: &[u8]) -> Result<(Document, splinewright_format::FileInfo, Vec<String>)> {
+    let f = splinewright_format::load_file(bytes).map_err(err)?;
     let warnings = super::native::install_profiles(f.profiles);
     Ok((f.doc, f.info, warnings))
 }
@@ -131,27 +131,27 @@ pub fn load(name: &str, bytes: &[u8]) -> Result<Loaded> {
 pub fn load_with(name: &str, bytes: &[u8], opts: &LoadOptions) -> Result<Loaded> {
     let format = detect(name, bytes).ok_or_else(|| match super::unsupported(&super::extension(name)) {
         Some(u) => err(format!("can't open `{}`: {}", file_name(name), u.hint)),
-        None => err(format!("can't open `{name}`: not a format VectorCraft reads (see document.formats)")),
+        None => err(format!("can't open `{name}`: not a format Splinewright reads (see document.formats)")),
     })?;
     let title = file_name(name);
     let mut converted = false;
     let (mut doc, warnings, restored) = match format.id {
         // EPS and PostScript .ai: the document our EPS files carry, else the PostScript read.
-        _ if format.id == "eps" || vectorcraft_pdf::is_postscript(bytes) => {
-            let editing = vectorcraft_eps::has_native(bytes).then_some((true, || vectorcraft_eps::native(bytes)));
+        _ if format.id == "eps" || splinewright_pdf::is_postscript(bytes) => {
+            let editing = splinewright_eps::has_native(bytes).then_some((true, || splinewright_eps::native(bytes)));
             restore_or_import(editing, || {
-                let r = vectorcraft_eps::import(bytes).map_err(|e| err(format!("can't open `{}`: {e}", file_name(name))))?;
+                let r = splinewright_eps::import(bytes).map_err(|e| err(format!("can't open `{}`: {e}", file_name(name))))?;
                 Ok((r.document, r.warnings))
             })?
         }
-        "vectorcraft" | "template" => {
+        "splinewright" | "template" => {
             let (d, info, warnings) = native_file(bytes)?;
-            converted = info.is_old() || super::extension(name) == vectorcraft_format::LEGACY_EXTENSION;
+            converted = info.is_old() || super::extension(name) == splinewright_format::LEGACY_EXTENSION;
             (d, warnings, false)
         }
         "svg" | "svgz" => {
-            let text = vectorcraft_svg::text_of(bytes).map_err(err)?;
-            let editing = vectorcraft_svg::editing(&text).map(|e| (e.intact, move || vectorcraft_format::base64_decode(&e.data)));
+            let text = splinewright_svg::text_of(bytes).map_err(err)?;
+            let editing = splinewright_svg::editing(&text).map(|e| (e.intact, move || splinewright_format::base64_decode(&e.data)));
             // Relative links are found in the SVG's folder (when `name` is a path).
             let folder = std::path::Path::new(name).parent().map(|f| f.to_string_lossy()).filter(|f| !f.is_empty()).map(|f| absolute_path(&f));
             restore_or_import(editing, || import_svg(&text, folder.as_deref()))?
@@ -161,7 +161,7 @@ pub fn load_with(name: &str, bytes: &[u8], opts: &LoadOptions) -> Result<Loaded>
             let editing = opts
                 .pages
                 .is_none()
-                .then(|| vectorcraft_pdf::editing_with(bytes, opts.password.as_deref()))
+                .then(|| splinewright_pdf::editing_with(bytes, opts.password.as_deref()))
                 .flatten()
                 .map(|e| (e.intact, move || Some(e.data)));
             restore_or_import(editing, || super::pdfimport::import(bytes, opts))?
@@ -182,7 +182,7 @@ pub fn load_with(name: &str, bytes: &[u8], opts: &LoadOptions) -> Result<Loaded>
     }
     // Imports are named after the file; a native document keeps its own title (the tab shows the
     // file name once it has a path).
-    if !matches!(format.id, "vectorcraft" | "template") || doc.title.is_empty() {
+    if !matches!(format.id, "splinewright" | "template") || doc.title.is_empty() {
         doc.title = title;
     }
     Ok(Loaded { doc, format, warnings, restored, converted })
@@ -190,7 +190,7 @@ pub fn load_with(name: &str, bytes: &[u8], opts: &LoadOptions) -> Result<Loaded>
 
 /// Import SVG text, reading the files its images link to (relative links from `folder`, the SVG's
 /// own): rasters stay linked, SVG files become art, missing ones placeholders (see
-/// [`vectorcraft_svg::ImportOptions`]).
+/// [`splinewright_svg::ImportOptions`]).
 pub(crate) fn import_svg(text: &str, folder: Option<&str>) -> Result<(Document, Vec<String>)> {
     let read = |path: &str| {
         // Only files (not folders or devices) are read.
@@ -199,7 +199,7 @@ pub(crate) fn import_svg(text: &str, folder: Option<&str>) -> Result<(Document, 
         let link = crate::cmd::links::link_info(path, &bytes);
         Some((bytes, link))
     };
-    vectorcraft_svg::import_with(text, &vectorcraft_svg::ImportOptions { folder, read: Some(&read) }).map_err(err)
+    splinewright_svg::import_with(text, &splinewright_svg::ImportOptions { folder, read: Some(&read) }).map_err(err)
 }
 
 /// Open a file's bytes as the new active document (what `document.open` does) →
@@ -265,7 +265,7 @@ pub(crate) fn source<'a>(p: &'a Value, cmd: &str) -> Result<Source<'a>> {
     match (str_param(p, "path"), str_param(p, "dataBase64")) {
         (Some(path), _) => Ok(Source { name: path, bytes: read_file(path)?, path: Some(path) }),
         (None, Some(b64)) => {
-            let bytes = vectorcraft_format::base64_decode(b64).ok_or_else(|| bad(cmd, "bad base64"))?;
+            let bytes = splinewright_format::base64_decode(b64).ok_or_else(|| bad(cmd, "bad base64"))?;
             Ok(Source { name: str_param(p, "name").unwrap_or("Untitled"), bytes, path: None })
         }
         _ => Err(bad(cmd, "give path, or name and dataBase64")),
@@ -286,7 +286,7 @@ pub(super) fn new_from_template(s: &mut Session, p: &Value) -> Result<Value> {
 /// they are, with their ink amounts ([`ImageBlob::cmyk`]).
 pub fn raster_image(bytes: &[u8]) -> Result<RasterImage> {
     let reader = image::ImageReader::new(Cursor::new(bytes)).with_guessed_format().map_err(err)?;
-    let kind = reader.format().ok_or_else(|| err("not an image VectorCraft reads (see document.formats)"))?;
+    let kind = reader.format().ok_or_else(|| err("not an image Splinewright reads (see document.formats)"))?;
     let f = image_format(kind).ok_or_else(|| err(format!("{kind:?} images can't be opened (see document.formats)")))?;
     let ppi = super::ppi::resolution(bytes);
     let cmyk = || ImageBlob::new(f.mime, bytes.to_vec()).cmyk().is_some();

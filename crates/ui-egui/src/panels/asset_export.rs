@@ -14,15 +14,15 @@ use std::sync::Arc;
 
 use egui::{Color32, Rect, Sense, Stroke, StrokeKind, Ui, vec2};
 use serde_json::{Value, json};
-use vectorcraft_doc::{ExportAsset, Node, NodeId};
-use vectorcraft_engine::DocState;
+use splinewright_doc::{ExportAsset, Node, NodeId};
+use splinewright_engine::DocState;
 
 use super::{pstate, set_pstate};
 use crate::dialogs::{EXPORT_FOR_SCREENS, open_export_for_screens_assets, screen_formats, screen_saved_rows};
 use crate::state::Dialog;
 use crate::theme::Tokens;
 use crate::widgets::{self, menu_item};
-use crate::{VectorcraftApp, io};
+use crate::{SplinewrightApp, io};
 
 pub const ID: &str = "assetExport";
 /// A tile: the thumbnail over the name.
@@ -46,7 +46,7 @@ type Revision = (u64, u64);
 /// object is a new allocation, so its address is a free change detector, as in the Layers panel).
 pub(crate) fn paint_thumb(ui: &Ui, st: &DocState, a: &ExportAsset, r: Rect) {
     thread_local! {
-        static RENDERER: RefCell<vectorcraft_render::Renderer> = RefCell::new(vectorcraft_render::Renderer::new());
+        static RENDERER: RefCell<splinewright_render::Renderer> = RefCell::new(splinewright_render::Renderer::new());
         /// The addresses of each asset's objects in one document revision (no tree walks per frame).
         static KEYS: RefCell<(Revision, HashMap<u64, Look>)> = RefCell::new(Default::default());
         static CACHE: crate::graphics::TexCache<HashMap<(Look, u32), egui::TextureHandle>> = crate::graphics::TexCache::default();
@@ -164,13 +164,13 @@ fn drop_zone(ui: &Ui, zone: &egui::Response, ev: &mut Events) {
 }
 
 /// Run `cmd`, reporting a failure in the status bar.
-fn run(app: &mut VectorcraftApp, cmd: &str, params: Value) -> Option<Value> {
+fn run(app: &mut SplinewrightApp, cmd: &str, params: Value) -> Option<Value> {
     app.run(cmd, params).map_err(|e| app.status(e)).ok()
 }
 
 /// Collect `ids` (else the selection) as assets (one of them all with `single`), and select them
 /// in the panel.
-fn collect(app: &mut VectorcraftApp, ctx: &egui::Context, ids: Option<Vec<NodeId>>, single: bool) {
+fn collect(app: &mut SplinewrightApp, ctx: &egui::Context, ids: Option<Vec<NodeId>>, single: bool) {
     let mut p = json!({ "multiple": !single });
     if let Some(ids) = ids {
         p["ids"] = json!(ids.iter().map(|id| id.0).collect::<Vec<_>>());
@@ -184,7 +184,7 @@ fn collect(app: &mut VectorcraftApp, ctx: &egui::Context, ids: Option<Vec<NodeId
 /// Export assets `ids` (`files_each`: the files one asset makes) into a picked folder (without a
 /// folder picker: the last folder Export for Screens used, else the Desktop); the web downloads
 /// them, several as one zip.
-fn export(app: &mut VectorcraftApp, ids: Vec<u64>, files_each: usize) {
+fn export(app: &mut SplinewrightApp, ids: Vec<u64>, files_each: usize) {
     let mut p = json!({ "assets": ids });
     if io::is_web(app) {
         p["zip"] = json!(ids.len() * files_each > 1);
@@ -200,7 +200,7 @@ fn export(app: &mut VectorcraftApp, ids: Vec<u64>, files_each: usize) {
                 .and_then(Value::as_str)
                 .filter(|f| !f.is_empty())
                 .map(str::to_string)
-                .or_else(vectorcraft_engine::cmd::fileio::export_folder)
+                .or_else(splinewright_engine::cmd::fileio::export_folder)
             {
                 Some(f) => f,
                 None => return app.status("choose a folder to export to".to_string()),
@@ -245,7 +245,7 @@ fn settings(ui: &mut Ui, st: &DocState) -> (Option<Settings>, usize) {
     (change, n)
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut SplinewrightApp, ui: &mut Ui) {
     let ctx = ui.ctx().clone();
     let Some(st) = app.session.active() else {
         widgets::dim_label(ui, tl!("No document"));
@@ -346,7 +346,7 @@ fn sel_or_all(sel: &[u64], all: &[u64]) -> Vec<u64> {
 }
 
 /// The panel (≡) menu.
-pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(app: &mut SplinewrightApp, ui: &mut Ui) {
     let ctx = ui.ctx().clone();
     let Some(st) = app.session.active() else { return };
     let (has_art, sel) = (!st.selection.is_empty(), selected(&ctx, st));

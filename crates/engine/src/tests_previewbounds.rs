@@ -2,9 +2,9 @@
 //! visual bounds (strokes included) when it is on.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeId;
-use vectorcraft_geom::Rect;
-use vectorcraft_tools::{PointerEvent, PointerKind};
+use splinewright_doc::NodeId;
+use splinewright_geom::Rect;
+use splinewright_tools::{PointerEvent, PointerKind};
 
 use super::*;
 

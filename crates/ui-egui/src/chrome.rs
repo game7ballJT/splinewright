@@ -4,18 +4,18 @@ use std::borrow::Cow;
 
 use egui::{CornerRadius, Sense, Stroke, StrokeKind, Ui, vec2};
 use serde_json::json;
-use vectorcraft_doc::NodeKind;
+use splinewright_doc::NodeKind;
 
 use crate::panels::stroke as stroke_panel;
 use crate::state::{ZOOM_STOPS, zoom_label};
 use crate::theme::{self, Tokens};
 use crate::widgets;
-use crate::{VectorcraftApp, icons, menus, titlebar};
+use crate::{SplinewrightApp, icons, menus, titlebar};
 
 /// The application bar: brand mark, Home, menus, then Discord, search and the workspace switcher
-/// at the right. With [`VectorcraftApp::custom_titlebar`] it is also the window's title bar
+/// at the right. With [`SplinewrightApp::custom_titlebar`] it is also the window's title bar
 /// ([`titlebar`]): the caption buttons take the right end and the rest of the bar drags the window.
-pub fn app_bar(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn app_bar(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let custom = app.custom_titlebar;
     let left = if app.integrated_titlebar { 78 } else { 8 };
@@ -37,7 +37,7 @@ pub fn app_bar(app: &mut VectorcraftApp, ui: &mut Ui) {
             // With the macOS menu bar the menus are at the top of the screen instead.
             let menus_end = if app.services.native_menu.is_some() {
                 let full = ui.max_rect();
-                ui.painter().text(full.center(), egui::Align2::CENTER_CENTER, "VectorCraft", egui::FontId::proportional(13.5), t.text);
+                ui.painter().text(full.center(), egui::Align2::CENTER_CENTER, "Splinewright", egui::FontId::proportional(13.5), t.text);
                 ui.cursor().min.x
             } else {
                 menus::menu_bar(app, ui)
@@ -57,7 +57,7 @@ pub fn app_bar(app: &mut VectorcraftApp, ui: &mut Ui) {
             let gap = ui.spacing().item_spacing.x;
             let with_search = ws_w + 8.0 + gap + 200.0;
             let search_full = room >= with_search;
-            let discord = room >= with_search + 10.0 + gap + crate::community::discord_width(ui, false);
+            let github = room >= with_search + 10.0 + gap + crate::community::github_width(ui, false);
             let ws_w = if search_full { ws_w } else { ws_w.min(room - 8.0 - gap - 24.0).max(64.0) };
             let mut rui = ui.new_child(egui::UiBuilder::new().max_rect(right).layout(egui::Layout::right_to_left(egui::Align::Center)));
             let ui = &mut rui;
@@ -95,9 +95,9 @@ pub fn app_bar(app: &mut VectorcraftApp, ui: &mut Ui) {
                 app.ui.palette_open = true;
                 app.ui.palette_query.clear();
             }
-            if discord {
+            if github {
                 ui.add_space(10.0);
-                crate::community::discord_button(app, ui, false);
+                crate::community::github_button(app, ui, false);
             }
         });
     });
@@ -122,19 +122,19 @@ pub enum AnchorControls {
 }
 
 /// Which anchor controls show for the selection and the active tool.
-pub fn anchor_controls(app: &VectorcraftApp) -> AnchorControls {
+pub fn anchor_controls(app: &SplinewrightApp) -> AnchorControls {
     let Some(st) = app.session.active() else { return AnchorControls::None };
     if !st.selection.anchors.is_empty() {
         return AnchorControls::All;
     }
     let paths = st.selection.objects.iter().any(|id| st.doc.node(*id).is_some_and(|n| matches!(n.kind, NodeKind::Path { .. })));
-    if paths && vectorcraft_tools::catalog::edits_anchors(app.session.tool_id()) { AnchorControls::Convert } else { AnchorControls::None }
+    if paths && splinewright_tools::catalog::edits_anchors(app.session.tool_id()) { AnchorControls::Convert } else { AnchorControls::None }
 }
 
 /// What the Control bar and the Properties panel offer for selected anchors ([`anchor_controls`]):
 /// "Convert:" corner or smooth, then "Anchors:" remove, connect (Join) and cut. Each group is a
 /// row of its own: inline in the Control bar, one under the other in a panel.
-pub fn anchor_buttons(app: &mut VectorcraftApp, ui: &mut Ui, controls: AnchorControls) {
+pub fn anchor_buttons(app: &mut SplinewrightApp, ui: &mut Ui, controls: AnchorControls) {
     let t = Tokens::get(ui.ctx());
     let mut run = None;
     let groups: [(&str, &[AnchorButton]); 2] = [
@@ -178,7 +178,7 @@ pub fn anchor_buttons(app: &mut VectorcraftApp, ui: &mut Ui, controls: AnchorCon
 const INLINE_TRANSFORM_WIDTH: f32 = 440.0;
 
 /// The Control bar (Window → Control), context-sensitive like Illustrator's.
-pub fn control_bar(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn control_bar(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     egui::Panel::top("control_bar")
         .exact_size(34.0)
@@ -200,7 +200,7 @@ pub fn control_bar(app: &mut VectorcraftApp, ui: &mut Ui) {
                 let anchors = anchor_controls(app);
                 let label = match &first {
                     Some(_) if sel.len() == 1 && anchors != AnchorControls::None => tl!("Anchor Point"),
-                    Some(vectorcraft_doc::Node { kind: NodeKind::Image(im), .. }) if sel.len() == 1 => {
+                    Some(splinewright_doc::Node { kind: NodeKind::Image(im), .. }) if sel.len() == 1 => {
                         if im.link.is_some() {
                             tl!("Linked File")
                         } else {
@@ -309,18 +309,18 @@ pub fn control_bar(app: &mut VectorcraftApp, ui: &mut Ui) {
 
 /// A document tab's title: "Name* @ 66.67 % (RGB/Preview)", or while an opacity mask is edited
 /// "Name* @ 66.67 % (<Opacity Mask>/Opacity Mask)".
-fn tab_title(d: &vectorcraft_engine::DocState, zoom: f64, outline: bool) -> String {
+fn tab_title(d: &splinewright_engine::DocState, zoom: f64, outline: bool) -> String {
     let mode = if d.doc.mask_edit.is_some() {
         format!("<{0}>/{0}", tl!("Opacity Mask"))
     } else {
-        let color = if d.doc.color_mode == vectorcraft_doc::ColorMode::Cmyk { "CMYK" } else { "RGB" };
+        let color = if d.doc.color_mode == splinewright_doc::ColorMode::Cmyk { "CMYK" } else { "RGB" };
         format!("{color}/{}", if outline { tl!("Outline") } else { tl!("Preview") })
     };
     format!("{}{} @ {} ({mode})", d.title(), if d.is_dirty() { "*" } else { "" }, zoom_label(zoom).replace('%', " %"))
 }
 
 /// Document tab strip: "Name* @ 66.67% (RGB/Preview)".
-pub fn doc_tabs(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn doc_tabs(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let (strip, _) = ui.allocate_exact_size(vec2(ui.available_width(), 35.0), Sense::hover());
     ui.painter().rect_filled(strip, 0.0, t.tab_strip);
@@ -416,7 +416,7 @@ pub fn doc_tabs(app: &mut VectorcraftApp, ui: &mut Ui) {
     }
 }
 
-pub fn status_bar(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn status_bar(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     egui::Panel::bottom("status_bar")
         .exact_size(24.0)
@@ -476,7 +476,7 @@ pub fn status_bar(app: &mut VectorcraftApp, ui: &mut Ui) {
                     app.status(e);
                 }
                 ui.separator();
-                let tool = vectorcraft_tools::tool_info(app.session.tool_id())
+                let tool = splinewright_tools::tool_info(app.session.tool_id())
                     .map(|t| {
                         // The catalog keys carry the full label ("Selection Tool"); only English drops the suffix.
                         let shown = tl!(t.label);
@@ -674,7 +674,7 @@ fn hint_for(tool: &str) -> Option<&'static [(&'static str, bool)]> {
 /// can insist a complete language covers them.
 pub fn hint_strings() -> Vec<&'static str> {
     let mut v = Vec::new();
-    for tool in vectorcraft_tools::catalog::all_tools() {
+    for tool in splinewright_tools::catalog::all_tools() {
         for &(text, bold) in hint_for(tool.id).unwrap_or(&[]) {
             let text = if bold { text.rsplit_once('+').map_or(text, |(_, k)| k) } else { text };
             if !text.is_empty() && !text.chars().all(|c| c.is_ascii_digit()) && !v.contains(&text) {
@@ -717,7 +717,7 @@ fn hint_segments(tool: &str) -> Vec<(Cow<'static, str>, bool)> {
         .collect()
 }
 
-pub fn hint_bar(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn hint_bar(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     egui::Panel::bottom("hint_bar")
         .exact_size(28.0)
@@ -741,12 +741,12 @@ pub fn hint_bar(app: &mut VectorcraftApp, ui: &mut Ui) {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use vectorcraft_engine::Session;
+    use splinewright_engine::Session;
 
     #[test]
     fn hints_name_keys_as_the_menus_do() {
         let text = |tool: &str| super::hint_segments(tool).into_iter().map(|(s, _)| s).collect::<String>();
-        for tool in vectorcraft_tools::catalog::all_tools().map(|t| t.id) {
+        for tool in splinewright_tools::catalog::all_tools().map(|t| t.id) {
             let hint = text(tool);
             assert!(!hint.contains("Option"), "{tool}: {hint}");
             assert!(cfg!(target_os = "macos") || !hint.contains("Cmd"), "{tool}: {hint}");
@@ -766,7 +766,7 @@ mod tests {
 
     /// One headless frame of the status bar; returns the artboard navigator's buttons, left to
     /// right: first, previous, next, last.
-    fn navigator(app: &mut crate::VectorcraftApp, ctx: &egui::Context, events: Vec<egui::Event>) -> Vec<egui::Rect> {
+    fn navigator(app: &mut crate::SplinewrightApp, ctx: &egui::Context, events: Vec<egui::Event>) -> Vec<egui::Rect> {
         let screen = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1200.0, 300.0));
         let mut out = ctx.run_ui(egui::RawInput { screen_rect: Some(screen), events, ..Default::default() }, |ui| super::status_bar(app, ui));
         out.textures_delta.clear();
@@ -779,8 +779,8 @@ mod tests {
 
     #[test]
     fn the_artboard_navigator_goes_to_artboards_and_fitting_shows_the_current_one() {
-        use vectorcraft_geom::Point;
-        let mut app = crate::VectorcraftApp::new(Session::new(), Default::default());
+        use splinewright_geom::Point;
+        let mut app = crate::SplinewrightApp::new(Session::new(), Default::default());
         // Three 200 × 100 artboards in a row, centred at x = 100, 320 and 540.
         app.run("file.new", json!({"width": 200, "height": 100})).unwrap();
         app.run("artboard.new", json!({})).unwrap();
@@ -789,7 +789,7 @@ mod tests {
         let ctx = egui::Context::default();
         let buttons = navigator(&mut app, &ctx, vec![]);
         assert_eq!(buttons.len(), 4);
-        let click = |app: &mut crate::VectorcraftApp, r: egui::Rect| {
+        let click = |app: &mut crate::SplinewrightApp, r: egui::Rect| {
             let b = |pressed| egui::Event::PointerButton {
                 pos: r.center(),
                 button: egui::PointerButton::Primary,
@@ -800,7 +800,7 @@ mod tests {
             navigator(app, &ctx, vec![b(true)]);
             navigator(app, &ctx, vec![b(false)]);
         };
-        let at = |app: &crate::VectorcraftApp| (app.view().unwrap().artboard, app.view().unwrap().center);
+        let at = |app: &crate::SplinewrightApp| (app.view().unwrap().artboard, app.view().unwrap().center);
         click(&mut app, buttons[2]);
         assert_eq!(at(&app), (1, Point::new(320.0, 50.0)), "next");
         click(&mut app, buttons[3]);

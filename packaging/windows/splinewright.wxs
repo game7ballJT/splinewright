@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Splinewright MSI (WiX Toolset v5: `dotnet tool install -g wix`). Built by package.ps1:
+
+    wix build splinewright.wxs -arch x64 -d Version=1.2.3 -d BinDir=... -d IconPath=... -o out.msi
+
+  Per-machine install into Program Files, a Start Menu shortcut and an App Paths entry (so
+  `splinewright` starts from the Run dialog), plus splinewright-cli.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+      Name="Splinewright"
+      Manufacturer="Jon McGee"
+      Version="$(var.Version)"
+      UpgradeCode="601C6437-08AE-4645-ADCC-27F036C2EA2F"
+      Scope="perMachine"
+      Compressed="yes"
+      Language="1033">
+    <SummaryInformation Description="Splinewright vector illustration app" Manufacturer="Jon McGee" />
+    <!-- Same-version upgrades let successive pre-releases of one X.Y.Z replace each other
+         (MSI versions are numeric, so 1.2.3-rc.1 and 1.2.3-rc.2 are both 1.2.3). -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+        DowngradeErrorMessage="A newer version of Splinewright is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="SplinewrightIcon.ico" SourceFile="$(var.IconPath)" />
+    <Property Id="ARPPRODUCTICON" Value="SplinewrightIcon.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://www.jonmcgee.online/apps/splinewright/" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://www.jonmcgee.online/apps/splinewright/" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/game7ballJT/splinewright/issues" />
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="Splinewright" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <Feature Id="Main" Title="Splinewright" Level="1">
+      <ComponentGroupRef Id="SplinewrightFiles" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="SplinewrightFiles" Directory="INSTALLFOLDER">
+      <Component Id="SplinewrightApp" Guid="0E8C6C5E-DE4A-4E1D-9DB0-44E8E38C2103">
+        <File Id="SplinewrightExe" Source="$(var.BinDir)\splinewright.exe" KeyPath="yes">
+          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Splinewright"
+              Description="Splinewright vector illustration app" WorkingDirectory="INSTALLFOLDER" Advertise="yes"
+              Icon="SplinewrightIcon.ico" IconIndex="0" />
+        </File>
+
+        <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\splinewright.exe" Value="[#SplinewrightExe]" Type="string" />
+      </Component>
+
+      <Component Id="SplinewrightCli">
+        <File Id="SplinewrightCliExe" Source="$(var.BinDir)\splinewright-cli.exe" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

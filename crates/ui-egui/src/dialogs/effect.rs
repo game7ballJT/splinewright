@@ -9,13 +9,13 @@
 
 use serde_json::{Map, Value, json};
 
-use vectorcraft_color::Color;
+use splinewright_color::Color;
 
 use super::{DialogSpec, form};
 use crate::panels::c32;
 use crate::state::Dialog;
 use crate::theme::Tokens;
-use crate::{VectorcraftApp, widgets};
+use crate::{SplinewrightApp, widgets};
 
 pub(super) const SPEC: DialogSpec = DialogSpec { heading: |d| heading_label(d), body, confirm, preview: true, ..DialogSpec::FORM };
 
@@ -23,7 +23,7 @@ pub(super) const SPEC: DialogSpec = DialogSpec { heading: |d| heading_label(d), 
 /// without its trailing ellipsis. A plug-in effect's name is shown as it is.
 fn heading_label(d: &Dialog) -> String {
     let label = d.str("__label");
-    if vectorcraft_plugins::effect::plugin_id(&d.str("__effect")).is_some() {
+    if splinewright_plugins::effect::plugin_id(&d.str("__effect")).is_some() {
         return label;
     }
     let dotted = format!("{label}…");
@@ -53,9 +53,9 @@ pub(super) const EXISTS_SPEC: DialogSpec = DialogSpec {
 /// `effect.dialog {effect, index?, item?}`: edit applied effect `index` of `item` (null: the
 /// object's effects; omitted: the active item's, else the object's) prefilled with its values,
 /// or add `effect`, first asking when that list already has it.
-pub fn open(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
+pub fn open(app: &mut SplinewrightApp, p: &Value) -> Result<Value, String> {
     let id = p.get("effect").and_then(Value::as_str).unwrap_or_default();
-    let info = vectorcraft_effects::effect_info(id).ok_or_else(|| format!("unknown effect `{id}`"))?;
+    let info = splinewright_effects::effect_info(id).ok_or_else(|| format!("unknown effect `{id}`"))?;
     // The list the effect goes to: `item` as given, else the active item's (the object's without
     // one). A new effect keeps `item` unresolved, so `effect.apply` targets each object as usual.
     let target = p.get("item").cloned().unwrap_or_else(|| json!(app.session.appearance_item()));
@@ -92,28 +92,28 @@ pub fn open(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
 }
 
 /// The effects of the first selected object that `item` (an index or null) addresses.
-fn target_effects(app: &VectorcraftApp, item: &Value) -> Vec<vectorcraft_doc::Effect> {
+fn target_effects(app: &SplinewrightApp, item: &Value) -> Vec<splinewright_doc::Effect> {
     let Some(st) = app.session.active() else { return vec![] };
     let node = st.selection.objects.first().and_then(|id| st.doc.node(*id));
     node.and_then(|n| n.appearance.effects_at(item.as_u64().map(|i| i as usize))).cloned().unwrap_or_default()
 }
 
 /// An applied effect's values over its defaults.
-fn params_of(e: &vectorcraft_doc::Effect) -> Map<String, Value> {
-    match vectorcraft_effects::merged_params(&e.id, &e.params) {
+fn params_of(e: &splinewright_doc::Effect) -> Map<String, Value> {
+    match splinewright_effects::merged_params(&e.id, &e.params) {
         Value::Object(m) => m,
         _ => Map::new(),
     }
 }
 
 /// OK in [`EXISTS`]: the dialog editing the applied effect, or (`discard`) a fresh one.
-fn confirm_exists(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm_exists(app: &mut SplinewrightApp, d: &Dialog) -> Result<Value, String> {
     let mut fields = d.fields.clone();
     fields.remove("discard");
     let target = fields.remove("__target").unwrap_or(Value::Null);
     if d.bool("discard") {
         fields.remove("__index");
-        let defaults = vectorcraft_effects::default_params(&d.str("__effect"));
+        let defaults = splinewright_effects::default_params(&d.str("__effect"));
         fields.extend(defaults.and_then(|v| v.as_object().cloned()).unwrap_or_default());
     } else {
         let k = fields.get("__index").and_then(Value::as_u64).unwrap_or(0) as usize;
@@ -125,13 +125,13 @@ fn confirm_exists(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String>
     Ok(Value::Null)
 }
 
-fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
+fn body(app: &mut SplinewrightApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     let (id, relative) = (d.str("__effect"), d.bool("relative"));
     // Plug-in effects get fields from their parameter schema; colour adjustments their sliders.
-    let changed = match vectorcraft_plugins::effect::installed(&id) {
+    let changed = match splinewright_plugins::effect::installed(&id) {
         Some(plugin) => form::schema_fields(ui, d, &plugin.manifest().params),
-        None if vectorcraft_effects::is_adjustment(&id) => adjust_fields(ui, d),
-        None => form::param_fields(ui, d, &|k| vectorcraft_effects::is_length(&id, k, relative), &|_| None, app.session.general_unit()),
+        None if splinewright_effects::is_adjustment(&id) => adjust_fields(ui, d),
+        None => form::param_fields(ui, d, &|k| splinewright_effects::is_length(&id, k, relative), &|_| None, app.session.general_unit()),
     };
     ui.add_space(6.0);
     let mut pv = d.bool("preview");
@@ -249,7 +249,7 @@ fn curve_graph(ui: &mut egui::Ui, d: &mut Dialog) {
     /// How near (screen points) a press must be to take a point.
     const GRAB: f32 = 8.0;
     let t = Tokens::get(ui.ctx());
-    let mut pts = vectorcraft_effects::curve_points(d.fields.get("points"));
+    let mut pts = splinewright_effects::curve_points(d.fields.get("points"));
     let (rect, resp) = ui.allocate_exact_size(egui::vec2(SIZE, SIZE), egui::Sense::click_and_drag());
     let screen = |(x, y): (f32, f32)| egui::pos2(rect.left() + x * SIZE, rect.bottom() - y * SIZE);
     let unit = |p: egui::Pos2| (((p.x - rect.left()) / SIZE).clamp(0.0, 1.0), ((rect.bottom() - p.y) / SIZE).clamp(0.0, 1.0));
@@ -303,7 +303,7 @@ fn curve_graph(ui: &mut egui::Ui, d: &mut Dialog) {
         painter.line_segment([screen((0.0, f)), screen((1.0, f))], faint);
     }
     painter.line_segment([screen((0.0, 0.0)), screen((1.0, 1.0))], faint);
-    let curve: Vec<egui::Pos2> = (0..=64).map(|k| k as f32 / 64.0).map(|x| screen((x, vectorcraft_effects::curve_at(&pts, x)))).collect();
+    let curve: Vec<egui::Pos2> = (0..=64).map(|k| k as f32 / 64.0).map(|x| screen((x, splinewright_effects::curve_at(&pts, x)))).collect();
     painter.add(egui::Shape::line(curve, egui::Stroke::new(1.5, t.text)));
     for (i, q) in pts.iter().enumerate() {
         let fill = if Some(i) == grabbed { t.accent } else { t.panel };
@@ -331,7 +331,7 @@ fn command(d: &Dialog) -> (&'static str, Value) {
     ("effect.apply", p)
 }
 
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut SplinewrightApp, d: &Dialog) -> Result<Value, String> {
     let (cmd, p) = command(d);
     let r = if app.session.in_interaction() {
         // Live preview already applied: keep it (the interaction commits as one undo step).

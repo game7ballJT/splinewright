@@ -2,8 +2,8 @@
 //! Character/Paragraph attributes.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeKind;
-use vectorcraft_geom::{Rect, Vec2};
+use splinewright_doc::NodeKind;
+use splinewright_geom::{Rect, Vec2};
 
 use super::*;
 use crate::{Clipboard, EngineError};
@@ -85,7 +85,7 @@ pub(crate) fn artboard_art(s: &Session, i: usize, art: bool) -> Result<Vec<NodeI
 }
 
 /// How far a copy of `rect` moves to sit right of the last artboard (Duplicate Artboards, Paste).
-pub(crate) fn beside_artboards(d: &vectorcraft_doc::Document, rect: Rect) -> Vec2 {
+pub(crate) fn beside_artboards(d: &splinewright_doc::Document, rect: Rect) -> Vec2 {
     let right = d.artboards.iter().map(|a| a.rect.x1).fold(f64::MIN, f64::max);
     Vec2::new(right + 20.0 - rect.x0, 0.0)
 }
@@ -140,7 +140,7 @@ pub(crate) fn artboard_copy(s: &mut Session, p: &Value, cut: bool) -> Result<Val
 /// above its original) moved along → (the copy's index, the art's copies). Duplicate Artboards and
 /// Alt-drag.
 pub(crate) fn copy_artboard(
-    d: &mut vectorcraft_doc::Document,
+    d: &mut splinewright_doc::Document,
     i: usize,
     dv: Vec2,
     art: &[NodeId],
@@ -164,7 +164,7 @@ pub(crate) fn copy_artboard(
 
 /// Add a copy of artboard `src` at `rect`, with an id of its own and its name, or `<name> copy`
 /// (`<name> copy 2`…) when that is taken → its index.
-pub(crate) fn push_artboard_copy(d: &mut vectorcraft_doc::Document, src: &vectorcraft_doc::Artboard, rect: Rect) -> usize {
+pub(crate) fn push_artboard_copy(d: &mut splinewright_doc::Document, src: &splinewright_doc::Artboard, rect: Rect) -> usize {
     let mut a = src.clone();
     a.id = d.artboards.iter().map(|a| a.id).max().unwrap_or(0).saturating_add(1);
     let taken = |name: &str| d.artboards.iter().any(|a| a.name == name);
@@ -228,8 +228,8 @@ fn set_format(s: &mut Session, p: &Value) -> Result<Value> {
     let mojikumi = match p.get("mojikumi") {
         None => None,
         Some(v) => Some(match v.as_str() {
-            Some("none") => vectorcraft_doc::Mojikumi::None,
-            Some("lineEndHalf") => vectorcraft_doc::Mojikumi::LineEndHalf,
+            Some("none") => splinewright_doc::Mojikumi::None,
+            Some("lineEndHalf") => splinewright_doc::Mojikumi::LineEndHalf,
             _ => return Err(bad(C, "`mojikumi` must be \"none\" or \"lineEndHalf\"")),
         }),
     };
@@ -237,25 +237,25 @@ fn set_format(s: &mut Session, p: &Value) -> Result<Value> {
         None => None,
         Some(v) => Some(match v.as_str() {
             Some("auto") => None,
-            Some("leftToRight") => Some(vectorcraft_doc::ParaDirection::LeftToRight),
-            Some("rightToLeft") => Some(vectorcraft_doc::ParaDirection::RightToLeft),
+            Some("leftToRight") => Some(splinewright_doc::ParaDirection::LeftToRight),
+            Some("rightToLeft") => Some(splinewright_doc::ParaDirection::RightToLeft),
             _ => return Err(bad(C, "`direction` must be \"auto\", \"leftToRight\" or \"rightToLeft\"")),
         }),
     };
     let leading_model = match p.get("leadingModel") {
         None => None,
         Some(v) => Some(match v.as_str() {
-            Some("romanBaseline") => vectorcraft_doc::LeadingModel::RomanBaseline,
-            Some("emBoxTop") => vectorcraft_doc::LeadingModel::EmBoxTop,
+            Some("romanBaseline") => splinewright_doc::LeadingModel::RomanBaseline,
+            Some("emBoxTop") => splinewright_doc::LeadingModel::EmBoxTop,
             _ => return Err(bad(C, "`leadingModel` must be \"romanBaseline\" or \"emBoxTop\"")),
         }),
     };
     let burasagari = match p.get("burasagari") {
         None => None,
         Some(v) => Some(match v.as_str() {
-            Some("none") => vectorcraft_doc::Burasagari::None,
-            Some("standard") => vectorcraft_doc::Burasagari::Standard,
-            Some("forced") => vectorcraft_doc::Burasagari::Forced,
+            Some("none") => splinewright_doc::Burasagari::None,
+            Some("standard") => splinewright_doc::Burasagari::Standard,
+            Some("forced") => splinewright_doc::Burasagari::Forced,
             _ => return Err(bad(C, "`burasagari` must be \"none\", \"standard\" or \"forced\"")),
         }),
     };

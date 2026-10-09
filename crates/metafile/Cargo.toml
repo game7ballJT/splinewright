@@ -1,19 +1,19 @@
 [package]
-name = "vectorcraft-metafile"
+name = "splinewright-metafile"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "VectorCraft Windows metafiles: hand-written EMF and WMF writers and readers"
+description = "Splinewright Windows metafiles: hand-written EMF and WMF writers and readers"
 
 [lints]
 workspace = true
 
 [dependencies]
-vectorcraft-geom = { workspace = true }
-vectorcraft-color = { workspace = true }
-vectorcraft-doc = { workspace = true }
-vectorcraft-effects = { workspace = true }
-vectorcraft-brush = { workspace = true }
-vectorcraft-text = { workspace = true }
+splinewright-geom = { workspace = true }
+splinewright-color = { workspace = true }
+splinewright-doc = { workspace = true }
+splinewright-effects = { workspace = true }
+splinewright-brush = { workspace = true }
+splinewright-text = { workspace = true }
 kurbo = { workspace = true }
 image = { workspace = true }

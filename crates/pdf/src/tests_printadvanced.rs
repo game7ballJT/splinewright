@@ -5,10 +5,10 @@ use std::sync::Arc;
 
 use hayro_syntax::Pdf;
 use serde_json::{Value, json};
-use vectorcraft_color::cms::{self, Cms, ColorSettings, DEVICE_CMYK, GENERIC_CMYK, Intent};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Appearance, Document, Node};
-use vectorcraft_geom::{Rect, shapes};
+use splinewright_color::cms::{self, Cms, ColorSettings, DEVICE_CMYK, GENERIC_CMYK, Intent};
+use splinewright_color::{Color, Paint};
+use splinewright_doc::{Appearance, Document, Node};
+use splinewright_geom::{Rect, shapes};
 
 use crate::*;
 

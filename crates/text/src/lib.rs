@@ -1,6 +1,6 @@
-//! VectorCraft text: font database, shaping, layout, glyph outlines.
+//! Splinewright text: font database, shaping, layout, glyph outlines.
 //!
-//! API contract used by `vectorcraft-render`, `vectorcraft-tools` and the UI:
+//! API contract used by `splinewright-render`, `splinewright-tools` and the UI:
 //! - [`FontDb::global`]: process-wide database preloaded with the bundled OFL fonts.
 //! - [`layout`]: lays out a [`TextObject`] into glyph outlines in *text space* (apply `t.xf` to
 //!   get document coordinates), plus line and caret information.
@@ -27,9 +27,9 @@ pub use features::OtFeatures;
 pub use fontdb::{FALLBACK_FAMILY, FontClass, FontDb, FontFace, FontMatch, FontTraits, style_weight, system_font_dirs};
 use kurbo::{Affine, BezPath, Point, Rect, Vec2};
 pub use layout::{layout, layout_with};
-pub use vectorcraft_doc::TextObject;
+pub use splinewright_doc::TextObject;
 
-pub use vectorcraft_doc::FirstBaseline;
+pub use splinewright_doc::FirstBaseline;
 
 /// Paragraph composer (Paragraph panel menu).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -425,7 +425,7 @@ pub fn caret_horizontal(layout: &TextLayout, byte: usize, right: bool) -> usize 
 
 /// Does paragraph `text` run right to left: its `direction`, else (None) from its first strong
 /// character (numbers and punctuation don't count)?
-pub fn paragraph_is_rtl(text: &str, direction: Option<vectorcraft_doc::ParaDirection>) -> bool {
+pub fn paragraph_is_rtl(text: &str, direction: Option<splinewright_doc::ParaDirection>) -> bool {
     layout::is_rtl(layout::para_bidi(text, direction).as_ref())
 }
 

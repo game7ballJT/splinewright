@@ -2,9 +2,9 @@
 //! and the links SVG export writes for objects with a URL.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{ImageMap, NodeKind};
-use vectorcraft_geom::{Affine, FillRule};
-use vectorcraft_render::{RenderOptions, Renderer};
+use splinewright_doc::{ImageMap, NodeKind};
+use splinewright_geom::{Affine, FillRule};
+use splinewright_render::{RenderOptions, Renderer};
 
 use super::*;
 
@@ -167,7 +167,7 @@ fn attributes_survive_a_native_round_trip() {
     let a = rect(&mut s, 10.0);
     run(&mut s, "attributes.set", json!({"showCenter": false, "imageMap": "polygon", "url": "https://example.com/x", "note": "keep"}));
     let doc = s.doc().unwrap().doc.clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let back = splinewright_format::load(&splinewright_format::save(&doc, false)).unwrap();
     assert_eq!(back.node(a).unwrap().attrs, doc.node(a).unwrap().attrs);
     assert!(back.node(a).unwrap().attrs.is_some());
 }
@@ -178,10 +178,10 @@ fn svg_export_links_objects_and_import_reads_the_links_back() {
     let a = rect(&mut s, 10.0);
     rect(&mut s, 50.0);
     run(&mut s, "attributes.set", json!({"ids": [a.0], "url": "https://example.com/?a=1&b=2"}));
-    let svg = vectorcraft_svg::export(&s.doc().unwrap().doc, &Default::default());
+    let svg = splinewright_svg::export(&s.doc().unwrap().doc, &Default::default());
     assert_eq!(svg.matches("<a ").count(), 1, "{svg}");
     assert!(svg.contains("xlink:href=\"https://example.com/?a=1&amp;b=2\""), "{svg}");
-    let back = vectorcraft_svg::import(&svg).unwrap();
+    let back = splinewright_svg::import(&svg).unwrap();
     let mut urls = vec![];
     back.walk(|n| {
         if let NodeKind::Path { .. } = n.kind {

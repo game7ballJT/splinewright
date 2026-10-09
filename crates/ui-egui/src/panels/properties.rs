@@ -2,14 +2,14 @@
 
 use egui::Ui;
 use serde_json::json;
-use vectorcraft_doc::{LiveShape, NodeKind, Unit};
+use splinewright_doc::{LiveShape, NodeKind, Unit};
 
 use super::{corner_radius_row, first_selected, pstate, set_pstate};
 use crate::theme::Tokens;
 use crate::widgets::{self, dim_label, divider, section_header};
-use crate::{VectorcraftApp, icons};
+use crate::{SplinewrightApp, icons};
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let Some(st) = app.session.active() else {
         dim_label(ui, tl!("No document open"));
@@ -132,7 +132,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
 
 /// The one selected image: its file (or Embedded), colour mode and resolution, and the Links
 /// panel's actions for it.
-fn image_section(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn image_section(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let Some(i) = crate::place::selected_image_info(app) else { return };
     let (name, details) = crate::place::image_summary(i);
@@ -156,7 +156,7 @@ fn image_section(app: &mut VectorcraftApp, ui: &mut Ui) {
 
 /// The one selected Image Trace object: its preset (choosing another traces it again with that
 /// one), Expand and Release.
-fn trace_section(app: &mut VectorcraftApp, ui: &mut Ui, preset: &str) {
+fn trace_section(app: &mut SplinewrightApp, ui: &mut Ui, preset: &str) {
     section_header(ui, tl!("Image Trace"));
     ui.horizontal(|ui| {
         dim_label(ui, tl!("Preset:"));
@@ -174,7 +174,7 @@ fn trace_section(app: &mut VectorcraftApp, ui: &mut Ui, preset: &str) {
 
 /// Whether the selection uses more than one colour (`recolor.colors`), which offers the Recolor
 /// quick action; cached per document revision.
-fn multi_color(app: &mut VectorcraftApp, ctx: &egui::Context) -> bool {
+fn multi_color(app: &mut SplinewrightApp, ctx: &egui::Context) -> bool {
     let Some(st) = app.session.active() else { return false };
     let key = (st.uid, st.revision);
     match pstate::<Option<((u64, u64), bool)>>(ctx, "props-multi-color") {
@@ -188,7 +188,7 @@ fn multi_color(app: &mut VectorcraftApp, ctx: &egui::Context) -> bool {
     }
 }
 
-fn document_sections(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn document_sections(app: &mut SplinewrightApp, ui: &mut Ui) {
     let units = app.session.general_unit();
     section_header(ui, tl!("Document"));
     ui.horizontal(|ui| {
@@ -271,7 +271,7 @@ fn document_sections(app: &mut VectorcraftApp, ui: &mut Ui) {
     });
 }
 
-pub fn transform_section(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn transform_section(app: &mut SplinewrightApp, ui: &mut Ui) {
     if app.session.active().is_none() {
         return;
     }
@@ -335,8 +335,8 @@ pub fn transform_section(app: &mut VectorcraftApp, ui: &mut Ui) {
         && let NodeKind::Path { live: Some(live), .. } = &n.kind
     {
         match live {
-            vectorcraft_doc::LiveShape::Rectangle { .. } => corner_radius_row(app, ui, &n, "radius"),
-            vectorcraft_doc::LiveShape::Polygon { sides, .. } => {
+            splinewright_doc::LiveShape::Rectangle { .. } => corner_radius_row(app, ui, &n, "radius"),
+            splinewright_doc::LiveShape::Polygon { sides, .. } => {
                 ui.horizontal(|ui| {
                     dim_label(ui, tl!("Sides:"));
                     if let Some(s) = widgets::plain_field(ui, "sides", *sides as f64, "", 0, 60.0) {
@@ -350,7 +350,7 @@ pub fn transform_section(app: &mut VectorcraftApp, ui: &mut Ui) {
     }
 }
 
-fn appearance_section(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn appearance_section(app: &mut SplinewrightApp, ui: &mut Ui) {
     let Some(n) = first_selected(app) else { return };
     section_header(ui, tl!("Appearance"));
     fill_stroke_rows(app, ui);
@@ -377,7 +377,7 @@ fn appearance_section(app: &mut VectorcraftApp, ui: &mut Ui) {
 /// The Fill and Stroke rows, with the Control bar's widgets: the chips (a click opens the
 /// swatches, Shift-click the mixer), the Stroke link that opens the Stroke panel as a popover
 /// and the weight spinner with its presets. With nothing selected they set up the next object.
-fn fill_stroke_rows(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn fill_stroke_rows(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let weight = super::stroke::shown_weight(app, super::current_stroke(app).as_ref(), &super::stroke_mixed(app, ui.ctx()));
     ui.horizontal(|ui| {
@@ -392,7 +392,7 @@ fn fill_stroke_rows(app: &mut VectorcraftApp, ui: &mut Ui) {
     });
 }
 
-pub fn type_sections(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn type_sections(app: &mut SplinewrightApp, ui: &mut Ui) {
     let Some(n) = first_selected(app) else {
         dim_label(ui, tl!("Select a text object"));
         return;

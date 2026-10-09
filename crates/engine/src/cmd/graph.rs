@@ -8,9 +8,9 @@
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Appearance, CharStyle, Document, GraphKind, GraphSpec, Justify, Node, NodeId, NodeKind, TextObject};
-use vectorcraft_geom::{Affine, BezPath, PathData, Point, Rect, shapes};
+use splinewright_color::{Color, Paint};
+use splinewright_doc::{Appearance, CharStyle, Document, GraphKind, GraphSpec, Justify, Node, NodeId, NodeKind, TextObject};
+use splinewright_geom::{Affine, BezPath, PathData, Point, Rect, shapes};
 
 use super::typecmd::refresh_bounds;
 use super::*;
@@ -227,8 +227,8 @@ fn generate(d: &mut Document, g: &GraphSpec) -> Vec<Arc<Node>> {
                     let sweep = v / total * std::f64::consts::TAU;
                     let mut bp = BezPath::new();
                     bp.move_to(centre);
-                    let arc = vectorcraft_geom::kurbo::Arc::new(centre, (rad, rad), a0, sweep, 0.0);
-                    bp.line_to(centre + vectorcraft_geom::Vec2::new(a0.cos(), a0.sin()) * rad);
+                    let arc = splinewright_geom::kurbo::Arc::new(centre, (rad, rad), a0, sweep, 0.0);
+                    bp.line_to(centre + splinewright_geom::Vec2::new(a0.cos(), a0.sin()) * rad);
                     arc.to_cubic_beziers(0.1, |p1, p2, p| bp.curve_to(p1, p2, p));
                     bp.close_path();
                     let n = b.path(PathData::from_bezpath(&bp), series_paint(s), Paint::solid(Color::WHITE), 0.5);
@@ -248,7 +248,7 @@ fn generate(d: &mut Document, g: &GraphSpec) -> Vec<Arc<Node>> {
             let (lo, hi, step) = nice_axis(g.axis_min.unwrap_or(0.0), hi, g.ticks);
             let at = |c: usize, v: f64| {
                 let a = -std::f64::consts::FRAC_PI_2 + std::f64::consts::TAU * c as f64 / ncat as f64;
-                centre + vectorcraft_geom::Vec2::new(a.cos(), a.sin()) * (rad * ((v - lo) / (hi - lo)).clamp(0.0, 1.0))
+                centre + splinewright_geom::Vec2::new(a.cos(), a.sin()) * (rad * ((v - lo) / (hi - lo)).clamp(0.0, 1.0))
             };
             let mut axes = vec![];
             for c in 0..ncat {
@@ -592,7 +592,7 @@ fn set_type(s: &mut Session, p: &Value) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use vectorcraft_doc::NodeKind;
+    use splinewright_doc::NodeKind;
 
     use crate::{NodeId, Session};
 
@@ -605,7 +605,7 @@ mod tests {
         )
     }
 
-    fn group<'a>(n: &'a vectorcraft_doc::Node, name: &str) -> &'a vectorcraft_doc::Node {
+    fn group<'a>(n: &'a splinewright_doc::Node, name: &str) -> &'a splinewright_doc::Node {
         n.children().unwrap().iter().find(|c| c.name.as_deref() == Some(name)).unwrap_or_else(|| panic!("no {name}"))
     }
 
@@ -651,7 +651,7 @@ mod tests {
         assert!((s.doc().unwrap().doc.node(id).unwrap().geometric_bounds().unwrap().x0 - x0).abs() < 1.0);
         // Type change keeps the data; undo restores the columns.
         s.execute("graph.setType", &json!({"type": "pie"})).unwrap();
-        assert_eq!(s.doc().unwrap().doc.node(id).unwrap().graph.as_ref().unwrap().kind, vectorcraft_doc::GraphKind::Pie);
+        assert_eq!(s.doc().unwrap().doc.node(id).unwrap().graph.as_ref().unwrap().kind, splinewright_doc::GraphKind::Pie);
         s.execute("edit.undo", &json!({})).unwrap();
         assert_eq!(s.execute("graph.setType", &json!({})).unwrap()["type"], json!("column"));
         // Selecting a bar inside still targets the graph.

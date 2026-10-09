@@ -13,9 +13,9 @@
 //! scaling its type: the text reflows at its size.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::hit::{hit_test, marquee, objects_at};
-use vectorcraft_doc::{NodeId, OrientedBox};
-use vectorcraft_geom::{Affine, Point, Rect, Vec2};
+use splinewright_doc::hit::{hit_test, marquee, objects_at};
+use splinewright_doc::{NodeId, OrientedBox};
+use splinewright_geom::{Affine, Point, Rect, Vec2};
 
 use crate::bbox::{Handle, hit_handle, in_rotate_zone, move_delta, rotate_for_drag, scale_for_drag};
 use crate::corners::{self, CornerDrag, over_widget};
@@ -177,10 +177,10 @@ impl Tool for SelectionTool {
                 }
                 if let Some(h) = hit_test(cx.doc, p, cx.hit_options()) {
                     let top = h.top_object(cx.isolation);
-                    if cx.double_click_isolate && cx.doc.node(top).is_some_and(|n| matches!(n.kind, vectorcraft_doc::NodeKind::Group { .. })) {
+                    if cx.double_click_isolate && cx.doc.node(top).is_some_and(|n| matches!(n.kind, splinewright_doc::NodeKind::Group { .. })) {
                         return vec![Action::Exec("object.isolate".into(), json!({ "id": top.0 }))];
                     }
-                    if cx.doc.node(top).is_some_and(|n| matches!(n.kind, vectorcraft_doc::NodeKind::Text(_))) {
+                    if cx.doc.node(top).is_some_and(|n| matches!(n.kind, splinewright_doc::NodeKind::Text(_))) {
                         return vec![Action::SwitchTool("type".into())];
                     }
                 } else if cx.isolation.is_some() {
@@ -422,8 +422,8 @@ fn object_behind(cx: &ToolContext, p: Point) -> Option<NodeId> {
 
 /// Is `n` area type (text in a frame) whose frame the tools reshape? Type in perspective isn't:
 /// it transforms whole.
-pub(crate) fn is_area_type(n: &vectorcraft_doc::Node) -> bool {
-    n.perspective.is_none() && matches!(&n.kind, vectorcraft_doc::NodeKind::Text(t) if matches!(t.kind, vectorcraft_doc::TextKind::Area { .. }))
+pub(crate) fn is_area_type(n: &splinewright_doc::Node) -> bool {
+    n.perspective.is_none() && matches!(&n.kind, splinewright_doc::NodeKind::Text(t) if matches!(t.kind, splinewright_doc::TextKind::Area { .. }))
 }
 
 /// The resize cursor for handle `h` of a box turned by `angle` (counter-clockwise degrees): the
@@ -443,7 +443,7 @@ fn handle_cursor(h: Handle, angle: f64) -> Cursor {
 mod tests {
     use super::*;
     use crate::testutil::*;
-    use vectorcraft_doc::Selection;
+    use splinewright_doc::Selection;
 
     fn ev(kind: PointerKind, x: f64, y: f64) -> PointerEvent {
         PointerEvent::new(kind, x, y)
@@ -465,7 +465,7 @@ mod tests {
     #[test]
     fn a_press_on_a_ruler_guide_picks_it_over_the_art() {
         let (mut d, _) = doc_with_rect();
-        d.guides.push(vectorcraft_doc::Guide::new(false, 150.0));
+        d.guides.push(splinewright_doc::Guide::new(false, 150.0));
         let s = Selection::default();
         let p = paint();
         let cx = cx(&d, &s, &p);
@@ -589,12 +589,12 @@ mod tests {
 
     #[test]
     fn handle_drag_snaps_to_the_other_objects_with_smart_guides() {
-        use vectorcraft_doc::{Appearance, Node};
+        use splinewright_doc::{Appearance, Node};
         let (mut d, _) = doc_with_rect();
         let l = d.layers[0].id;
         let id = d.alloc_id();
         let r = Rect::new(250.0, 100.0, 300.0, 150.0);
-        d.insert(Some(l), 1, Node::path(id, vectorcraft_geom::shapes::rectangle(r), Appearance::default_art())).unwrap();
+        d.insert(Some(l), 1, Node::path(id, splinewright_geom::shapes::rectangle(r), Appearance::default_art())).unwrap();
         let mut s = Selection::default();
         s.add(id);
         let p = paint();
@@ -623,11 +623,11 @@ mod tests {
     /// far a dragged handle is pulled.
     #[test]
     fn smart_guide_display_preferences_drive_the_readouts_and_the_pull() {
-        use vectorcraft_doc::{Appearance, Node};
+        use splinewright_doc::{Appearance, Node};
         let (mut d, _) = doc_with_rect();
         let l = d.layers[0].id;
         let id = d.alloc_id();
-        d.insert(Some(l), 1, Node::path(id, vectorcraft_geom::shapes::rectangle(Rect::new(250.0, 100.0, 300.0, 150.0)), Appearance::default_art()))
+        d.insert(Some(l), 1, Node::path(id, splinewright_geom::shapes::rectangle(Rect::new(250.0, 100.0, 300.0, 150.0)), Appearance::default_art()))
             .unwrap();
         let mut s = Selection::default();
         s.add(id);
@@ -668,7 +668,7 @@ mod tests {
 
     #[test]
     fn handle_drag_of_a_turned_box_snaps_on_the_page() {
-        use vectorcraft_doc::{Appearance, Node};
+        use splinewright_doc::{Appearance, Node};
         let matrix = |a: &[Action]| {
             let Action::Preview(_, v) = &a[0] else { panic!("{a:?}") };
             let m: Vec<f64> = v["matrix"].as_array().unwrap().iter().map(|x| x.as_f64().unwrap()).collect();
@@ -680,7 +680,7 @@ mod tests {
             let l = d.layers[0].id;
             let id = d.alloc_id();
             let r = Rect::new(250.0, 100.0, 300.0, 150.0);
-            d.insert(Some(l), 1, Node::path(id, vectorcraft_geom::shapes::rectangle(r), Appearance::default_art())).unwrap();
+            d.insert(Some(l), 1, Node::path(id, splinewright_geom::shapes::rectangle(r), Appearance::default_art())).unwrap();
             let c = Point::new(275.0, 125.0);
             d.node_mut(id)
                 .unwrap()

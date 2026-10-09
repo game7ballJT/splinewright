@@ -5,10 +5,10 @@ use std::sync::Arc;
 
 use egui::{Pos2, Shape, vec2};
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeKind;
-use vectorcraft_engine::Session;
+use splinewright_doc::NodeKind;
+use splinewright_engine::Session;
 
-use crate::VectorcraftApp;
+use crate::SplinewrightApp;
 use crate::canvas::Xf;
 use crate::place::{DropAt, DropTarget};
 
@@ -16,12 +16,12 @@ use crate::place::{DropAt, DropTarget};
 fn png(w: u32, h: u32, ppi: f64) -> Vec<u8> {
     let mut out = vec![];
     image::RgbaImage::from_pixel(w, h, image::Rgba([255, 0, 0, 255])).write_to(&mut std::io::Cursor::new(&mut out), image::ImageFormat::Png).unwrap();
-    vectorcraft_engine::cmd::fileio::ppi::with_png_resolution(&out, (ppi, ppi))
+    splinewright_engine::cmd::fileio::ppi::with_png_resolution(&out, (ppi, ppi))
 }
 
 /// `bytes` written to a fresh temporary file named `name` → its path.
 fn temp_file(name: &str, bytes: &[u8]) -> String {
-    let dir = std::env::temp_dir().join(format!("vectorcraft-ui-place-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("splinewright-ui-place-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join(name);
     std::fs::write(&path, bytes).unwrap();
@@ -29,15 +29,15 @@ fn temp_file(name: &str, bytes: &[u8]) -> String {
 }
 
 /// An app reading files from disk, with a 400×300 document.
-fn app() -> VectorcraftApp {
+fn app() -> SplinewrightApp {
     let services = crate::Services { read: Some(Box::new(|p: &str| std::fs::read(p).map_err(|e| e.to_string()))), ..Default::default() };
-    let mut app = VectorcraftApp::new(Session::new(), services);
+    let mut app = SplinewrightApp::new(Session::new(), services);
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app
 }
 
 /// File → Place… with `path` chosen in the file picker.
-fn place_picked(app: &mut VectorcraftApp, path: &str) {
+fn place_picked(app: &mut SplinewrightApp, path: &str) {
     let path = path.to_string();
     app.services.pick_open = Some(Box::new(move |_: &crate::FilePick| Some(path.clone())));
     app.run("file.place", json!({})).unwrap();
@@ -56,7 +56,7 @@ impl egui::DroppedFile for Dropped {
 }
 
 /// One headless frame of the whole window (800×600) with `events` and `dropped` files.
-fn frame(app: &mut VectorcraftApp, ctx: &egui::Context, mut events: Vec<egui::Event>, dropped: &[&str], shift: bool) {
+fn frame(app: &mut SplinewrightApp, ctx: &egui::Context, mut events: Vec<egui::Event>, dropped: &[&str], shift: bool) {
     events.push(egui::Event::ModifiersChanged(egui::Modifiers { shift, ..Default::default() }));
     let raw = egui::RawInput {
         screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))),
@@ -71,7 +71,7 @@ fn frame(app: &mut VectorcraftApp, ctx: &egui::Context, mut events: Vec<egui::Ev
     out.textures_delta.clear();
 }
 
-fn selected_image(app: &VectorcraftApp) -> vectorcraft_doc::Node {
+fn selected_image(app: &SplinewrightApp) -> splinewright_doc::Node {
     let st = app.session.active().unwrap();
     let n = st.doc.node(st.selection.objects[0]).unwrap().clone();
     assert!(matches!(n.kind, NodeKind::Image(_)), "{:?}", n.kind);
@@ -82,7 +82,7 @@ fn selected_image(app: &VectorcraftApp) -> vectorcraft_doc::Node {
 const SVG: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" width="50" height="40"><rect width="20" height="10"/></svg>"#;
 
 /// Two frames: fonts, then the canvas lays out → the canvas.
-fn laid_out(app: &mut VectorcraftApp, ctx: &egui::Context) -> egui::Rect {
+fn laid_out(app: &mut SplinewrightApp, ctx: &egui::Context) -> egui::Rect {
     frame(app, ctx, vec![], &[], false);
     frame(app, ctx, vec![], &[], false);
     app.canvas_rect.expect("the canvas is laid out")
@@ -98,7 +98,7 @@ fn a_drop_with_a_position_places_on_the_canvas_and_opens_off_it() {
     let pos = rect.center() + vec2(60.0, -40.0);
     let want = Xf::new(rect, app.view().unwrap()).to_doc(pos);
     let uid = app.session.active().unwrap().uid;
-    for name in ["a.png", "a.svg", "a.ai", "a.vectorcraft"] {
+    for name in ["a.png", "a.svg", "a.ai", "a.splinewright"] {
         assert_eq!(app.drop_target(name, Some(pos), true), DropTarget::Place(DropAt { doc: uid, at: want, embed: true }), "{name}");
         assert_eq!(app.drop_target(name, Some(Pos2::new(300.0, rect.top() - 10.0)), false), DropTarget::Open, "{name} on the tab bar");
     }
@@ -113,7 +113,7 @@ fn a_drop_without_a_position_opens_documents_and_places_pictures() {
     laid_out(&mut app, &ctx);
     let center = app.view().unwrap().center;
     let uid = app.session.active().unwrap().uid;
-    for name in ["a.svg", "a.svgz", "a.pdf", "a.ai", "a.eps", "a.vectorcraft", "a.drawcraft", "a.vctemplate", "a.dxf", "a.emf"] {
+    for name in ["a.svg", "a.svgz", "a.pdf", "a.ai", "a.eps", "a.splinewright", "a.drawcraft", "a.vctemplate", "a.dxf", "a.emf"] {
         assert_eq!(app.drop_target(name, None, false), DropTarget::Open, "{name}");
     }
     for name in ["a.png", "a.jpg", "a.tiff", "a.webp", "a.txt"] {
@@ -159,7 +159,7 @@ fn a_dropped_document_opens_as_a_tab_of_its_own() {
 
 #[test]
 fn files_dropped_with_no_document_open_open_and_are_recent() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = SplinewrightApp::new(Session::new(), Default::default());
     let ctx = egui::Context::default();
     let path = temp_file("open-me.png", &png(8, 8, 72.0));
     frame(&mut app, &ctx, vec![], &[], false);
@@ -169,7 +169,7 @@ fn files_dropped_with_no_document_open_open_and_are_recent() {
 }
 
 /// The images in open document `i`.
-fn images(app: &VectorcraftApp, i: usize) -> usize {
+fn images(app: &SplinewrightApp, i: usize) -> usize {
     let mut n = 0;
     app.session.documents()[i].doc.walk(|node| n += usize::from(matches!(node.kind, NodeKind::Image(_))));
     n
@@ -187,7 +187,7 @@ fn a_file_read_after_another_document_became_active_lands_where_it_was_dropped()
     frame(&mut app, &ctx, vec![], &[], false);
     let rect = app.canvas_rect.expect("the canvas is laid out");
     let pos = rect.center() + vec2(60.0, -40.0);
-    let drop_on_active = |app: &VectorcraftApp| match app.drop_target("late.png", Some(pos), false) {
+    let drop_on_active = |app: &SplinewrightApp| match app.drop_target("late.png", Some(pos), false) {
         DropTarget::Place(d) => d,
         t => panic!("{t:?}"),
     };
@@ -258,7 +258,7 @@ fn the_place_dialog_lists_the_files_and_loads_the_cursor_with_several() {
 #[test]
 fn one_file_places_centred_in_the_view_and_replace_swaps_the_selection() {
     let mut app = app();
-    app.view_mut().unwrap().center = vectorcraft_geom::Point::new(120.0, 80.0);
+    app.view_mut().unwrap().center = splinewright_geom::Point::new(120.0, 80.0);
     place_picked(&mut app, &temp_file("one.png", &png(300, 150, 300.0)));
     let d = app.ui.dialog.as_ref().expect("the Place dialog");
     assert_eq!(d.kind, crate::dialogs::place::KIND);
@@ -271,7 +271,7 @@ fn one_file_places_centred_in_the_view_and_replace_swaps_the_selection() {
     crate::dialogs::confirm(&mut app).unwrap();
     assert!(app.ui.dialog.is_none());
     let first = selected_image(&app);
-    assert_eq!(first.geometric_bounds().unwrap().center(), vectorcraft_geom::Point::new(120.0, 80.0), "centred in the view");
+    assert_eq!(first.geometric_bounds().unwrap().center(), splinewright_geom::Point::new(120.0, 80.0), "centred in the view");
     // With one object selected, Replace applies.
     place_picked(&mut app, &temp_file("two.png", &png(40, 40, 144.0)));
     assert!(app.ui.dialog.as_ref().unwrap().bool("__replace"));
@@ -300,7 +300,7 @@ fn the_control_bar_shows_the_image_file_link_colour_mode_and_ppi() {
 }
 
 /// Click the Control bar's `label`.
-fn click_label(app: &mut VectorcraftApp, ctx: &egui::Context, label: &str) {
+fn click_label(app: &mut SplinewrightApp, ctx: &egui::Context, label: &str) {
     use crate::tests_removeanchors::{at, click_control, control_frame};
     let p = at(&control_frame(app, ctx, vec![]), label);
     click_control(app, ctx, p);
@@ -311,7 +311,7 @@ fn the_control_bar_and_properties_trace_a_selected_image() {
     use crate::panels::image_trace::{TRACE_BUTTON_W, selected_preset};
     use crate::tests_removeanchors::{at, click_control, control_frame, has, properties_frame};
     let mut app = app();
-    let data = vectorcraft_format::base64_encode(&png(30, 30, 72.0));
+    let data = splinewright_format::base64_encode(&png(30, 30, 72.0));
     app.run("file.place", json!({"name": "red.png", "dataBase64": data, "link": false})).unwrap();
     let ctx = egui::Context::default();
     crate::theme::install_fonts(&ctx);
@@ -350,7 +350,7 @@ fn the_control_bar_and_properties_trace_a_selected_image() {
 #[test]
 fn the_control_bars_mask_clips_the_image_and_selects_the_clipping_path() {
     let mut app = app();
-    let data = vectorcraft_format::base64_encode(&png(30, 30, 72.0));
+    let data = splinewright_format::base64_encode(&png(30, 30, 72.0));
     let img = app.run("file.place", json!({"name": "red.png", "dataBase64": data, "link": false})).unwrap()["ids"][0].as_u64().unwrap();
     let ctx = egui::Context::default();
     crate::theme::install_fonts(&ctx);

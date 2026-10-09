@@ -1,8 +1,8 @@
 //! Import options: the pages picked, the box each artboard gets (Crop To), passwords and `info`.
 
-use vectorcraft_doc::{Document, NodeKind};
-use vectorcraft_geom::Rect;
-use vectorcraft_testkit::pdf::{PdfPage, pdf};
+use splinewright_doc::{Document, NodeKind};
+use splinewright_geom::Rect;
+use splinewright_testkit::pdf::{PdfPage, pdf};
 
 use crate::*;
 

@@ -2,7 +2,7 @@
 //! Adjoining Width Points and the render of a step.
 
 use serde_json::json;
-use vectorcraft_tools::{Mods, PointerEvent, PointerKind};
+use splinewright_tools::{Mods, PointerEvent, PointerKind};
 
 use super::*;
 
@@ -26,8 +26,8 @@ fn set(s: &mut Session, p: serde_json::Value) -> usize {
 
 fn dark(s: &Session, x: u32, y: u32) -> bool {
     let doc = s.doc().unwrap().doc.clone();
-    let opts = vectorcraft_render::RenderOptions { background: Some([255, 255, 255, 255]), ..Default::default() };
-    vectorcraft_render::Renderer::new().render(&doc, 200, 200, vectorcraft_geom::Affine::IDENTITY, &opts).pixel(x, y)[0] < 128
+    let opts = splinewright_render::RenderOptions { background: Some([255, 255, 255, 255]), ..Default::default() };
+    splinewright_render::Renderer::new().render(&doc, 200, 200, splinewright_geom::Affine::IDENTITY, &opts).pixel(x, y)[0] < 128
 }
 
 #[test]
@@ -48,7 +48,7 @@ fn a_point_moved_onto_another_makes_a_discontinuous_point_that_renders_a_step() 
     // The step renders: just before x = 140 (t = 0.75) the stroke is 2 pt thick, just after 15.
     assert!(!dark(&s, 137, 92) && dark(&s, 143, 92), "a step, not a ramp");
     // A new point at that place replaces both; a pair round-trips through the native format.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = splinewright_format::load(&splinewright_format::save(&s.doc().unwrap().doc, false)).unwrap();
     let n = back.node(id).unwrap();
     assert_eq!(n.appearance.stroke().unwrap().profile.as_ref().unwrap().points, points(&s, id));
     set(&mut s, json!({"id": id.0, "t": 0.75, "left": 5, "right": 5}));
@@ -104,7 +104,7 @@ fn shift_selected_points_drag_together_in_one_step() {
     assert_eq!(ts, vec![0.0, 0.35, 0.6, 1.0]);
     assert_eq!(s.doc().unwrap().history.undo.len(), undo + 1, "one undo step for the drag (clicks change nothing)");
     // Delete removes both selected points.
-    s.tool_key(vectorcraft_tools::ToolKey::Delete, none, v).unwrap();
+    s.tool_key(splinewright_tools::ToolKey::Delete, none, v).unwrap();
     assert_eq!(points(&s, id).len(), 2);
 }
 

@@ -1,4 +1,4 @@
-//! `.vectorcraft` v3: compression, pruning unused images, keys from newer versions, colour
+//! `.splinewright` v3: compression, pruning unused images, keys from newer versions, colour
 //! profiles as a document field, saving for older versions and the embedded preview.
 // Integration tests: unwrapping and panicking on failure is fine here, unlike in shipped code (AGENTS.md › Robustness).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
@@ -7,11 +7,11 @@ use std::io::Write as _;
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{ColorProfiles, Document, ImageBlob, ImageObject, Node, NodeKind, OpacityMask, Symbol};
-use vectorcraft_format::{FormatError, SaveOptions, VERSION, is_compressed, load, preview, save, save_with, sniff};
-use vectorcraft_geom::Affine;
-use vectorcraft_testkit::fixtures;
-use vectorcraft_testkit::invariants::{check_native_roundtrip, doc_json, json_approx_eq};
+use splinewright_doc::{ColorProfiles, Document, ImageBlob, ImageObject, Node, NodeKind, OpacityMask, Symbol};
+use splinewright_format::{FormatError, SaveOptions, VERSION, is_compressed, load, preview, save, save_with, sniff};
+use splinewright_geom::Affine;
+use splinewright_testkit::fixtures;
+use splinewright_testkit::invariants::{check_native_roundtrip, doc_json, json_approx_eq};
 
 fn rich_doc() -> Document {
     (*fixtures::rich_session().doc().unwrap().doc).clone()
@@ -55,7 +55,7 @@ fn compressed_files_load() {
     assert!(!flate2_unpack(&packed).contains(&b'\n'));
     // A legacy (v2, pre-rename) file compressed by hand opens too.
     let text = String::from_utf8(plain.clone()).unwrap();
-    let legacy = text.replacen("\"format\":\"vectorcraft\",\"version\":3", "\"format\":\"drawcraft\",\"version\":2", 1);
+    let legacy = text.replacen("\"format\":\"splinewright\",\"version\":3", "\"format\":\"drawcraft\",\"version\":2", 1);
     assert_ne!(legacy, text);
     let legacy = gzip(legacy.as_bytes());
     assert!(sniff(&legacy));
@@ -151,7 +151,7 @@ fn saves_down_to_older_versions() {
         assert_eq!(text.contains("\"p\":["), version == 2);
     }
     let v3 = json_of(&save(&d, false));
-    assert_eq!((v3["format"].as_str(), v3["version"].as_u64()), (Some("vectorcraft"), Some(VERSION as u64)));
+    assert_eq!((v3["format"].as_str(), v3["version"].as_u64()), (Some("splinewright"), Some(VERSION as u64)));
     assert_eq!(v3["document"]["color_profiles"], json!({"cmyk": "Coated"}));
     assert!(v3["document"]["unknown"].get("colorProfiles").is_none());
     // Out of range, and compression older apps can't read.
@@ -178,7 +178,7 @@ fn pretty_files_are_indented_like_serde_json() {
     let d = rich_doc();
     let bytes = save(&d, true);
     let text = String::from_utf8(bytes.clone()).unwrap();
-    assert!(text.starts_with("{\n  \"format\": \"vectorcraft\",\n  \"version\": "));
+    assert!(text.starts_with("{\n  \"format\": \"splinewright\",\n  \"version\": "));
     assert!(text.contains("\n  \"document\": {\n    \""));
     assert!(text.ends_with("\n}"));
     // The same JSON as the compact file.
@@ -189,7 +189,7 @@ fn pretty_files_are_indented_like_serde_json() {
 /// did, and a file without it (an older version's) opens with canvas guides.
 #[test]
 fn artboard_guides_round_trip_and_canvas_guides_save_as_before() {
-    use vectorcraft_doc::Guide;
+    use splinewright_doc::Guide;
     let mut d = Document::new(100.0, 100.0);
     let id = d.artboards[0].id;
     d.guides = vec![Guide::new(true, 10.0), Guide { artboard: Some(id), ..Guide::new(false, 20.0) }];

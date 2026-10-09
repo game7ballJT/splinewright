@@ -4,8 +4,8 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use vectorcraft_doc::{Artboard, Background, ColorMode, Document, Unit};
-use vectorcraft_geom::{Point, Rect};
+use splinewright_doc::{Artboard, Background, ColorMode, Document, Unit};
+use splinewright_geom::{Point, Rect};
 
 use super::*;
 

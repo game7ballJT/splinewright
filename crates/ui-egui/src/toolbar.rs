@@ -6,11 +6,11 @@
 
 use egui::{Color32, CornerRadius, Sense, Stroke, Ui, pos2, vec2};
 use serde_json::json;
-use vectorcraft_color::Paint;
-use vectorcraft_tools::{TOOL_GROUPS, ToolInfo, tool_info};
+use splinewright_color::Paint;
+use splinewright_tools::{TOOL_GROUPS, ToolInfo, tool_info};
 
 use crate::theme::{self, Tokens};
-use crate::{VectorcraftApp, icons, widgets};
+use crate::{SplinewrightApp, icons, widgets};
 
 const PITCH: f32 = 30.0;
 const WIDTH: f32 = 48.0;
@@ -70,7 +70,7 @@ fn tip(t: &ToolInfo) -> String {
 }
 
 /// Slots of the current layout: (category label for the first slot of a category, tool ids).
-fn slots(app: &VectorcraftApp) -> Vec<(Option<&'static str>, Vec<&'static str>)> {
+fn slots(app: &SplinewrightApp) -> Vec<(Option<&'static str>, Vec<&'static str>)> {
     if app.ui.toolbar_advanced {
         TOOL_GROUPS.iter().map(|g| (None, g.iter().map(|t| t.id).collect())).collect()
     } else {
@@ -79,7 +79,7 @@ fn slots(app: &VectorcraftApp) -> Vec<(Option<&'static str>, Vec<&'static str>)>
 }
 
 /// Remember the tool shown in the slot that contains `id`.
-pub fn remember(app: &mut VectorcraftApp, id: &str) {
+pub fn remember(app: &mut SplinewrightApp, id: &str) {
     for (_, s) in slots(app) {
         if s.contains(&id) {
             app.ui.slot_tool.insert(s[0].to_string(), id.to_string());
@@ -87,7 +87,7 @@ pub fn remember(app: &mut VectorcraftApp, id: &str) {
     }
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     // The user's choice alone: a window too short for the tools scrolls them.
     let cols = if app.ui.toolbar_double { 2 } else { 1 };
@@ -125,7 +125,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
 }
 
 /// The Tools panel's contents, docked or floating at `floating`.
-fn body(app: &mut VectorcraftApp, ui: &mut Ui, cols: usize, floating: Option<egui::Pos2>) {
+fn body(app: &mut SplinewrightApp, ui: &mut Ui, cols: usize, floating: Option<egui::Pos2>) {
     let t = Tokens::get(ui.ctx());
     let all = slots(app);
     let bounds = ui.max_rect();
@@ -295,14 +295,14 @@ fn flyout_press(ui: &Ui, resp: &egui::Response, rect: egui::Rect) -> Option<Flyo
 /// Reflect and Shear tools' are their Object › Transform dialogs, the selection tools' are the
 /// Move dialog, and the Pencil, Paintbrush, Smooth, Blob Brush and Eraser tools' are their Tool
 /// Options.
-pub fn open_options(app: &mut VectorcraftApp, tool: &str) -> Result<serde_json::Value, String> {
+pub fn open_options(app: &mut SplinewrightApp, tool: &str) -> Result<serde_json::Value, String> {
     match tool {
         "hand" => app.run("view.fitArtboard", json!({})),
         "zoom" => app.run("view.actualSize", json!({})),
         "rotate" | "scale" | "reflect" | "shear" | "selection" | "directSelection" | "groupSelection" => {
-            let dialog = if vectorcraft_tools::catalog::is_selection_tool(tool) { "move" } else { tool };
+            let dialog = if splinewright_tools::catalog::is_selection_tool(tool) { "move" } else { tool };
             let id = format!("object.{dialog}");
-            if let Some(c) = vectorcraft_engine::find_command(&id) {
+            if let Some(c) = splinewright_engine::find_command(&id) {
                 (c.enabled)(&app.session)?;
             }
             crate::menus::invoke(app, &id, json!({}));
@@ -325,17 +325,17 @@ pub fn open_options(app: &mut VectorcraftApp, tool: &str) -> Result<serde_json::
         // A double click on the Print Tiling tool puts the pages back where the placement puts them.
         "printTiling" => app.run("print.tiling.set", json!({ "reset": true })),
         // The Liquify tools: their Tool Options (the Global Brush Dimensions and the tool's own).
-        _ if vectorcraft_tools::settings::LIQUIFY.contains(&tool) => crate::dialogs::liquify::open(app, tool),
+        _ if splinewright_tools::settings::LIQUIFY.contains(&tool) => crate::dialogs::liquify::open(app, tool),
         // The freehand tools: their Tool Options (Fidelity, fill, the tolerances, the brush size).
         _ if crate::dialogs::freehand::TOOLS.contains(&tool) => crate::dialogs::freehand::open(app, tool),
-        _ if vectorcraft_tools::tool_info(tool).is_none() => Err(format!("unknown tool `{tool}`")),
+        _ if splinewright_tools::tool_info(tool).is_none() => Err(format!("unknown tool `{tool}`")),
         _ => Err(format!("the {tool} tool has no options")),
     }
 }
 
 /// The active tool's options in the Control bar: Mirror & Cut's axis and the side it keeps, Puppet
 /// Warp's mesh and pins (set through `tool.setOption`).
-pub fn control_bar_options(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn control_bar_options(app: &mut SplinewrightApp, ui: &mut Ui) {
     /// (value, label) of each choice.
     type Choices = &'static [(&'static str, &'static str)];
     const MIRROR: [(&str, &str, Choices); 2] = [
@@ -362,7 +362,7 @@ pub fn control_bar_options(app: &mut VectorcraftApp, ui: &mut Ui) {
     ui.separator();
 }
 
-fn bottom_controls(app: &mut VectorcraftApp, ui: &mut Ui, t: &Tokens) {
+fn bottom_controls(app: &mut SplinewrightApp, ui: &mut Ui, t: &Tokens) {
     ui.vertical_centered(|ui| crate::panels::proxy(app, ui, 36.0));
     ui.add_space(5.0);
     // Color (the last solid colour), Gradient (the last gradient) and None, as commands.
@@ -390,9 +390,9 @@ fn bottom_controls(app: &mut VectorcraftApp, ui: &mut Ui, t: &Tokens) {
         let modes = ["dc-draw-normal", "dc-draw-behind", "dc-draw-inside"];
         let names = ["Draw Normal", "Draw Behind", "Draw Inside"];
         let m = match app.session.draw_mode {
-            vectorcraft_engine::DrawMode::Normal => 0,
-            vectorcraft_engine::DrawMode::Behind => 1,
-            vectorcraft_engine::DrawMode::Inside => 2,
+            splinewright_engine::DrawMode::Normal => 0,
+            splinewright_engine::DrawMode::Behind => 1,
+            splinewright_engine::DrawMode::Inside => 2,
         };
         if widgets::icon_button(ui, modes[m], &format!("{} (Shift+D)", tl!(names[m])), m != 0, 26.0).clicked() {
             app.run("view.drawMode", json!({})).ok();
@@ -414,7 +414,7 @@ const FLOAT_AT: [f32; 2] = [90.0, 100.0];
 /// Float the toolbar group (of the current layout) holding `tool` as a strip of tool buttons, put
 /// it back in the toolbar, or toggle (`floating` omitted), as a flyout's tear-off bar and the
 /// strip's × do (`window.floatTools`). Returns the new state.
-pub fn float_group(app: &mut VectorcraftApp, tool: &str, floating: Option<bool>) -> Result<bool, String> {
+pub fn float_group(app: &mut SplinewrightApp, tool: &str, floating: Option<bool>) -> Result<bool, String> {
     let Some((_, group)) = slots(app).into_iter().find(|(_, s)| s.len() > 1 && s.contains(&tool)) else {
         return Err(format!("{tool} isn't in a toolbar group of several tools"));
     };
@@ -433,7 +433,7 @@ pub fn float_group(app: &mut VectorcraftApp, tool: &str, floating: Option<bool>)
 }
 
 /// Whether the group whose first tool is `key` floats as its own panel.
-fn is_floating(app: &VectorcraftApp, key: &str) -> bool {
+fn is_floating(app: &SplinewrightApp, key: &str) -> bool {
     app.ui.floating_flyouts.iter().any(|f| f.tools.first().is_some_and(|k| k == key))
 }
 
@@ -584,7 +584,7 @@ fn press_travel(ctx: &egui::Context) -> Option<egui::Vec2> {
     ctx.input(|i| i.pointer.press_origin().zip(i.pointer.interact_pos()).map(|(a, b)| b - a))
 }
 
-fn flyout(app: &mut VectorcraftApp, ctx: &egui::Context) {
+fn flyout(app: &mut SplinewrightApp, ctx: &egui::Context) {
     if app.ui.flyout.is_none() {
         return;
     }
@@ -633,7 +633,7 @@ fn flyout(app: &mut VectorcraftApp, ctx: &egui::Context) {
 }
 
 /// The flyouts torn off the toolbar, each floating where its bar was dragged; its × puts it back.
-fn floating(app: &mut VectorcraftApp, ctx: &egui::Context) {
+fn floating(app: &mut SplinewrightApp, ctx: &egui::Context) {
     if app.ui.floating_flyouts.is_empty() {
         return;
     }
@@ -687,7 +687,7 @@ fn floating(app: &mut VectorcraftApp, ctx: &egui::Context) {
 
 /// The Puppet Warp tool's Control bar: Expand (how far the mesh reaches past the art), Show Mesh
 /// and Select All Pins.
-fn puppet_warp_options(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn puppet_warp_options(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let opts = app.session.tool_options();
     ui.label(egui::RichText::new(tl!("Expand:")).size(12.0).color(t.text));
@@ -708,17 +708,17 @@ fn puppet_warp_options(app: &mut VectorcraftApp, ui: &mut Ui) {
 #[cfg(test)]
 pub(crate) mod tests {
     use egui::{Event, PointerButton, Pos2};
-    use vectorcraft_engine::Session;
+    use splinewright_engine::Session;
 
     use super::*;
 
     /// One headless frame of the toolbar; returns the tool buttons' rects, top to bottom.
-    fn frame(app: &mut VectorcraftApp, ctx: &egui::Context, time: f64, events: Vec<Event>) -> Vec<egui::Rect> {
+    fn frame(app: &mut SplinewrightApp, ctx: &egui::Context, time: f64, events: Vec<Event>) -> Vec<egui::Rect> {
         frame_in(app, ctx, time, events, 1200.0)
     }
 
     /// [`frame`] in a window `height` points tall.
-    fn frame_in(app: &mut VectorcraftApp, ctx: &egui::Context, time: f64, events: Vec<Event>, height: f32) -> Vec<egui::Rect> {
+    fn frame_in(app: &mut SplinewrightApp, ctx: &egui::Context, time: f64, events: Vec<Event>, height: f32) -> Vec<egui::Rect> {
         let input = egui::RawInput {
             time: Some(time),
             events,
@@ -746,7 +746,7 @@ pub(crate) mod tests {
 
     #[test]
     fn the_toolbar_scrolls_in_a_short_window() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 300, "height": 300})).unwrap();
         let ctx = egui::Context::default();
         // 500 pt: even two columns don't fit, so Edit Toolbar (the last button) starts below the window.
@@ -767,7 +767,7 @@ pub(crate) mod tests {
     }
 
     /// A double-click at `at`, `time` seconds in (a second apart from the last).
-    fn double_click(app: &mut VectorcraftApp, ctx: &egui::Context, time: f64, at: Pos2) {
+    fn double_click(app: &mut SplinewrightApp, ctx: &egui::Context, time: f64, at: Pos2) {
         let b = |pressed| Event::PointerButton { pos: at, button: PointerButton::Primary, pressed, modifiers: Default::default() };
         frame(app, ctx, time, vec![Event::PointerMoved(at), b(true), b(false), b(true), b(false)]);
         frame(app, ctx, time + 0.1, vec![]);
@@ -775,7 +775,7 @@ pub(crate) mod tests {
 
     #[test]
     fn double_clicking_a_tool_button_opens_its_options() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 300, "height": 300})).unwrap();
         let ctx = egui::Context::default();
         let buttons = frame(&mut app, &ctx, 0.0, vec![]);
@@ -799,7 +799,7 @@ pub(crate) mod tests {
 
     #[test]
     fn double_clicking_the_hand_zoom_and_transform_tools() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 300, "height": 200})).unwrap();
         app.canvas_rect = Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(660.0, 460.0)));
         app.run("view.setZoom", json!({"zoom": 333, "center": [10, 10]})).unwrap();
@@ -821,13 +821,13 @@ pub(crate) mod tests {
         app.run("tool.options", json!({"tool": "rotate"})).unwrap();
         app.ui.dialog.as_mut().unwrap().fields.insert("angle".into(), json!(90));
         crate::dialogs::confirm(&mut app).unwrap();
-        let b = app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
+        let b = app.session.active().unwrap().doc.node(splinewright_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
         assert!((b.x0 - 20.0).abs() < 1e-9 && (b.y0 - 0.0).abs() < 1e-9 && (b.width() - 20.0).abs() < 1e-9, "{b:?}");
     }
 
     #[test]
     fn double_clicking_a_selection_tool_opens_the_move_dialog() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 300, "height": 200})).unwrap();
         let ctx = egui::Context::default();
         // The Selection tool's button is the first one.
@@ -848,13 +848,13 @@ pub(crate) mod tests {
         app.run("tool.options", json!({"tool": "selection"})).unwrap();
         app.ui.dialog.as_mut().unwrap().fields.insert("dx".into(), json!("25 pt"));
         crate::dialogs::confirm(&mut app).unwrap();
-        let b = app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
+        let b = app.session.active().unwrap().doc.node(splinewright_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
         assert_eq!((b.x0, b.y0), (35.0, 10.0));
     }
 
     #[test]
     fn right_clicking_a_tool_group_opens_its_flyout() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 300, "height": 300})).unwrap();
         let ctx = egui::Context::default();
         let buttons = frame(&mut app, &ctx, 0.0, vec![]);
@@ -891,7 +891,7 @@ pub(crate) mod tests {
     }
 
     /// The Shapes group's button (Selection, Direct Selection, Lasso, then Rectangle).
-    fn shapes_button(app: &mut VectorcraftApp, ctx: &egui::Context) -> egui::Rect {
+    fn shapes_button(app: &mut SplinewrightApp, ctx: &egui::Context) -> egui::Rect {
         app.run("file.new", json!({"width": 300, "height": 300})).unwrap();
         frame(app, ctx, 0.0, vec![])[3]
     }
@@ -899,7 +899,7 @@ pub(crate) mod tests {
     #[test]
     fn a_held_press_asks_for_the_frame_that_opens_the_flyout() {
         // egui draws only on input: a still press must schedule the frame where it becomes long.
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         let ctx = egui::Context::default();
         let at = shapes_button(&mut app, &ctx).center();
         let p = Event::PointerButton { pos: at, button: PointerButton::Primary, pressed: true, modifiers: Default::default() };
@@ -916,7 +916,7 @@ pub(crate) mod tests {
 
     #[test]
     fn pressing_the_corner_triangle_opens_the_flyout_at_once() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         let ctx = egui::Context::default();
         let button = shapes_button(&mut app, &ctx);
         let at = button.right_bottom() - vec2(4.0, 4.0);
@@ -936,7 +936,7 @@ pub(crate) mod tests {
 
     #[test]
     fn the_flyout_opens_on_the_right_press_even_when_its_tool_is_active() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         let ctx = egui::Context::default();
         let at = shapes_button(&mut app, &ctx).center();
         app.select_tool("rectangle");
@@ -964,7 +964,7 @@ pub(crate) mod tests {
     #[test]
     fn type_button_long_press_selects_vertical_type_in_both_layouts() {
         for advanced in [false, true] {
-            let mut app = VectorcraftApp::new(Session::new(), Default::default());
+            let mut app = SplinewrightApp::new(Session::new(), Default::default());
             app.ui.toolbar_advanced = advanced;
             let all = slots(&app);
             let index = all.iter().position(|(_, tools)| tools.contains(&"type")).unwrap();
@@ -992,7 +992,7 @@ pub(crate) mod tests {
     }
 
     /// A press at `from`, dragged through `to` (one frame each), then released.
-    fn drag(app: &mut VectorcraftApp, ctx: &egui::Context, time: f64, from: Pos2, to: &[Pos2]) {
+    fn drag(app: &mut SplinewrightApp, ctx: &egui::Context, time: f64, from: Pos2, to: &[Pos2]) {
         let b = |pos, pressed| Event::PointerButton { pos, button: PointerButton::Primary, pressed, modifiers: Default::default() };
         frame(app, ctx, time, vec![Event::PointerMoved(from), b(from, true)]);
         for (k, p) in to.iter().enumerate() {
@@ -1004,12 +1004,12 @@ pub(crate) mod tests {
     }
 
     /// A click at `at`.
-    fn click(app: &mut VectorcraftApp, ctx: &egui::Context, time: f64, at: Pos2, button: PointerButton) {
+    fn click(app: &mut SplinewrightApp, ctx: &egui::Context, time: f64, at: Pos2, button: PointerButton) {
         click_in(app, ctx, time, at, button, 1200.0);
     }
 
     /// [`click`] in a window `height` points tall; returns the tool buttons' rects after it.
-    fn click_in(app: &mut VectorcraftApp, ctx: &egui::Context, time: f64, at: Pos2, button: PointerButton, height: f32) -> Vec<egui::Rect> {
+    fn click_in(app: &mut SplinewrightApp, ctx: &egui::Context, time: f64, at: Pos2, button: PointerButton, height: f32) -> Vec<egui::Rect> {
         let b = |pressed| Event::PointerButton { pos: at, button, pressed, modifiers: Default::default() };
         frame_in(app, ctx, time, vec![Event::PointerMoved(at), b(true)], height);
         frame_in(app, ctx, time + 0.05, vec![b(false)], height);
@@ -1026,7 +1026,7 @@ pub(crate) mod tests {
 
     #[test]
     fn the_double_arrow_toggles_one_and_two_columns_in_a_short_window() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         let ctx = egui::Context::default();
         // 700 pt: too short for the single column, which scrolls instead of turning into two.
         assert_eq!(columns(&frame_in(&mut app, &ctx, 0.0, vec![], 700.0)), 1);
@@ -1039,7 +1039,7 @@ pub(crate) mod tests {
 
     #[test]
     fn the_columns_command_toggles_or_sets_the_toolbar_columns() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         let ctx = egui::Context::default();
         assert_eq!(app.run("window.toolbarColumns", json!({})).unwrap(), json!(true));
         assert_eq!(columns(&frame_in(&mut app, &ctx, 0.0, vec![], 700.0)), 2);
@@ -1055,7 +1055,7 @@ pub(crate) mod tests {
 
     #[test]
     fn a_flyout_dragged_by_its_bar_floats_until_its_close_box_puts_it_back() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         let ctx = egui::Context::default();
         let at = shapes_button(&mut app, &ctx).center();
         click(&mut app, &ctx, 1.0, at, PointerButton::Secondary);
@@ -1100,7 +1100,7 @@ pub(crate) mod tests {
 
     #[test]
     fn a_click_on_a_flyouts_bar_tears_it_off() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         let ctx = egui::Context::default();
         let at = shapes_button(&mut app, &ctx).center();
         click(&mut app, &ctx, 1.0, at, PointerButton::Secondary);
@@ -1117,7 +1117,7 @@ pub(crate) mod tests {
 
     #[test]
     fn releasing_a_long_press_over_the_flyouts_bar_tears_it_off() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         let ctx = egui::Context::default();
         let at = shapes_button(&mut app, &ctx).center();
         let b = |pos, pressed| Event::PointerButton { pos, button: PointerButton::Primary, pressed, modifiers: Default::default() };
@@ -1134,8 +1134,8 @@ pub(crate) mod tests {
 
     #[test]
     fn window_float_tools_floats_and_puts_back_a_group() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
-        let check = |app: &VectorcraftApp| crate::menus::checked(app, "window.floatTools", &json!({"tool": "star"}));
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
+        let check = |app: &SplinewrightApp| crate::menus::checked(app, "window.floatTools", &json!({"tool": "star"}));
         assert_eq!(app.run("window.floatTools", json!({"tool": "star"})).unwrap(), json!(true));
         let [f] = app.ui.floating_flyouts.as_slice() else { panic!("one strip: {:?}", app.ui.floating_flyouts) };
         assert_eq!(f.tools.first().map(String::as_str), Some("rectangle"), "the Basic toolbar's Shapes group");
@@ -1158,7 +1158,7 @@ pub(crate) mod tests {
 
     #[test]
     fn workspaces_keep_floating_flyouts_and_reset_puts_them_back() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.run("window.floatTools", json!({"tool": "pen"})).unwrap();
         app.run("window.workspace.new", json!({"name": "Strips"})).unwrap();
         app.run("window.workspace", json!({"name": "Essentials"})).unwrap();
@@ -1184,7 +1184,7 @@ pub(crate) mod tests {
 
     #[test]
     fn floating_flyouts_survive_saved_preferences_and_stay_on_screen() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.ui.floating_flyouts.push(crate::state::FloatingFlyout { tools: vec!["pen".into(), "addAnchor".into()], pos: [5000.0, 10.0] });
         let saved = serde_json::to_value(&app.ui).unwrap();
         let back: crate::state::UiState = serde_json::from_value(saved.clone()).unwrap();
@@ -1206,7 +1206,7 @@ pub(crate) mod tests {
     }
 
     /// Hover `at` for two seconds, coming from elsewhere: the texts painted meanwhile.
-    fn hovered_texts(app: &mut VectorcraftApp, ctx: &egui::Context, t0: f64, at: Pos2) -> Vec<String> {
+    fn hovered_texts(app: &mut SplinewrightApp, ctx: &egui::Context, t0: f64, at: Pos2) -> Vec<String> {
         fn texts(s: &egui::Shape, out: &mut Vec<String>) {
             match s {
                 egui::Shape::Text(t) => out.push(t.galley.text().to_string()),
@@ -1240,7 +1240,7 @@ pub(crate) mod tests {
 
     #[test]
     fn a_floating_flyouts_buttons_have_tool_tips_when_tool_tips_are_on() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         let tools: Vec<String> = ["rectangle", "roundedRectangle", "star"].map(String::from).to_vec();
         app.ui.floating_flyouts.push(crate::state::FloatingFlyout { tools, pos: [150.0, 600.0] });
         let ctx = egui::Context::default();

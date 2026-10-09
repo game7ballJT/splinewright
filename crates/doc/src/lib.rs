@@ -1,4 +1,4 @@
-//! VectorCraft document model: artboards, layers and objects, appearance, swatches (pure data + serde).
+//! Splinewright document model: artboards, layers and objects, appearance, swatches (pure data + serde).
 //!
 //! Documents are persistent trees: children are `Arc<Node>`, and edits go through
 //! [`Document::node_mut`], which clones only the nodes on the path from the root to the edited node.
@@ -78,17 +78,17 @@ pub use rastersettings::{RasterColorModel, RasterEffectsSettings};
 pub use selection::{AnchorRef, Selection};
 pub use setup::{Background, DocSetup, ExportText, GridSize, Quotes};
 pub use slices::{CellAlign, CellVAlign, Slice, SliceArea, SliceKind, SliceOptions, SliceSource};
+pub use splinewright_color as color;
+pub use splinewright_geom as geom;
 pub use style_libs::StyleLibrary;
 pub use text::{
     AreaOptions, Burasagari, CharAlign, CharPosition, CharStyle, FirstBaseline, Justify, LeadingModel, Mojikumi, ParaDirection, ParaStyle, PathAlign,
     PathEffect, ScriptMetrics, TabAlign, TabStop, TextKind, TextObject, TextRun, TextStyleDef, TextWrap, WrapShape,
 };
-pub use vectorcraft_color as color;
-pub use vectorcraft_geom as geom;
 
 use serde::{Deserialize, Serialize};
-use vectorcraft_color::{Swatch, SwatchGroup};
-use vectorcraft_geom::{Point, Rect, Vec2};
+use splinewright_color::{Swatch, SwatchGroup};
+use splinewright_geom::{Point, Rect, Vec2};
 
 #[derive(Debug, thiserror::Error, PartialEq)]
 pub enum DocError {
@@ -320,10 +320,10 @@ pub enum ColorMode {
 
 impl ColorMode {
     /// The colour model new colours take in a document of this mode.
-    pub fn model(self) -> vectorcraft_color::cms::Model {
+    pub fn model(self) -> splinewright_color::cms::Model {
         match self {
-            ColorMode::Rgb => vectorcraft_color::cms::Model::Rgb,
-            ColorMode::Cmyk => vectorcraft_color::cms::Model::Cmyk,
+            ColorMode::Rgb => splinewright_color::cms::Model::Rgb,
+            ColorMode::Cmyk => splinewright_color::cms::Model::Cmyk,
         }
     }
 }
@@ -430,7 +430,7 @@ pub struct GraphicStyle {
     #[serde(default = "one", skip_serializing_if = "skip::is_one")]
     pub opacity: f32,
     #[serde(default, skip_serializing_if = "skip::is_default")]
-    pub blend: vectorcraft_color::BlendMode,
+    pub blend: splinewright_color::BlendMode,
     #[serde(default, skip_serializing_if = "skip::is_default")]
     pub isolate: bool,
     #[serde(default, skip_serializing_if = "skip::is_default")]
@@ -623,7 +623,7 @@ pub struct Document {
     /// them (on, the default); off, auto slices cover the art and the slices.
     #[serde(default = "yes", skip_serializing_if = "skip::is_true")]
     pub slices_clip_to_artboard: bool,
-    /// File → Print: the print settings saved with the document (`vectorcraft_pdf::PrintSettings`
+    /// File → Print: the print settings saved with the document (`splinewright_pdf::PrintSettings`
     /// as JSON: the print engine sits above this crate); `None` until they are set up.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub print_setup: Option<serde_json::Value>,
@@ -655,7 +655,7 @@ impl Document {
 
     /// [`Document::new`] in colour `mode`, with that mode's default swatches.
     pub fn new_with_mode(width: f64, height: f64, mode: ColorMode) -> Self {
-        let (swatches, swatch_groups) = vectorcraft_color::default_swatches(mode.model());
+        let (swatches, swatch_groups) = splinewright_color::default_swatches(mode.model());
         let mut d = Self {
             version: FORMAT_VERSION,
             title: "Untitled-1".into(),
@@ -925,11 +925,11 @@ impl Document {
     pub fn bounds_of(&self, ids: &[NodeId], visual: bool) -> Option<Rect> {
         ids.iter()
             .filter_map(|id| self.node(*id))
-            .fold(None, |acc, n| vectorcraft_geom::union_opt(acc, if visual { n.visual_bounds() } else { n.geometric_bounds() }))
+            .fold(None, |acc, n| splinewright_geom::union_opt(acc, if visual { n.visual_bounds() } else { n.geometric_bounds() }))
     }
     /// Bounds of all art.
     pub fn art_bounds(&self) -> Option<Rect> {
-        self.layers.iter().fold(None, |acc, l| vectorcraft_geom::union_opt(acc, l.visual_bounds()))
+        self.layers.iter().fold(None, |acc, l| splinewright_geom::union_opt(acc, l.visual_bounds()))
     }
     /// Artboard index containing point `p` (topmost = last).
     pub fn artboard_at(&self, p: Point) -> Option<usize> {
@@ -1101,7 +1101,7 @@ impl Document {
 }
 
 fn default_graphic_styles() -> Vec<GraphicStyle> {
-    use vectorcraft_color::{Color, Paint};
+    use splinewright_color::{Color, Paint};
     let solid = |hex| Paint::solid(Color::from_hex(hex).unwrap_or(Color::BLACK));
     [
         GraphicStyle::new(DEFAULT_GRAPHIC_STYLE, Appearance::default_art()),
@@ -1126,7 +1126,7 @@ impl Document {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vectorcraft_geom::shapes;
+    use splinewright_geom::shapes;
 
     fn doc_with_rects() -> (Document, NodeId, NodeId) {
         let mut d = Document::new(612.0, 792.0);

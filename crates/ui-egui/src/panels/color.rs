@@ -12,12 +12,12 @@
 
 use egui::{Color32, Rect, Sense, Stroke, StrokeKind, Ui, vec2};
 use serde_json::json;
-use vectorcraft_color::{Color, GradientKind, Paint};
+use splinewright_color::{Color, GradientKind, Paint};
 
 use super::{active_paint, color_json, live_run, pstate, set_pstate};
 use crate::theme::Tokens;
 use crate::widgets::{self, Live, menu_item};
-use crate::{VectorcraftApp, icons};
+use crate::{SplinewrightApp, icons};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Mode {
@@ -180,7 +180,7 @@ pub fn spectrum_at(mode: Mode, x: f32, y: f32) -> Color {
             Color::cmyk(c0, m, yy, k)
         }
         Mode::WebSafe => web_safe(&c),
-        Mode::Lab => c.in_model(vectorcraft_color::cms::Model::Lab),
+        Mode::Lab => c.in_model(splinewright_color::cms::Model::Lab),
         _ => c,
     }
 }
@@ -223,7 +223,7 @@ pub(crate) fn warning_chip(ui: &mut Ui, (icon, warning): (&str, &str), fix: &Col
 
 /// The printable colour closest to `c` (its working-CMYK reproduction, back in RGB) when `c` is out
 /// of the CMYK gamut, through `color.convert`.
-pub(crate) fn in_gamut(app: &mut VectorcraftApp, c: &Color) -> Option<Color> {
+pub(crate) fn in_gamut(app: &mut SplinewrightApp, c: &Color) -> Option<Color> {
     let r = app.run("color.convert", json!({"color": color_json(c), "to": "cmyk"})).ok()?;
     if !r["outOfGamut"].as_bool()? {
         return None;
@@ -235,7 +235,7 @@ pub(crate) fn in_gamut(app: &mut VectorcraftApp, c: &Color) -> Option<Color> {
 }
 
 /// [`in_gamut`], cached under `key` for the last colour asked (panels ask every frame).
-pub(crate) fn gamut_fix(app: &mut VectorcraftApp, ctx: &egui::Context, key: &str, c: &Color) -> Option<Color> {
+pub(crate) fn gamut_fix(app: &mut SplinewrightApp, ctx: &egui::Context, key: &str, c: &Color) -> Option<Color> {
     match pstate::<Option<(Color, Option<Color>)>>(ctx, key) {
         Some((k, fix)) if k == *c => fix,
         _ => {
@@ -314,7 +314,7 @@ struct Tint {
 
 impl Tint {
     /// The tint `link` (a swatch name) and `tint` show: `None` unless the swatch is a global colour.
-    fn of(app: &VectorcraftApp, link: Option<&str>, tint: f32) -> Option<Self> {
+    fn of(app: &SplinewrightApp, link: Option<&str>, tint: f32) -> Option<Self> {
         let name = link?;
         let d = &app.session.active()?.doc;
         let spot = d.swatch(name)?.spot;
@@ -346,7 +346,7 @@ impl Target {
 }
 
 /// The active proxy's colour or gradient stop; no colour for None, patterns and a "?" proxy.
-fn target(app: &VectorcraftApp, ui: &Ui) -> Target {
+fn target(app: &SplinewrightApp, ui: &Ui) -> Target {
     if super::active_mixed(app, ui.ctx()) {
         return Target::Paint(None, None);
     }
@@ -370,7 +370,7 @@ fn target(app: &VectorcraftApp, ui: &Ui) -> Target {
 
 /// Apply `c` to the target, or with `behind` (an Alt-click) to the inactive proxy as a solid
 /// colour, keeping the active proxy in front.
-fn apply(app: &mut VectorcraftApp, tgt: &Target, c: Color, phase: Live, behind: bool) {
+fn apply(app: &mut SplinewrightApp, tgt: &Target, c: Color, phase: Live, behind: bool) {
     match tgt {
         Target::Stop { paint: Paint::Gradient(g), index, .. } if !behind => {
             let mut stops = g.gradient.stops.clone();
@@ -392,7 +392,7 @@ fn apply(app: &mut VectorcraftApp, tgt: &Target, c: Color, phase: Live, behind: 
 }
 
 /// Set the target's tint of its swatch to `t` (0..1), keeping the link (the T slider).
-fn apply_tint(app: &mut VectorcraftApp, tgt: &Target, tint: &Tint, t: f32, phase: Live) {
+fn apply_tint(app: &mut SplinewrightApp, tgt: &Target, tint: &Tint, t: f32, phase: Live) {
     match tgt {
         Target::Stop { paint: Paint::Gradient(g), index, .. } => {
             let mut stops = g.gradient.stops.clone();
@@ -410,7 +410,7 @@ fn apply_tint(app: &mut VectorcraftApp, tgt: &Target, tint: &Tint, t: f32, phase
 
 /// Switch the panel to `mode`, converting the colour to its model (a tint becomes a process
 /// colour).
-fn set_mode(app: &mut VectorcraftApp, ctx: &egui::Context, tgt: &Target, mode: Mode) {
+fn set_mode(app: &mut SplinewrightApp, ctx: &egui::Context, tgt: &Target, mode: Mode) {
     set_pstate(ctx, "color-mode", Some(mode));
     if let Some(c) = tgt.color() {
         let conv = convert_to(mode, &c);
@@ -468,7 +468,7 @@ fn spectrum(ui: &mut Ui, mode: Mode, size: egui::Vec2) -> Option<SpectrumHit> {
     Some(SpectrumHit::Pick(spectrum_at(mode, (p.x - r.left()) / r.width(), (p.y - r.top()) / r.height()), phase))
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let tgt = target(app, ui);
     let color = tgt.color();
@@ -614,7 +614,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     }
 }
 
-pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(app: &mut SplinewrightApp, ui: &mut Ui) {
     let hidden: bool = pstate(ui.ctx(), "color-hide-options");
     if menu_item(ui, if hidden { tl!("Show Options") } else { tl!("Hide Options") }, true, false) {
         set_pstate(ui.ctx(), "color-hide-options", !hidden);
@@ -667,10 +667,10 @@ pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vectorcraft_engine::Session;
+    use splinewright_engine::Session;
 
-    fn app() -> VectorcraftApp {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    fn app() -> SplinewrightApp {
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
         app.run("shape.rectangle", json!({"x": 10, "y": 10, "width": 50, "height": 50})).unwrap();
         app
@@ -678,7 +678,7 @@ mod tests {
 
     /// Run the panel for one frame with `events` and `modifiers`; returns the spectrum's rect (when
     /// the options are shown) and the panel's height.
-    fn frame(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<egui::Event>, modifiers: egui::Modifiers) -> (Option<Rect>, f32) {
+    fn frame(app: &mut SplinewrightApp, ctx: &egui::Context, events: Vec<egui::Event>, modifiers: egui::Modifiers) -> (Option<Rect>, f32) {
         let mut out = (None, 0.0);
         let events = std::iter::once(egui::Event::ModifiersChanged(modifiers)).chain(events).collect();
         let input = egui::RawInput { events, ..Default::default() };
@@ -691,7 +691,7 @@ mod tests {
     }
 
     /// Click the spectrum at (x, y) (0..1 each) with `modifiers` held.
-    fn click_spectrum(app: &mut VectorcraftApp, ctx: &egui::Context, (x, y): (f32, f32), modifiers: egui::Modifiers) {
+    fn click_spectrum(app: &mut SplinewrightApp, ctx: &egui::Context, (x, y): (f32, f32), modifiers: egui::Modifiers) {
         let r = frame(app, ctx, vec![], modifiers).0.expect("the spectrum is drawn");
         let pos = egui::pos2(r.left() + x * r.width(), r.top() + y * r.height());
         let button = |pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers };
@@ -700,7 +700,7 @@ mod tests {
         frame(app, ctx, vec![], egui::Modifiers::NONE);
     }
 
-    fn paints_hex(app: &VectorcraftApp) -> (String, String) {
+    fn paints_hex(app: &SplinewrightApp) -> (String, String) {
         let (f, s) = crate::panels::current_paints(app);
         (f.color().map(|c| c.to_hex()).unwrap_or_default(), s.color().map(|c| c.to_hex()).unwrap_or_default())
     }
@@ -758,7 +758,7 @@ mod tests {
         assert_eq!((Mode::Lab.value_at(1, 0.0), Mode::Lab.value_at(0, 1.0)), (-128.0, 100.0));
         assert_eq!((Mode::Rgb.value_at(0, 0.5), Mode::WebSafe.value_at(0, 0.45)), (128.0, 102.0), "other modes as before");
         assert_eq!(track_color(Mode::Lab, &[50.0, -20.0, 30.0], 1, 0.0), Color::lab(50.0, -128.0, 30.0));
-        assert_eq!(convert_to(Mode::Lab, &Color::rgb(1.0, 0.0, 0.0)).model(), vectorcraft_color::cms::Model::Lab);
+        assert_eq!(convert_to(Mode::Lab, &Color::rgb(1.0, 0.0, 0.0)).model(), splinewright_color::cms::Model::Lab);
         // In the panel: a Lab fill shows L, a, b.
         let mut app = app();
         let ctx = egui::Context::default();
@@ -817,7 +817,7 @@ mod tests {
         let mut app = app();
         let ctx = egui::Context::default();
         // One frame of the proxy alone; returns the stroke square's rect.
-        let run = |app: &mut VectorcraftApp, time: f64, events: Vec<egui::Event>| {
+        let run = |app: &mut SplinewrightApp, time: f64, events: Vec<egui::Event>| {
             let input = egui::RawInput { time: Some(time), events, ..Default::default() };
             let mut rect = None;
             let mut out = ctx.run_ui(input, |ui| {
@@ -854,7 +854,7 @@ mod tests {
         });
         // The chip's name and the T row are drawn; a click on the slider's right part raises the
         // tint and keeps the link.
-        let texts = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
+        let texts = |app: &mut SplinewrightApp, events: Vec<egui::Event>| {
             fn walk(s: &egui::Shape, out: &mut Vec<(String, egui::Pos2)>) {
                 match s {
                     egui::Shape::Text(t) => out.push((t.galley.text().to_string(), t.pos + t.galley.rect.center().to_vec2())),

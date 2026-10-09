@@ -1,38 +1,38 @@
 [workspace]
 resolver = "3"
 members = ["crates/*", "apps/*", "xtask"]
-default-members = ["crates/*", "apps/vectorcraft", "apps/vectorcraft-cli", "xtask"]
+default-members = ["crates/*", "apps/splinewright", "apps/splinewright-cli", "xtask"]
 
 [workspace.package]
 version = "0.6.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.95"
-repository = "https://github.com/storytold/vectorcraft"
+repository = "https://github.com/game7ballJT/splinewright"
 
 [workspace.dependencies]
 # internal
-vectorcraft-geom = { path = "crates/geom" }
-vectorcraft-color = { path = "crates/color" }
-vectorcraft-doc = { path = "crates/doc" }
-vectorcraft-pathops = { path = "crates/pathops" }
-vectorcraft-brush = { path = "crates/brush" }
-vectorcraft-trace = { path = "crates/trace" }
-vectorcraft-text = { path = "crates/text" }
-vectorcraft-effects = { path = "crates/effects" }
-vectorcraft-render = { path = "crates/render" }
-vectorcraft-svg = { path = "crates/svg" }
-vectorcraft-pdf = { path = "crates/pdf" }
-vectorcraft-format = { path = "crates/format" }
-vectorcraft-tools = { path = "crates/tools" }
-vectorcraft-engine = { path = "crates/engine" }
-vectorcraft-ui-egui = { path = "crates/ui-egui" }
-vectorcraft-mcp = { path = "crates/mcp" }
-vectorcraft-testkit = { path = "crates/testkit" }
-vectorcraft-cad = { path = "crates/cad" }
-vectorcraft-eps = { path = "crates/eps" }
-vectorcraft-metafile = { path = "crates/metafile" }
-vectorcraft-plugins = { path = "crates/plugins" }
+splinewright-geom = { path = "crates/geom" }
+splinewright-color = { path = "crates/color" }
+splinewright-doc = { path = "crates/doc" }
+splinewright-pathops = { path = "crates/pathops" }
+splinewright-brush = { path = "crates/brush" }
+splinewright-trace = { path = "crates/trace" }
+splinewright-text = { path = "crates/text" }
+splinewright-effects = { path = "crates/effects" }
+splinewright-render = { path = "crates/render" }
+splinewright-svg = { path = "crates/svg" }
+splinewright-pdf = { path = "crates/pdf" }
+splinewright-format = { path = "crates/format" }
+splinewright-tools = { path = "crates/tools" }
+splinewright-engine = { path = "crates/engine" }
+splinewright-ui-egui = { path = "crates/ui-egui" }
+splinewright-mcp = { path = "crates/mcp" }
+splinewright-testkit = { path = "crates/testkit" }
+splinewright-cad = { path = "crates/cad" }
+splinewright-eps = { path = "crates/eps" }
+splinewright-metafile = { path = "crates/metafile" }
+splinewright-plugins = { path = "crates/plugins" }
 
 # foundation
 kurbo = { version = "0.13", features = ["serde"] }
@@ -62,7 +62,7 @@ linesweeper = "0.4"
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 jpeg-encoder = { version = "0.6", default-features = false, features = ["std"] }
 gif = { version = "0.14", default-features = false, features = ["std", "raii_no_panic"] }
-# CMYK image samples (vectorcraft-doc's cmyk module): the image crate's own TIFF and JPEG
+# CMYK image samples (splinewright-doc's cmyk module): the image crate's own TIFF and JPEG
 # decoders, read directly (the image crate converts CMYK to RGB).
 tiff = "0.11"
 zune-jpeg = "0.5"
@@ -82,7 +82,7 @@ unsafe_code = "deny"
 
 [workspace.lints.clippy]
 dbg_macro = "warn"
-# VectorCraft never crashes: shipped code returns `Result`/`Option` instead of panicking (see
+# Splinewright never crashes: shipped code returns `Result`/`Option` instead of panicking (see
 # AGENTS.md › Robustness). Tests may unwrap (clippy.toml).
 unwrap_used = "deny"
 expect_used = "deny"

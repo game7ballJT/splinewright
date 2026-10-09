@@ -1,9 +1,9 @@
 //! Transform & utility tools driven through `Session::pointer`, and their commands.
 
 use serde_json::json;
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_geom::{Point, Rect};
-use vectorcraft_tools::{Mods, PointerEvent, PointerKind, ToolKey};
+use splinewright_color::{Color, Paint};
+use splinewright_geom::{Point, Rect};
+use splinewright_tools::{Mods, PointerEvent, PointerKind, ToolKey};
 
 use super::*;
 

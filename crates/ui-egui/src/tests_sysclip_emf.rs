@@ -2,9 +2,9 @@
 //! service of M4.57).
 
 use serde_json::json;
-use vectorcraft_doc::NodeKind;
-use vectorcraft_engine::Session;
-use vectorcraft_engine::cmd::clipboard::{EMF, PNG};
+use splinewright_doc::NodeKind;
+use splinewright_engine::Session;
+use splinewright_engine::cmd::clipboard::{EMF, PNG};
 
 use crate::sysclip::import_command;
 use crate::tests_sysclip::{app, blue_png, copy_elsewhere, pasted, run};
@@ -16,8 +16,8 @@ fn an_emf_from_another_app_pastes_as_vectors_ahead_of_its_bitmap() {
     other.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
     other.execute("shape.ellipse", &json!({"x": 10, "y": 10, "width": 30, "height": 30})).unwrap();
     let emf = other.execute("document.export", &json!({"format": "emf"})).unwrap();
-    let emf = vectorcraft_format::base64_decode(emf["dataBase64"].as_str().unwrap()).unwrap();
-    let flavour = vectorcraft_engine::cmd::clipboard::Flavour { mime: EMF, data: emf.clone() };
+    let emf = splinewright_format::base64_decode(emf["dataBase64"].as_str().unwrap()).unwrap();
+    let flavour = splinewright_engine::cmd::clipboard::Flavour { mime: EMF, data: emf.clone() };
     assert_eq!(import_command(&flavour, None).0, "clipboard.importEmf");
     copy_elsewhere(&board, vec![(PNG, blue_png()), (EMF, emf)]);
     run(&mut app, "edit.paste", json!({}));

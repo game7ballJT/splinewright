@@ -1,13 +1,13 @@
-//! The native `.vectorcraft` format.
+//! The native `.splinewright` format.
 //!
-//! A `.vectorcraft` file is UTF-8 JSON, gzip-compressed when saved with Use Compression (told apart
+//! A `.splinewright` file is UTF-8 JSON, gzip-compressed when saved with Use Compression (told apart
 //! by its magic bytes on open, whatever the version):
 //! ```json
-//! { "format": "vectorcraft", "version": 3, "generator": "VectorCraft 0.1.0",
+//! { "format": "splinewright", "version": 3, "generator": "Splinewright 0.1.0",
 //!   "preview": { "mime": "image/png", "data": "<base64>" },
 //!   "profiles": { "<profile name>": { "mime": "application/vnd.iccprofile", "data": "<base64>" } },
 //!   "pdf": { "mime": "application/pdf", "data": "<base64>" },
-//!   "document": { …vectorcraft_doc::Document… },
+//!   "document": { …splinewright_doc::Document… },
 //!   "images": { "<key>": { "mime": "image/png", "data": "<base64>" } } }
 //! ```
 //! It is lossless for everything in the document model; foreign data lives in `document.unknown`
@@ -37,7 +37,7 @@ use std::collections::{BTreeMap, HashSet};
 use std::io::{Read as _, Write as _};
 
 use serde::{Deserialize, Serialize};
-use vectorcraft_doc::{Document, ImageBlob};
+use splinewright_doc::{Document, ImageBlob};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use atomic::{write_atomic, write_atomic_with};
@@ -50,7 +50,7 @@ pub const MIN_VERSION: u32 = 1;
 pub const COMPRESSED_SINCE: u32 = 3;
 /// Most pixels on the longer side of an embedded preview.
 pub const PREVIEW_MAX: u32 = 256;
-pub const EXTENSION: &str = "vectorcraft";
+pub const EXTENSION: &str = "splinewright";
 /// Extension and format name from before the project was renamed (DrawCraft): still opened.
 pub const LEGACY_EXTENSION: &str = "drawcraft";
 /// Most bytes a compressed file may unpack to (a guard against decompression bombs).
@@ -68,13 +68,13 @@ pub fn is_native_name(name: &str) -> bool {
 
 #[derive(Debug, thiserror::Error)]
 pub enum FormatError {
-    #[error("not a VectorCraft file: {0}")]
-    NotVectorcraft(String),
-    #[error("file version {0} is newer than this VectorCraft supports ({VERSION})")]
+    #[error("not a Splinewright file: {0}")]
+    NotSplinewright(String),
+    #[error("file version {0} is newer than this Splinewright supports ({VERSION})")]
     TooNew(u32),
     #[error("invalid image data for `{0}`")]
     BadImage(String),
-    #[error("can't save version {0}: VectorCraft writes versions {MIN_VERSION} to {VERSION}")]
+    #[error("can't save version {0}: Splinewright writes versions {MIN_VERSION} to {VERSION}")]
     BadVersion(u32),
     #[error("version {0} files can't be compressed: only version {COMPRESSED_SINCE} and later open compressed files")]
     CompressedTooOld(u32),
@@ -196,7 +196,7 @@ pub fn save_with(doc: &Document, o: &SaveOptions) -> Result<Vec<u8>, FormatError
             // Include Linked Files keeps the file's bytes whenever they are loaded.
             let preview_only = linked.contains(k) && (!o.include_linked || b.is_proxy());
             let image = match b.proxy.as_ref().filter(|_| preview_only) {
-                Some(p) => Image { mime: vectorcraft_doc::links::PROXY_MIME.into(), data: base64_encode(p), proxy: true },
+                Some(p) => Image { mime: splinewright_doc::links::PROXY_MIME.into(), data: base64_encode(p), proxy: true },
                 None => Image { mime: b.mime.clone(), data: base64_encode(&b.bytes), proxy: false },
             };
             (k.as_str(), image)
@@ -211,7 +211,7 @@ pub fn save_with(doc: &Document, o: &SaveOptions) -> Result<Vec<u8>, FormatError
     // Older apps only know the name from before the rename.
     w.field("format", &if o.version < VERSION { LEGACY_EXTENSION } else { EXTENSION })?;
     w.field("version", &o.version)?;
-    w.field("generator", &format!("VectorCraft {}", env!("CARGO_PKG_VERSION")))?;
+    w.field("generator", &format!("Splinewright {}", env!("CARGO_PKG_VERSION")))?;
     if let Some(png) = &o.preview {
         w.field("preview", &blob("image/png", png))?;
     }
@@ -312,7 +312,7 @@ fn unpack(bytes: &[u8]) -> Result<Cow<'_, [u8]>, FormatError> {
     flate2::read::GzDecoder::new(bytes)
         .take(MAX_UNPACKED + 1)
         .read_to_end(&mut raw)
-        .map_err(|e| FormatError::NotVectorcraft(format!("damaged compressed data: {e}")))?;
+        .map_err(|e| FormatError::NotSplinewright(format!("damaged compressed data: {e}")))?;
     if raw.len() as u64 > MAX_UNPACKED {
         return Err(FormatError::TooBig);
     }
@@ -356,9 +356,9 @@ pub fn load_info(bytes: &[u8]) -> Result<(Document, FileInfo), FormatError> {
 /// [`load`], with everything else the file carries.
 pub fn load_file(bytes: &[u8]) -> Result<NativeFile, FormatError> {
     let text = unpack(bytes)?;
-    let f: File = serde_json::from_slice(&text).map_err(|e| FormatError::NotVectorcraft(e.to_string()))?;
+    let f: File = serde_json::from_slice(&text).map_err(|e| FormatError::NotSplinewright(e.to_string()))?;
     if f.format != EXTENSION && f.format != LEGACY_EXTENSION {
-        return Err(FormatError::NotVectorcraft(format!("format is `{}`", f.format)));
+        return Err(FormatError::NotSplinewright(format!("format is `{}`", f.format)));
     }
     if f.version > VERSION {
         return Err(FormatError::TooNew(f.version));
@@ -408,7 +408,7 @@ pub fn pdf_content(bytes: &[u8]) -> Option<Vec<u8>> {
     base64_decode(&head(bytes)?.pdf?.data)
 }
 
-/// Does this look like a `.vectorcraft` file (compressed or not)?
+/// Does this look like a `.splinewright` file (compressed or not)?
 pub fn sniff(bytes: &[u8]) -> bool {
     const HEAD: usize = 256;
     let head: Cow<'_, [u8]> = if is_compressed(bytes) {
@@ -421,7 +421,7 @@ pub fn sniff(bytes: &[u8]) -> bool {
     };
     // The cut may split a character.
     let s = String::from_utf8_lossy(&head);
-    s.trim_start().starts_with('{') && (s.contains("\"vectorcraft\"") || s.contains("\"drawcraft\""))
+    s.trim_start().starts_with('{') && (s.contains("\"splinewright\"") || s.contains("\"drawcraft\""))
 }
 
 const B64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -474,11 +474,11 @@ mod tests {
     #[test]
     fn files_from_before_the_rename_still_open() {
         let d = Document::new(100.0, 50.0);
-        let legacy = String::from_utf8(save(&d, false)).unwrap().replacen("\"format\":\"vectorcraft\"", "\"format\":\"drawcraft\"", 1);
+        let legacy = String::from_utf8(save(&d, false)).unwrap().replacen("\"format\":\"splinewright\"", "\"format\":\"drawcraft\"", 1);
         assert!(legacy.contains("\"drawcraft\""));
         assert!(sniff(legacy.as_bytes()));
         assert_eq!(load(legacy.as_bytes()).unwrap().artboards[0].rect, d.artboards[0].rect);
-        assert!(is_native_name("old/Poster.DrawCraft") && is_native_name("new.vectorcraft") && !is_native_name("x.svg"));
+        assert!(is_native_name("old/Poster.DrawCraft") && is_native_name("new.splinewright") && !is_native_name("x.svg"));
         assert!(load(br#"{"format":"other","version":1,"document":{}}"#).is_err());
     }
 
@@ -489,14 +489,14 @@ mod tests {
         assert_eq!(load_info(&current).unwrap().1, FileInfo { version: VERSION, legacy: false });
         assert!(!load_info(&current).unwrap().1.is_old());
         let text = String::from_utf8(current).unwrap();
-        let legacy = text.replacen("\"format\":\"vectorcraft\"", "\"format\":\"drawcraft\"", 1);
+        let legacy = text.replacen("\"format\":\"splinewright\"", "\"format\":\"drawcraft\"", 1);
         assert!(load_info(legacy.as_bytes()).unwrap().1.is_old());
         let v1 = text.replacen(&format!("\"version\":{VERSION}"), "\"version\":1", 1);
         assert_eq!(load_info(v1.as_bytes()).unwrap().1, FileInfo { version: 1, legacy: false });
         assert!(load_info(v1.as_bytes()).unwrap().1.is_old());
     }
-    use vectorcraft_doc::{Appearance, ImageObject, Node, NodeKind};
-    use vectorcraft_geom::{Affine, Rect, shapes};
+    use splinewright_doc::{Appearance, ImageObject, Node, NodeKind};
+    use splinewright_geom::{Affine, Rect, shapes};
 
     #[test]
     fn roundtrip() {

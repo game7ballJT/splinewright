@@ -6,11 +6,11 @@
 
 use std::sync::Arc;
 
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{CharStyle, Document, Justify, Node, NodeKind, TextKind, TextObject, TextRun};
-use vectorcraft_geom::{Affine, BezPath, PathData, Point, Rect, shapes};
-use vectorcraft_svg::{ExportOptions, export};
-use vectorcraft_testkit::raster::{assert_similar, render_artboard};
+use splinewright_color::{Color, Paint};
+use splinewright_doc::{CharStyle, Document, Justify, Node, NodeKind, TextKind, TextObject, TextRun};
+use splinewright_geom::{Affine, BezPath, PathData, Point, Rect, shapes};
+use splinewright_svg::{ExportOptions, export};
+use splinewright_testkit::raster::{assert_similar, render_artboard};
 
 fn style(size: f64) -> CharStyle {
     CharStyle { size, fill: Paint::solid(Color::BLACK), ..CharStyle::default() }
@@ -56,7 +56,7 @@ fn wrapped_lines_get_one_tspan_each() {
     assert!((ys[1] - ys[0] - 14.4).abs() < 0.01, "{ys:?}");
     assert!(tags.iter().all(|t| attr(t, "x") == Some(0.0)), "left aligned at the frame's edge: {svg}");
     // Reading it back gives a line per baseline, starting at the first baseline.
-    let back = vectorcraft_svg::import(&svg).unwrap();
+    let back = splinewright_svg::import(&svg).unwrap();
     let text = back.layers[0].children().unwrap().iter().find_map(|n| if let NodeKind::Text(t) = &n.kind { Some(t.clone()) } else { None }).unwrap();
     assert_eq!(text.plain_text().lines().count(), ys.len(), "{:?}", text.plain_text());
     assert!((text.xf.translation().y - (20.0 + ys[0])).abs() < 0.01);
@@ -176,7 +176,7 @@ fn a_viewer_draws_the_text_where_the_canvas_does() {
                 let outlines = viewer_outlines(&svg);
                 assert!(outlines.iter().map(|b| b.elements().len()).sum::<usize>() > 200, "the viewer laid the text out");
                 for bp in outlines {
-                    let ap = vectorcraft_doc::Appearance::basic(Paint::solid(Color::BLACK), Paint::None, 0.0);
+                    let ap = splinewright_doc::Appearance::basic(Paint::solid(Color::BLACK), Paint::None, 0.0);
                     let n = Node::path(viewer.alloc_id(), PathData::from_bezpath(&bp), ap);
                     viewer.insert(Some(l), usize::MAX, n).unwrap();
                 }

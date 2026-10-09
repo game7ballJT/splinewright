@@ -6,10 +6,10 @@ use std::io::Cursor;
 use std::sync::Arc;
 
 use serde_json::json;
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Appearance, CharStyle, Document, Effect, ImageBlob, ImageObject, Node, NodeKind, Symbol, TextObject};
-use vectorcraft_geom::{Affine, Point, Rect, shapes};
-use vectorcraft_render::{Rendered, Renderer};
+use splinewright_color::{Color, Paint};
+use splinewright_doc::{Appearance, CharStyle, Document, Effect, ImageBlob, ImageObject, Node, NodeKind, Symbol, TextObject};
+use splinewright_geom::{Affine, Point, Rect, shapes};
+use splinewright_render::{Rendered, Renderer};
 
 use super::*;
 
@@ -59,7 +59,7 @@ fn assert_written(what: &str, d: &Document) {
     assert!(r.warnings.is_empty(), "{what}: {:?}", r.warnings);
     assert!(String::from_utf8_lossy(&r.bytes).contains("/Subtype/Image"), "{what}: an image XObject");
     let canvas = render(d);
-    let diff = mean_diff(&canvas, &render(&vectorcraft_pdf::import(&r.bytes).unwrap()));
+    let diff = mean_diff(&canvas, &render(&splinewright_pdf::import(&r.bytes).unwrap()));
     let mut plain = d.clone();
     for l in &mut plain.layers {
         crate::cmd::rasterfx::strip_raster(Arc::make_mut(l), true);

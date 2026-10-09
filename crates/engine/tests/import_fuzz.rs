@@ -6,15 +6,15 @@
 //! of every kind with random contents) opened, placed or pasted, nor EPS and PostScript files
 //! (damaged ones, hostile programs) read by the PostScript interpreter.
 //!
-//! `PROPTEST_CASES=20000 cargo test -p vectorcraft-engine --test import_fuzz` runs a deeper search.
+//! `PROPTEST_CASES=20000 cargo test -p splinewright-engine --test import_fuzz` runs a deeper search.
 // Integration tests: unwrapping and panicking on failure is fine here, unlike in shipped code (AGENTS.md › Robustness).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use proptest::prelude::*;
 use serde_json::{Value, json};
-use vectorcraft_doc::Document;
-use vectorcraft_testkit::catch_quiet;
-use vectorcraft_testkit::fixtures::rich_session;
+use splinewright_doc::Document;
+use splinewright_testkit::catch_quiet;
+use splinewright_testkit::fixtures::rich_session;
 
 /// 64 cases each, unless `PROPTEST_CASES` asks for more.
 fn config() -> ProptestConfig {
@@ -29,16 +29,16 @@ fn config() -> ProptestConfig {
 fn survive(what: &str, import: impl FnOnce() -> Option<Document>) -> Result<(), TestCaseError> {
     let r = catch_quiet(|| {
         if let Some(d) = import() {
-            let mut r = vectorcraft_render::Renderer::new();
+            let mut r = splinewright_render::Renderer::new();
             if let Some(ab) = d.artboards.first() {
                 let scale = (256.0 / ab.rect.width().max(ab.rect.height()).max(1.0)).min(1.0);
-                if vectorcraft_render::raster_size(ab.rect, scale).is_ok() {
+                if splinewright_render::raster_size(ab.rect, scale).is_ok() {
                     let _ = r.render_region(&d, ab.rect, scale, true).to_png();
                 }
             }
-            let _ = vectorcraft_svg::export(&d, &vectorcraft_svg::ExportOptions::default());
-            let _ = vectorcraft_engine::export_pdf(&d, &vectorcraft_pdf::PdfOptions::default());
-            let _ = vectorcraft_format::save_file(&d);
+            let _ = splinewright_svg::export(&d, &splinewright_svg::ExportOptions::default());
+            let _ = splinewright_engine::export_pdf(&d, &splinewright_pdf::PdfOptions::default());
+            let _ = splinewright_format::save_file(&d);
         }
     });
     r.map_err(|msg| TestCaseError::fail(format!("{what}: panicked: {msg}")))
@@ -49,11 +49,11 @@ fn rich_doc() -> Document {
 }
 
 fn rich_svg() -> String {
-    vectorcraft_svg::export(&rich_doc(), &vectorcraft_svg::ExportOptions::default())
+    splinewright_svg::export(&rich_doc(), &splinewright_svg::ExportOptions::default())
 }
 
 fn rich_pdf() -> Vec<u8> {
-    vectorcraft_engine::export_pdf(&rich_doc(), &vectorcraft_pdf::PdfOptions::uncompressed()).unwrap()
+    splinewright_engine::export_pdf(&rich_doc(), &splinewright_pdf::PdfOptions::uncompressed()).unwrap()
 }
 
 /// Numbers that tend to break arithmetic: zero, negatives, huge, tiny, exponents, junk.
@@ -118,7 +118,7 @@ fn arb_svg_attr() -> impl Strategy<Value = String> {
         "stroke",
         "stop-color",
         "mask-type",
-        "data-vectorcraft-mask",
+        "data-splinewright-mask",
         "href",
         "baseline-shift",
         "word-spacing",
@@ -248,7 +248,7 @@ proptest! {
 
     #[test]
     fn svg_garbage_never_panics(s in ".{0,300}") {
-        survive("svg garbage", || vectorcraft_svg::import(&s).ok())?;
+        survive("svg garbage", || splinewright_svg::import(&s).ok())?;
     }
 
     #[test]
@@ -257,7 +257,7 @@ proptest! {
         body in prop::collection::vec(arb_svg_element(2), 0..6),
     ) {
         let svg = format!("<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"{}>{}</svg>", root.concat(), body.concat());
-        survive(&svg, || vectorcraft_svg::import(&svg).ok())?;
+        survive(&svg, || splinewright_svg::import(&svg).ok())?;
     }
 
     #[test]
@@ -270,7 +270,7 @@ proptest! {
             "<svg xmlns=\"http://www.w3.org/2000/svg\"><style>{sheet}</style><g class=\"a b\"><text id=\"t\" class=\"a\" x=\"1 2 3\" y=\"9\" rotate=\"5\" style=\"{decls}\">ab<tspan dy=\"3\">c</tspan></text></g>{}</svg>",
             body.concat()
         );
-        survive(&svg, || vectorcraft_svg::import(&svg).ok())?;
+        survive(&svg, || splinewright_svg::import(&svg).ok())?;
     }
 
     #[test]
@@ -279,7 +279,7 @@ proptest! {
         edits in prop::collection::vec((0usize..20_000, prop::sample::select(vec!['<', '>', '"', '/', '-', '9', 'e', '.', ' ', '#', '%', '&', ';', 'x'])), 0..10),
     ) {
         let svg = mutate_text(&rich_svg(), cut, &edits);
-        survive("mutated svg", || vectorcraft_svg::import(&svg).ok())?;
+        survive("mutated svg", || splinewright_svg::import(&svg).ok())?;
     }
 }
 
@@ -357,7 +357,7 @@ proptest! {
     fn pdf_garbage_never_panics(bytes in prop::collection::vec(any::<u8>(), 0..600)) {
         let mut b = b"%PDF-1.7\n".to_vec();
         b.extend(bytes);
-        survive("pdf garbage", || vectorcraft_pdf::import(&b).ok())?;
+        survive("pdf garbage", || splinewright_pdf::import(&b).ok())?;
     }
 
     #[test]
@@ -367,7 +367,7 @@ proptest! {
         media in prop::sample::select(vec!["[0 0 100 100]", "[0 0 0 0]", "[0 0 1e308 1e308]", "[100 100 0 0]", "[-5 -5 -1 -1]", "[0 0 14400 14400]", "[]", "[0 0 NaN 5]"]),
     ) {
         let pdf = handmade_pdf(&ops.join("\n"), &resources, media);
-        survive(&ops.join(" "), || vectorcraft_pdf::import(&pdf).ok())?;
+        survive(&ops.join(" "), || splinewright_pdf::import(&pdf).ok())?;
     }
 
     #[test]
@@ -381,7 +381,7 @@ proptest! {
             b[i % n] = c;
         }
         b.truncate(cut.min(b.len()).max(9));
-        survive("mutated pdf", || vectorcraft_pdf::import(&b).ok())?;
+        survive("mutated pdf", || splinewright_pdf::import(&b).ok())?;
     }
 }
 
@@ -412,7 +412,7 @@ proptest! {
         pages in prop::sample::select(vec!["1", "2", "1-2", "2-1", "0", "-", "1-", "all", "1,1,2", "99999999999999999999"]),
         crop in prop::sample::select(vec!["bounding", "art", "crop", "trim", "bleed", "media", "nope"]),
     ) {
-        use vectorcraft_testkit::pdf::{PdfPage, pdf};
+        use splinewright_testkit::pdf::{PdfPage, pdf};
         let page = PdfPage {
             media: boxes[0].unwrap_or([0.0, 0.0, 100.0, 100.0]),
             crop: boxes[1],
@@ -423,9 +423,9 @@ proptest! {
             ..PdfPage::new(0.0, 0.0, "0 0 1 rg 20 20 50 50 re f")
         };
         let bytes = pdf(&[page.clone(), page], encrypt.then_some("pw"));
-        let b64 = vectorcraft_format::base64_encode(&bytes);
+        let b64 = splinewright_format::base64_encode(&bytes);
         let r = catch_quiet(|| {
-            let mut s = vectorcraft_engine::Session::new();
+            let mut s = splinewright_engine::Session::new();
             let p = json!({"name": "x.pdf", "dataBase64": b64, "pages": pages, "cropTo": crop, "password": password, "thumbnail": 1, "thumbnailSize": 64});
             let _ = s.execute("document.pdfInfo", &p);
             if s.execute("document.open", &p).is_ok() {
@@ -440,7 +440,7 @@ proptest! {
 /// Hostile content over layers (optional content, one group off), soft masks, tiling patterns,
 /// a patch mesh, an unextended shading and fonts: the import's own readings of the file.
 fn rich_resources_pdf(content: &str, config: &str) -> Vec<u8> {
-    use vectorcraft_testkit::pdf::{PdfPage, first_extra, pdf_with_catalog};
+    use splinewright_testkit::pdf::{PdfPage, first_extra, pdf_with_catalog};
     let x = first_extra(1);
     let stream = |dict: &str, data: &str| format!("<< {dict} /Length {} >>\nstream\n{data}\nendstream", data.len());
     let extra = [
@@ -513,12 +513,12 @@ proptest! {
         outlines in any::<bool>(),
     ) {
         let bytes = rich_resources_pdf(&ops.join("\n"), config);
-        let opts = vectorcraft_pdf::ImportOptions {
+        let opts = splinewright_pdf::ImportOptions {
             layers,
-            text_as: if outlines { vectorcraft_pdf::TextAs::Outlines } else { vectorcraft_pdf::TextAs::Text },
+            text_as: if outlines { splinewright_pdf::TextAs::Outlines } else { splinewright_pdf::TextAs::Text },
             ..Default::default()
         };
-        survive(&ops.join(" "), || vectorcraft_pdf::import_with_report(&bytes, &opts).ok().map(|r| r.document))?;
+        survive(&ops.join(" "), || splinewright_pdf::import_with_report(&bytes, &opts).ok().map(|r| r.document))?;
     }
 }
 
@@ -531,7 +531,7 @@ fn saved(cmd: &str, params: Value) -> String {
 
 /// Library file `data` loaded with `load`; what it holds is then used on the rich document
 /// (`then`, given the load's result), which renders and exports.
-fn survive_library(what: &str, load: &str, data: &str, then: impl FnOnce(&mut vectorcraft_engine::Session, &Value)) -> Result<(), TestCaseError> {
+fn survive_library(what: &str, load: &str, data: &str, then: impl FnOnce(&mut splinewright_engine::Session, &Value)) -> Result<(), TestCaseError> {
     survive(what, || {
         let mut s = rich_session();
         let r = s.execute(load, &json!({"data": data, "name": "fuzz"})).ok()?;
@@ -612,7 +612,7 @@ fn raster_samples() -> Vec<(&'static str, Vec<u8>)> {
         img.write_to(&mut std::io::Cursor::new(&mut b), f).unwrap();
         out.push((name, b));
     }
-    out[0].1 = vectorcraft_engine::cmd::fileio::ppi::with_png_resolution(&out[0].1, (300.0, 150.0));
+    out[0].1 = splinewright_engine::cmd::fileio::ppi::with_png_resolution(&out[0].1, (300.0, 150.0));
     out
 }
 
@@ -631,11 +631,11 @@ proptest! {
         }
         bytes.truncate(cut.max(8));
         let r = catch_quiet(|| {
-            let _ = vectorcraft_engine::cmd::fileio::ppi::resolution(&bytes);
-            let _ = vectorcraft_engine::cmd::fileio::ppi::with_png_resolution(&bytes, (72.0, 72.0));
-            let mut s = vectorcraft_engine::Session::new();
+            let _ = splinewright_engine::cmd::fileio::ppi::resolution(&bytes);
+            let _ = splinewright_engine::cmd::fileio::ppi::with_png_resolution(&bytes, (72.0, 72.0));
+            let mut s = splinewright_engine::Session::new();
             s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-            let p = json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&bytes), "thumbnail": 8});
+            let p = json!({"name": name, "dataBase64": splinewright_format::base64_encode(&bytes), "thumbnail": 8});
             let _ = s.execute("file.place.info", &p);
             let _ = s.execute("file.place", &p);
         });
@@ -651,8 +651,8 @@ fn saved_svg() -> String {
     if let Some(l) = d.layers.first_mut() {
         std::sync::Arc::make_mut(l).visible = false;
     }
-    let opts = vectorcraft_svg::ExportOptions { hidden_layers: true, preserve_editing: true, ..Default::default() };
-    vectorcraft_svg::export_full(&d, &opts, Some(&vectorcraft_format::save(&d, false))).svg
+    let opts = splinewright_svg::ExportOptions { hidden_layers: true, preserve_editing: true, ..Default::default() };
+    splinewright_svg::export_full(&d, &opts, Some(&splinewright_format::save(&d, false))).svg
 }
 
 proptest! {
@@ -664,7 +664,7 @@ proptest! {
         edits in prop::collection::vec((0usize..40_000, prop::sample::select(vec!['<', '>', '"', '/', '-', '9', 'e', '.', ' ', '#', '%', '&', ';', 'x', ']', 'A'])), 0..10),
     ) {
         let svg = mutate_text(&saved_svg(), cut, &edits);
-        survive("mutated saved svg", || vectorcraft_engine::cmd::fileio::load("saved.svg", svg.as_bytes()).ok().map(|l| l.doc))?;
+        survive("mutated saved svg", || splinewright_engine::cmd::fileio::load("saved.svg", svg.as_bytes()).ok().map(|l| l.doc))?;
     }
 }
 
@@ -675,7 +675,7 @@ fn saved_ai() -> Vec<u8> {
     static AI: std::sync::OnceLock<Vec<u8>> = std::sync::OnceLock::new();
     AI.get_or_init(|| {
         let r = rich_session().execute("document.save", &json!({"format": "ai", "compression": {"compressText": false}})).unwrap();
-        vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
+        splinewright_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
     })
     .clone()
 }
@@ -694,7 +694,7 @@ proptest! {
             b[i % n] = c;
         }
         b.truncate(cut.min(b.len()).max(9));
-        survive("mutated ai", || vectorcraft_engine::cmd::fileio::load("saved.ai", &b).ok().map(|l| l.doc))?;
+        survive("mutated ai", || splinewright_engine::cmd::fileio::load("saved.ai", &b).ok().map(|l| l.doc))?;
     }
 }
 
@@ -720,7 +720,7 @@ proptest! {
 
     #[test]
     fn mutated_pdf_presets_never_panic(cut in 0usize..20_000, edits in prop::collection::vec(arb_edit(), 0..10)) {
-        let text = saved("pdf.preset.export", json!({"names": ["VectorCraft Default", "Smallest File Size", "PDF/X-4:2010"]}));
+        let text = saved("pdf.preset.export", json!({"names": ["Splinewright Default", "Smallest File Size", "PDF/X-4:2010"]}));
         pdf_presets("mutated pdf presets", &mutate_text(&text, cut, &edits))?;
     }
 }
@@ -730,7 +730,7 @@ proptest! {
 /// Load `p` into the clipboard with `cmd`, then paste it into a new document: neither may panic.
 fn paste_from_elsewhere(cmd: &str, p: Value) -> Result<(), TestCaseError> {
     let r = catch_quiet(|| {
-        let mut s = vectorcraft_engine::Session::new();
+        let mut s = splinewright_engine::Session::new();
         s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
         if s.execute(cmd, &p).is_ok() {
             // Paste may refuse what it was given, e.g. a damaged PDF whose art spans more than the
@@ -757,7 +757,7 @@ fn mutated_b64(mut bytes: Vec<u8>, cut: usize, edits: &[(usize, u8)]) -> String 
         }
     }
     bytes.truncate(cut.max(8));
-    vectorcraft_format::base64_encode(&bytes)
+    splinewright_format::base64_encode(&bytes)
 }
 
 proptest! {
@@ -786,7 +786,7 @@ proptest! {
 
 /// The rich document saved compressed, as v1 and as v2 (pretty).
 fn native_samples() -> &'static [Vec<u8>] {
-    use vectorcraft_format::{SaveOptions, save_with};
+    use splinewright_format::{SaveOptions, save_with};
     static SAMPLES: std::sync::OnceLock<Vec<Vec<u8>>> = std::sync::OnceLock::new();
     SAMPLES.get_or_init(|| {
         let d = rich_doc();
@@ -817,7 +817,7 @@ proptest! {
     fn native_mutated_files_never_panic(which in 0usize..4, cut in 0usize..80_000, edits in prop::collection::vec((0usize..80_000, any::<u8>()), 0..10)) {
         let samples = native_samples();
         let mut bytes = samples.get(which).cloned().unwrap_or_else(|| {
-            let mut f = vectorcraft_format::save(&rich_doc(), false);
+            let mut f = splinewright_format::save(&rich_doc(), false);
             f.truncate(cut.max(16));
             f
         });
@@ -830,9 +830,9 @@ proptest! {
         } else {
             bytes = gzip(&bytes);
         }
-        let _ = vectorcraft_format::sniff(&bytes);
-        let _ = vectorcraft_format::preview(&bytes);
-        survive("mutated native file", || vectorcraft_engine::cmd::fileio::load("x.vectorcraft", &bytes).ok().map(|l| l.doc))?;
+        let _ = splinewright_format::sniff(&bytes);
+        let _ = splinewright_format::preview(&bytes);
+        survive("mutated native file", || splinewright_engine::cmd::fileio::load("x.splinewright", &bytes).ok().map(|l| l.doc))?;
     }
 }
 
@@ -841,7 +841,7 @@ proptest! {
 fn eps_sample() -> Vec<u8> {
     let mut s = rich_session();
     let r = s.execute("document.export", &json!({"format": "eps", "useArtboards": false})).unwrap();
-    vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
+    splinewright_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
 }
 
 proptest! {
@@ -858,9 +858,9 @@ proptest! {
             bytes[at % n] = b;
         }
         bytes.truncate(cut.max(4));
-        let _ = vectorcraft_eps::sections(&bytes);
-        let _ = vectorcraft_eps::thumbnail(&bytes);
-        survive("mutated EPS file", || vectorcraft_eps::native(&bytes).and_then(|n| vectorcraft_format::load(&n).ok()))?;
+        let _ = splinewright_eps::sections(&bytes);
+        let _ = splinewright_eps::thumbnail(&bytes);
+        survive("mutated EPS file", || splinewright_eps::native(&bytes).and_then(|n| splinewright_format::load(&n).ok()))?;
     }
 
     /// Damaged EPS files without the document: the PostScript interpreter (or the preview
@@ -874,7 +874,7 @@ proptest! {
             bytes[at % n] = b;
         }
         bytes.truncate(cut.max(4));
-        survive("mutated EPS PostScript", || vectorcraft_eps::import(&bytes).ok().map(|r| r.document))?;
+        survive("mutated EPS PostScript", || splinewright_eps::import(&bytes).ok().map(|r| r.document))?;
     }
 
     /// Hostile PostScript programs: operators in any order with any operands, opened and placed;
@@ -884,10 +884,10 @@ proptest! {
     fn eps_hostile_programs_never_panic(tokens in prop::collection::vec(arb_ps_token(), 0..60), illustrator in any::<bool>()) {
         let head = if illustrator { "%%Creator: Adobe Illustrator(R) 8.0\n%%EndComments\n/u {} def /U {} def" } else { "%%EndComments" };
         let ps = format!("%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 200 200\n{head}\n{}\nshowpage\n", tokens.join(" "));
-        survive("hostile PostScript", || vectorcraft_engine::cmd::fileio::load("x.eps", ps.as_bytes()).ok().map(|l| l.doc))?;
+        survive("hostile PostScript", || splinewright_engine::cmd::fileio::load("x.eps", ps.as_bytes()).ok().map(|l| l.doc))?;
         let r = catch_quiet(|| {
             let mut s = rich_session();
-            let _ = s.execute("file.place", &json!({"name": "x.eps", "dataBase64": vectorcraft_format::base64_encode(ps.as_bytes())}));
+            let _ = s.execute("file.place", &json!({"name": "x.eps", "dataBase64": splinewright_format::base64_encode(ps.as_bytes())}));
         });
         r.map_err(|msg| TestCaseError::fail(format!("placing hostile PostScript panicked: {msg}")))?;
     }
@@ -897,7 +897,7 @@ proptest! {
 /// PostScript is read.
 fn foreign_eps_sample() -> Vec<u8> {
     let mut bytes = eps_sample();
-    let marker = b"%VectorCraft_BeginData: native";
+    let marker = b"%Splinewright_BeginData: native";
     let at = bytes.windows(marker.len()).position(|w| w == marker).unwrap();
     bytes[at + marker.len() - 1] = b'x';
     bytes
@@ -977,11 +977,11 @@ proptest! {
         edits in prop::collection::vec((0usize..2_000, any::<u8>()), 0..12),
         password in prop::sample::select(vec!["pw", "pw-owner", "wrong", ""]),
     ) {
-        use vectorcraft_testkit::pdf::{PdfPage, pdf};
+        use splinewright_testkit::pdf::{PdfPage, pdf};
         let bytes = pdf(&[PdfPage::new(100.0, 100.0, "0 0 1 rg 20 20 50 50 re f")], Some("pw"));
         let b64 = mutated_b64(bytes, cut, &edits);
         let r = catch_quiet(|| {
-            let mut s = vectorcraft_engine::Session::new();
+            let mut s = splinewright_engine::Session::new();
             let p = json!({"name": "x.pdf", "dataBase64": b64, "password": password});
             let _ = s.execute("document.pdfInfo", &p);
             if s.execute("document.open", &p).is_ok() {
@@ -997,7 +997,7 @@ proptest! {
 
 /// The rich document exported as DXF (2018: hatches, splines, text, images; R12: polylines).
 fn rich_dxf(version: &str) -> Vec<u8> {
-    vectorcraft_engine::cmd::fileio::encode(&rich_doc(), "dxf", &json!({"version": version, "preserve": "editability"})).unwrap()
+    splinewright_engine::cmd::fileio::encode(&rich_doc(), "dxf", &json!({"version": version, "preserve": "editability"})).unwrap()
 }
 
 /// Group-code pairs as DXF text.
@@ -1047,14 +1047,14 @@ fn hostile_dxf(block: &[Vec<(i32, String)>], body: &[Vec<(i32, String)>]) -> Vec
 
 /// Import with every option at once, and place it; whatever comes back must render and export.
 fn survive_dxf(what: &str, bytes: &[u8], fit: bool) -> Result<(), TestCaseError> {
-    let o = vectorcraft_cad::ImportOptions { fit, center: !fit, merge_layers: fit, ..Default::default() };
-    survive(what, || vectorcraft_cad::import(bytes, &o).ok().map(|r| r.document))?;
-    let _ = vectorcraft_cad::info(bytes);
-    let _ = vectorcraft_cad::is_dxf(bytes);
+    let o = splinewright_cad::ImportOptions { fit, center: !fit, merge_layers: fit, ..Default::default() };
+    survive(what, || splinewright_cad::import(bytes, &o).ok().map(|r| r.document))?;
+    let _ = splinewright_cad::info(bytes);
+    let _ = splinewright_cad::is_dxf(bytes);
     survive(what, || {
-        let mut s = vectorcraft_engine::Session::new();
+        let mut s = splinewright_engine::Session::new();
         s.execute("file.new", &json!({"width": 300, "height": 200})).ok()?;
-        let p = json!({"name": "x.dxf", "dataBase64": vectorcraft_format::base64_encode(bytes), "dxf": {"fit": fit}, "thumbnail": 8});
+        let p = json!({"name": "x.dxf", "dataBase64": splinewright_format::base64_encode(bytes), "dxf": {"fit": fit}, "thumbnail": 8});
         let _ = s.execute("file.place.info", &p);
         let _ = s.execute("file.place", &p);
         let _ = s.execute("document.dxfInfo", &p);
@@ -1111,7 +1111,7 @@ fn metafile_samples() -> &'static [Vec<u8>] {
             .iter()
             .map(|f| {
                 let r = s.execute("document.export", &json!({ "format": f })).unwrap();
-                vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
+                splinewright_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
             })
             .collect()
     })
@@ -1158,11 +1158,11 @@ fn wmf_of(records: &[(u16, Vec<u8>)]) -> Vec<u8> {
 
 /// Open the bytes as `name`, and place them: neither may panic.
 fn survive_metafile(what: &str, name: &str, bytes: &[u8]) -> Result<(), TestCaseError> {
-    survive(what, || vectorcraft_engine::cmd::fileio::load(name, bytes).ok().map(|l| l.doc))?;
+    survive(what, || splinewright_engine::cmd::fileio::load(name, bytes).ok().map(|l| l.doc))?;
     let r = catch_quiet(|| {
-        let mut s = vectorcraft_engine::Session::new();
+        let mut s = splinewright_engine::Session::new();
         s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-        let _ = s.execute("file.place", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes)}));
+        let _ = s.execute("file.place", &json!({"name": name, "dataBase64": splinewright_format::base64_encode(bytes)}));
     });
     prop_assert!(r.is_ok(), "{what}: placing panicked: {:?}", r.err());
     Ok(())
@@ -1177,7 +1177,7 @@ fn arb_body() -> impl Strategy<Value = Vec<u8>> {
     ]
 }
 
-/// WMF record functions VectorCraft reads, and one it doesn't.
+/// WMF record functions Splinewright reads, and one it doesn't.
 const WMF_FUNCTIONS: [u16; 33] = [
     0x0324, 0x0325, 0x0538, 0x041B, 0x0418, 0x061C, 0x0817, 0x081A, 0x0830, 0x0416, 0x0415, 0x02FA, 0x02FC, 0x02FB, 0x012D, 0x01F0, 0x0521, 0x0A32,
     0x0F43, 0x0B41, 0x0940, 0x061D, 0x0213, 0x0214, 0x001E, 0x0127, 0x0106, 0x0209, 0x012E, 0x00F7, 0x01F9, 0x0142, 0x0999,

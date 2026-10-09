@@ -1,8 +1,8 @@
 //! Fill and stroke paint (the toolbar proxies and their defaults) and the Transparency panel.
 
 use serde_json::{Value, json};
-use vectorcraft_color::{BlendMode, Color, GradientPaint, Paint};
-use vectorcraft_doc::{Appearance, CharStyle, Document, Node, NodeId, NodeKind};
+use splinewright_color::{BlendMode, Color, GradientPaint, Paint};
+use splinewright_doc::{Appearance, CharStyle, Document, Node, NodeId, NodeKind};
 
 use super::appearance::{ItemTarget, appearance_targets, edit_items, item_target};
 use super::gradient::{item_paint_bounds, place_paint, place_run_paint, run_paint_mut, run_stroke_weight, unplaced};
@@ -287,9 +287,9 @@ fn stroke_param(s: &Session, p: &Value) -> bool {
 
 /// The model RGB colours given in `p` are stored in: the document's in a CMYK document (`None` in
 /// an RGB one, or with `keepModel`).
-fn new_color_model(s: &Session, p: &Value) -> Option<vectorcraft_color::cms::Model> {
+fn new_color_model(s: &Session, p: &Value) -> Option<splinewright_color::cms::Model> {
     let mode = s.active()?.doc.color_mode;
-    (mode != vectorcraft_doc::ColorMode::Rgb && !bool_or(p, "keepModel", false)).then(|| mode.model())
+    (mode != splinewright_doc::ColorMode::Rgb && !bool_or(p, "keepModel", false)).then(|| mode.model())
 }
 
 /// Parse a paint from params (color / none / swatch / gradient). None = no paint keys given. A
@@ -307,7 +307,7 @@ pub(crate) fn paint_from(s: &Session, p: &Value) -> Result<Option<Paint>> {
         let d = &s.doc()?.doc;
         // A pattern definition works as its swatch even without a swatch entry.
         if d.swatch(name).is_none() && d.pattern(name).is_some() {
-            return Ok(Some(vectorcraft_doc::pattern::pattern_paint(name)));
+            return Ok(Some(splinewright_doc::pattern::pattern_paint(name)));
         }
         let sw = d.swatch(name).ok_or_else(|| EngineError::Other(format!("no swatch `{name}`")))?;
         let tint = tint_param(p, "paint")?;
@@ -544,7 +544,7 @@ fn transparency(s: &mut Session, p: &Value) -> Result<Value> {
         return Err(bad(C, format!("unknown blend mode {b}")));
     }
     if let Some(k) = q.get("knockout")
-        && vectorcraft_doc::Knockout::from_value(k).is_none()
+        && splinewright_doc::Knockout::from_value(k).is_none()
     {
         return Err(bad(C, format!("unknown knockout state {k}")));
     }

@@ -8,7 +8,7 @@
 use serde_json::{Value, json};
 
 use super::DialogSpec;
-use crate::VectorcraftApp;
+use crate::SplinewrightApp;
 use crate::state::Dialog;
 use crate::theme::Tokens;
 
@@ -31,13 +31,13 @@ pub(super) const SPEC: DialogSpec = DialogSpec {
 
 /// Ask `message` (with an optional `detail` line), both in the UI language; OK runs `command`
 /// with `params`.
-pub fn ask(app: &mut VectorcraftApp, message: &str, detail: &str, command: &str, params: Value) {
+pub fn ask(app: &mut SplinewrightApp, message: &str, detail: &str, command: &str, params: Value) {
     let fields = json!({"message": message, "detail": detail, "__command": command, "__params": params});
     app.ui.dialog = Some(Dialog::new(KIND, fields));
 }
 
 /// Closes before running, so a dialog the command opens stays open.
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut SplinewrightApp, d: &Dialog) -> Result<Value, String> {
     let params = d.fields.get("__params").cloned().unwrap_or_else(|| json!({}));
     app.ui.dialog = None;
     app.run(&d.str("__command"), params)

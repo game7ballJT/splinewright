@@ -1,21 +1,21 @@
 [package]
-name = "vectorcraft-cad"
+name = "splinewright-cad"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "VectorCraft CAD interchange: a hand-written ASCII DXF writer (R12 to 2018)"
+description = "Splinewright CAD interchange: a hand-written ASCII DXF writer (R12 to 2018)"
 
 [lints]
 workspace = true
 
 [dependencies]
-vectorcraft-geom = { workspace = true }
-vectorcraft-color = { workspace = true }
-vectorcraft-doc = { workspace = true }
-vectorcraft-effects = { workspace = true }
-vectorcraft-brush = { workspace = true }
-vectorcraft-pathops = { workspace = true }
-vectorcraft-text = { workspace = true }
+splinewright-geom = { workspace = true }
+splinewright-color = { workspace = true }
+splinewright-doc = { workspace = true }
+splinewright-effects = { workspace = true }
+splinewright-brush = { workspace = true }
+splinewright-pathops = { workspace = true }
+splinewright-text = { workspace = true }
 kurbo = { workspace = true }
 image = { workspace = true }
 

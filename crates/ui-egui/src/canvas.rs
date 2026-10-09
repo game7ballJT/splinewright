@@ -3,13 +3,13 @@
 
 use egui::{Color32, CornerRadius, Pos2, Sense, Shape, Stroke, StrokeKind, Ui, Vec2, pos2, vec2};
 use serde_json::json;
-use vectorcraft_doc::{Node, NodeKind, Unit};
-use vectorcraft_geom::{Affine, BezPath, PathEl, Point, Rect};
-use vectorcraft_tools::{Cursor, Mods, Overlay, PointerEvent, PointerKind};
+use splinewright_doc::{Node, NodeKind, Unit};
+use splinewright_geom::{Affine, BezPath, PathEl, Point, Rect};
+use splinewright_tools::{Cursor, Mods, Overlay, PointerEvent, PointerKind};
 
 use crate::state::View;
 use crate::theme::{self, Tokens};
-use crate::{CacheKey, VectorcraftApp, now_ms, widgets};
+use crate::{CacheKey, SplinewrightApp, now_ms, widgets};
 
 const RULER: f32 = 16.0;
 
@@ -45,10 +45,10 @@ impl Xf {
         [Point::new(r.x0, r.y0), Point::new(r.x1, r.y0), Point::new(r.x1, r.y1), Point::new(r.x0, r.y1)].iter().map(|p| self.to_screen(*p)).collect()
     }
     /// Convert a screen-space delta to a document delta.
-    pub fn delta_to_doc(&self, d: egui::Vec2) -> vectorcraft_geom::Vec2 {
+    pub fn delta_to_doc(&self, d: egui::Vec2) -> splinewright_geom::Vec2 {
         let (sn, cs) = self.rot.sin_cos();
         let (dx, dy) = (d.x as f64, d.y as f64);
-        vectorcraft_geom::Vec2::new((dx * cs + dy * sn) / self.zoom, (-dx * sn + dy * cs) / self.zoom)
+        splinewright_geom::Vec2::new((dx * cs + dy * sn) / self.zoom, (-dx * sn + dy * cs) / self.zoom)
     }
     pub fn rect_to_screen(&self, r: Rect) -> egui::Rect {
         egui::Rect::from_two_pos(self.to_screen(Point::new(r.x0, r.y0)), self.to_screen(Point::new(r.x1, r.y1)))
@@ -110,7 +110,7 @@ pub fn mods(m: egui::Modifiers, space: bool) -> Mods {
 }
 
 /// Fit the view (View → Fit Artboard / Fit All / Actual Size).
-pub fn fit(app: &mut VectorcraftApp, how: &str) {
+pub fn fit(app: &mut SplinewrightApp, how: &str) {
     let Some(rect) = app.canvas_rect else {
         if let Some(v) = app.view_mut() {
             v.fitted = false;
@@ -139,7 +139,7 @@ pub fn fit(app: &mut VectorcraftApp, how: &str) {
     }
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let full = ui.available_rect_before_wrap();
     // A document that opened, closed or became active since Home was chosen replaces it.
@@ -186,7 +186,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     painter.rect_filled(rect, 0.0, t.pasteboard);
     if app.ui.view.artboards && !app.ui.view.outline {
         let setup = &doc.setup;
-        let grid = (st.transparency_grid && setup.background == vectorcraft_doc::Background::Transparent).then(|| checker_texture(ui.ctx(), setup));
+        let grid = (st.transparency_grid && setup.background == splinewright_doc::Background::Transparent).then(|| checker_texture(ui.ctx(), setup));
         let paper = if setup.simulate_paper { crate::panels::c32(&setup.paper()) } else { Color32::WHITE };
         for ab in &doc.artboards {
             let q = xf.quad(ab.rect);
@@ -233,7 +233,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     };
     if !app.canvas.worker_started {
         app.canvas.worker_started = true;
-        if std::env::var_os("VECTORCRAFT_SYNC_RENDER").is_none() {
+        if std::env::var_os("SPLINEWRIGHT_SYNC_RENDER").is_none() {
             app.canvas.worker = crate::render_worker::Worker::spawn(ui.ctx().clone());
         }
     }
@@ -251,12 +251,12 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
             * Affine::rotate(v.rotation.to_radians())
             * Affine::scale(v.zoom * ppp as f64)
             * Affine::translate(-v.center.to_vec2());
-        let opts = vectorcraft_render::RenderOptions { outline: app.ui.view.outline, background: None, artboards: false, ..Default::default() };
-        let opts = vectorcraft_render::RenderOptions {
-            proof: vectorcraft_render::proof::active_proof(),
-            overprint_preview: vectorcraft_render::proof::overprint_preview_on(),
+        let opts = splinewright_render::RenderOptions { outline: app.ui.view.outline, background: None, artboards: false, ..Default::default() };
+        let opts = splinewright_render::RenderOptions {
+            proof: splinewright_render::proof::active_proof(),
+            overprint_preview: splinewright_render::proof::overprint_preview_on(),
             trim: app.ui.view.trim_view,
-            tile_edge: vectorcraft_color::Color::from_hex(&app.session.prefs.pattern_tile_edge_color).map_or(opts.tile_edge, |c| {
+            tile_edge: splinewright_color::Color::from_hex(&app.session.prefs.pattern_tile_edge_color).map_or(opts.tile_edge, |c| {
                 let [r, g, b, _] = c.to_rgba8(1.0);
                 [r, g, b]
             }),
@@ -264,7 +264,11 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
             highlight_substitutions: true,
             // General › Anti-aliased Artwork: off, edges are hard on screen (raster effects and
             // pattern tiles stay smooth), as in Illustrator.
-            anti_alias: if app.session.prefs.anti_aliased_artwork { vectorcraft_render::AntiAlias::Art } else { vectorcraft_render::AntiAlias::None },
+            anti_alias: if app.session.prefs.anti_aliased_artwork {
+                splinewright_render::AntiAlias::Art
+            } else {
+                splinewright_render::AntiAlias::None
+            },
             ..opts
         };
         // Light documents render synchronously (no lag vs overlays); heavy ones go to the worker.
@@ -400,7 +404,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
                 crate::place::paint_cursor(app, ui.ctx(), &painter, hp);
             }
             // Caps Lock gives precise (crosshair) cursors, like Illustrator; env opt-out for system cursors.
-            let custom = std::env::var_os("VECTORCRAFT_SYSTEM_CURSORS").is_none();
+            let custom = std::env::var_os("SPLINEWRIGHT_SYSTEM_CURSORS").is_none();
             match ui.input(|i| i.pointer.hover_pos()) {
                 // An OS cursor: the system moves it at once, where a painted one trails the pointer
                 // (#444). The system cursor stands in for cursors without a glyph.
@@ -448,7 +452,7 @@ fn cursor_icon(c: Cursor) -> egui::CursorIcon {
     }
 }
 
-fn handle_input(app: &mut VectorcraftApp, ui: &Ui, resp: &egui::Response, rect: egui::Rect) {
+fn handle_input(app: &mut SplinewrightApp, ui: &Ui, resp: &egui::Response, rect: egui::Rect) {
     let line = ui.ctx().options(|o| o.input_options.line_scroll_speed);
     let wheel_zooms = app.session.prefs.zoom_with_mouse_wheel;
     let alt_id = egui::Id::new("canvas-alt-wheel");
@@ -556,7 +560,7 @@ fn handle_input(app: &mut VectorcraftApp, ui: &Ui, resp: &egui::Response, rect: 
                         deg = (deg / 15.0).round() * 15.0;
                     }
                     if let Some(vm) = app.view_mut() {
-                        vm.rotation = vectorcraft_geom::normalize_deg(deg);
+                        vm.rotation = splinewright_geom::normalize_deg(deg);
                     }
                 }
                 Drag::ZoomBox { .. } | Drag::Art => {}
@@ -685,7 +689,7 @@ fn wheel(i: &egui::InputState, wheel_zooms: bool, line: f32, page: f32, alt_turn
 /// A Selection tool move dragged off the canvas (to `p`, over a panel) turns into a panel drag of
 /// the selected art ([`widgets::PanelDrag::Art`]): the move is dropped, so the art stays where it
 /// was, and the panel it is released on takes it (the Graphic Styles panel makes a style of it).
-fn drag_art_out(app: &mut VectorcraftApp, ui: &Ui, resp: &egui::Response, p: Pos2, view: vectorcraft_engine::ViewInfo) -> bool {
+fn drag_art_out(app: &mut SplinewrightApp, ui: &Ui, resp: &egui::Response, p: Pos2, view: splinewright_engine::ViewInfo) -> bool {
     let off = !ui.clip_rect().contains(p) || ui.ctx().layer_id_at(p).is_some_and(|l| l != resp.layer_id);
     let Some(st) = app.session.active().filter(|_| off && app.session.tool_id() == "selection") else { return false };
     // The Selection tool's interaction while it moves (or Alt-copies) the selection.
@@ -703,7 +707,7 @@ fn drag_art_out(app: &mut VectorcraftApp, ui: &Ui, resp: &egui::Response, p: Pos
 }
 
 /// Send a pointer event to the active tool and act on UI requests (dialogs, tool switches).
-pub fn dispatch(app: &mut VectorcraftApp, ev: &PointerEvent, view: vectorcraft_engine::ViewInfo) {
+pub fn dispatch(app: &mut SplinewrightApp, ev: &PointerEvent, view: splinewright_engine::ViewInfo) {
     let r = app.session.pointer(ev, view);
     // The artboard the Artboard tool makes active is the active one (the navigator's, the
     // Artboards panel's).
@@ -717,14 +721,14 @@ pub fn dispatch(app: &mut VectorcraftApp, ev: &PointerEvent, view: vectorcraft_e
 }
 
 /// Act on what a tool event asked the UI for (dialogs, tool switches), or show its error.
-pub fn apply_requests(app: &mut VectorcraftApp, r: vectorcraft_engine::Result<Vec<vectorcraft_engine::UiRequest>>) {
+pub fn apply_requests(app: &mut SplinewrightApp, r: splinewright_engine::Result<Vec<splinewright_engine::UiRequest>>) {
     match r {
         Ok(reqs) => {
             for r in reqs {
                 match r {
-                    vectorcraft_engine::UiRequest::Dialog(kind, p) => crate::dialogs::open_tool_dialog(app, &kind, p),
-                    vectorcraft_engine::UiRequest::SwitchTool(t) => app.select_tool(&t),
-                    vectorcraft_engine::UiRequest::Status(msg) => app.status(msg),
+                    splinewright_engine::UiRequest::Dialog(kind, p) => crate::dialogs::open_tool_dialog(app, &kind, p),
+                    splinewright_engine::UiRequest::SwitchTool(t) => app.select_tool(&t),
+                    splinewright_engine::UiRequest::Status(msg) => app.status(msg),
                 }
             }
         }
@@ -734,7 +738,7 @@ pub fn apply_requests(app: &mut VectorcraftApp, r: vectorcraft_engine::Result<Ve
 
 /// The transparency grid's 2 × 2-cell tile in the document's colours (Document Setup), cached per
 /// look, and its cell size in screen points.
-pub(crate) fn checker_texture(ctx: &egui::Context, setup: &vectorcraft_doc::DocSetup) -> (egui::TextureHandle, f32) {
+pub(crate) fn checker_texture(ctx: &egui::Context, setup: &splinewright_doc::DocSetup) -> (egui::TextureHandle, f32) {
     let colors = setup.grid_colors.map(|c| crate::panels::c32(&c));
     let id = egui::Id::new("transparency-grid-tile");
     let cached = ctx.data(|d| d.get_temp::<([Color32; 2], egui::TextureHandle)>(id)).filter(|(c, _)| *c == colors);
@@ -779,11 +783,11 @@ struct LineLook {
 }
 
 impl LineLook {
-    fn grid(prefs: &vectorcraft_engine::Prefs) -> Self {
+    fn grid(prefs: &splinewright_engine::Prefs) -> Self {
         Self { color: pref_color(&prefs.grid_color, Color32::from_gray(200)), dots: prefs.grid_style == "dots" }
     }
 
-    fn guides(prefs: &vectorcraft_engine::Prefs, t: &Tokens) -> Self {
+    fn guides(prefs: &splinewright_engine::Prefs, t: &Tokens) -> Self {
         Self { color: pref_color(&prefs.guide_color, t.guide), dots: prefs.guide_style == "dots" }
     }
 
@@ -799,7 +803,7 @@ impl LineLook {
 
 /// A `#rrggbb` colour preference, `fallback` when it doesn't parse.
 fn pref_color(hex: &str, fallback: Color32) -> Color32 {
-    vectorcraft_color::Color::from_hex(hex).map_or(fallback, |c| crate::panels::c32(&c))
+    splinewright_color::Color::from_hex(hex).map_or(fallback, |c| crate::panels::c32(&c))
 }
 
 /// The grid (View → Show Grid): a gridline every `spacing` and `subdiv` lighter lines between
@@ -863,7 +867,7 @@ fn ruler_rects(full: egui::Rect) -> [egui::Rect; 3] {
 /// `Session::ruler_guide`): a horizontal one from the top ruler, a vertical one from the left
 /// ruler, snapped as a moved guide is (with Shift to the ruler's ticks). Released anywhere else,
 /// it makes none.
-fn ruler_guides(app: &mut VectorcraftApp, ui: &Ui, full: egui::Rect, canvas: egui::Rect, xf: &Xf) {
+fn ruler_guides(app: &mut SplinewrightApp, ui: &Ui, full: egui::Rect, canvas: egui::Rect, xf: &Xf) {
     let [top, left, corner] = ruler_rects(full);
     // Right-click on a ruler or the origin box: the document units, to swap between them as
     // Preferences ▸ Units ▸ General does ([`crate::menus::ruler_menu_body`]).
@@ -1020,19 +1024,19 @@ fn node_outline(n: &Node) -> BezPath {
         NodeKind::Path { path, .. } => bp.extend(path.to_bezpath()),
         // Area type shows its frame: the type area Direct Selection reshapes; type on a path its
         // path, which the selection tools' brackets sit on.
-        NodeKind::Text(t) if c.perspective.is_none() && !matches!(t.kind, vectorcraft_doc::TextKind::Point) => {
+        NodeKind::Text(t) if c.perspective.is_none() && !matches!(t.kind, splinewright_doc::TextKind::Point) => {
             if let Some(path) = t.area_frame().or_else(|| t.type_path()) {
                 bp.extend(path.to_bezpath());
             }
         }
         NodeKind::Text(_) | NodeKind::Image(_) | NodeKind::SymbolInstance { .. } => {
             if let Some(b) = c.geometric_bounds() {
-                bp.extend(vectorcraft_geom::shapes::rectangle(b).to_bezpath());
+                bp.extend(splinewright_geom::shapes::rectangle(b).to_bezpath());
             }
         }
         // An envelope shows its mesh (or top object), not its content.
         NodeKind::Envelope { .. } => {
-            if let Some((lines, _)) = vectorcraft_doc::live::envelope_overlay(c) {
+            if let Some((lines, _)) = splinewright_doc::live::envelope_overlay(c) {
                 bp.extend(lines.to_bezpath());
             }
         }
@@ -1056,20 +1060,20 @@ fn walk_drawn<'a>(n: &'a Node, f: &mut impl FnMut(&'a Node)) {
 /// The topmost editable object under document point `p` at `zoom`, as the selection tools pick it
 /// (Selection & Anchor Display › Tolerance and Object Selection by Path Only, Type › Type Object
 /// Selection by Path Only).
-fn hit_at(app: &VectorcraftApp, p: Point, zoom: f64) -> Option<vectorcraft_doc::hit::Hit> {
+fn hit_at(app: &SplinewrightApp, p: Point, zoom: f64) -> Option<splinewright_doc::hit::Hit> {
     let prefs = &app.session.prefs;
-    let opt = vectorcraft_doc::hit::HitOptions {
+    let opt = splinewright_doc::hit::HitOptions {
         tol: prefs.selection_tolerance / zoom,
         outline: app.ui.view.outline,
         path_only: prefs.object_selection_by_path_only,
         type_path_only: prefs.type_selection_by_path_only,
     };
-    vectorcraft_doc::hit::hit_test(&app.session.active()?.doc, p, opt)
+    splinewright_doc::hit::hit_test(&app.session.active()?.doc, p, opt)
 }
 
 /// Right-click: the object under the pointer is selected first unless it already is, then the
 /// context menu lists what applies to the selection ([`crate::menus::context_items`]).
-fn context_menu(app: &mut VectorcraftApp, resp: &egui::Response, xf: &Xf) {
+fn context_menu(app: &mut SplinewrightApp, resp: &egui::Response, xf: &Xf) {
     if resp.secondary_clicked()
         && let Some(p) = resp.interact_pointer_pos()
         && let Some(st) = app.session.active()
@@ -1092,7 +1096,7 @@ fn context_menu(app: &mut VectorcraftApp, resp: &egui::Response, xf: &Xf) {
 /// Appearance panel's thumbnail gives the object (the topmost one hit) the appearance it carries
 /// (`appearance.copyFrom`), a graphic style is applied to it (`graphicStyle.apply`; with Alt, on
 /// top of its appearance). A chip follows the pointer meanwhile.
-fn panel_drop(app: &mut VectorcraftApp, ui: &Ui, resp: &egui::Response, xf: &Xf) {
+fn panel_drop(app: &mut SplinewrightApp, ui: &Ui, resp: &egui::Response, xf: &Xf) {
     crate::panels::swatches::drag_preview(app, ui.ctx());
     let Some(pos) = ui.input(|i| i.pointer.interact_pos()) else { return };
     // Not through a floating panel over the canvas.
@@ -1117,7 +1121,7 @@ fn panel_drop(app: &mut VectorcraftApp, ui: &Ui, resp: &egui::Response, xf: &Xf)
                 return;
             }
             let mut params = params.clone();
-            params["ids"] = json!([vectorcraft_tools::xform::paint_owner(&st.doc, hit.leaf).0]);
+            params["ids"] = json!([splinewright_tools::xform::paint_owner(&st.doc, hit.leaf).0]);
             params["focus"] = json!(false);
             (crate::panels::proxy_cmd(app, false), params)
         }
@@ -1134,7 +1138,7 @@ fn panel_drop(app: &mut VectorcraftApp, ui: &Ui, resp: &egui::Response, xf: &Xf)
         }
         // A brush from the Brushes panel: the path it lands on takes it (a compound path as a whole).
         widgets::PanelDrag::Brush { name, .. } => {
-            ("brush.apply", json!({"name": name, "ids": [vectorcraft_tools::xform::paint_owner(&st.doc, hit.leaf).0]}))
+            ("brush.apply", json!({"name": name, "ids": [splinewright_tools::xform::paint_owner(&st.doc, hit.leaf).0]}))
         }
         // Art dragged back onto the canvas: its move was already dropped. (A symbol was placed
         // above.)
@@ -1145,7 +1149,7 @@ fn panel_drop(app: &mut VectorcraftApp, ui: &Ui, resp: &egui::Response, xf: &Xf)
     }
 }
 
-fn hover_highlight(app: &VectorcraftApp, p: &egui::Painter, xf: &Xf) {
+fn hover_highlight(app: &SplinewrightApp, p: &egui::Painter, xf: &Xf) {
     let Some(h) = app.hover_doc else { return };
     // Smart Guides › Object Highlighting: a Smart Guides display option, so it needs them on.
     if !app.ui.view.smart_guides || !app.session.prefs.object_highlighting {
@@ -1181,7 +1185,7 @@ struct HandleLook<'a> {
 }
 
 impl<'a> HandleLook<'a> {
-    fn of(prefs: &'a vectorcraft_engine::Prefs) -> Self {
+    fn of(prefs: &'a splinewright_engine::Prefs) -> Self {
         Self { grow: prefs.anchor_size.clamp(1, 7) as f32 - 3.0, style: &prefs.handle_style }
     }
 
@@ -1207,7 +1211,7 @@ fn anchor_square(p: &egui::Painter, c: Pos2, color: Color32, filled: bool, size:
 }
 
 /// Type → Show Hidden Characters: spaces as dots, ¶ at paragraph ends, # at the end of a story.
-fn hidden_chars_overlay(app: &VectorcraftApp, p: &egui::Painter, xf: &Xf) {
+fn hidden_chars_overlay(app: &SplinewrightApp, p: &egui::Painter, xf: &Xf) {
     let Some(st) = app.session.active() else { return };
     let clip = p.clip_rect();
     let color = Color32::from_rgb(0x4f, 0x9d, 0xff);
@@ -1217,7 +1221,7 @@ fn hidden_chars_overlay(app: &VectorcraftApp, p: &egui::Painter, xf: &Xf) {
         if !n.visible || n.geometric_bounds().is_none_or(|b| !xf.rect_to_screen(b).intersects(clip)) {
             return;
         }
-        let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), tx);
+        let lay = splinewright_text::layout(splinewright_text::FontDb::global(), tx);
         if lay.on_path {
             return;
         }
@@ -1247,14 +1251,14 @@ fn hidden_chars_overlay(app: &VectorcraftApp, p: &egui::Painter, xf: &Xf) {
 
 /// Text threads of the selected frames: a line from each frame's out port (bottom right) to the
 /// next frame's in port (top left), like Illustrator's thread indicators.
-fn thread_overlay(app: &VectorcraftApp, p: &egui::Painter, xf: &Xf) {
+fn thread_overlay(app: &SplinewrightApp, p: &egui::Painter, xf: &Xf) {
     let Some(st) = app.session.active() else { return };
     for thread in &st.doc.text_threads {
         if !thread.iter().any(|id| st.selection.objects.contains(id)) {
             continue;
         }
         let color = c32(st.doc.layer_color(thread[0]));
-        let frames: Vec<vectorcraft_geom::Rect> = thread.iter().filter_map(|id| st.doc.node(*id).and_then(|n| n.geometric_bounds())).collect();
+        let frames: Vec<splinewright_geom::Rect> = thread.iter().filter_map(|id| st.doc.node(*id).and_then(|n| n.geometric_bounds())).collect();
         for w in frames.windows(2) {
             let (out, inp) = (xf.to_screen(Point::new(w[0].x1, w[0].y1)), xf.to_screen(Point::new(w[1].x0, w[1].y0)));
             p.line_segment([out, inp], Stroke::new(1.0, color));
@@ -1270,7 +1274,7 @@ fn thread_overlay(app: &VectorcraftApp, p: &egui::Painter, xf: &Xf) {
 /// The slices (unless View → Hide Slices): user and object slices outlined in the Slices
 /// preferences' line colour, auto slices dashed and dimmer, each numbered at its top left (Show
 /// Slice Numbers); selected slices have a bolder outline. The layout is cached per revision.
-fn slice_overlay(app: &mut VectorcraftApp, p: &egui::Painter, xf: &Xf) {
+fn slice_overlay(app: &mut SplinewrightApp, p: &egui::Painter, xf: &Xf) {
     let Some(st) = app.session.active() else { return };
     let key = (st.uid, st.revision);
     let slices = match &app.canvas.slices {
@@ -1290,7 +1294,7 @@ fn slice_overlay(app: &mut VectorcraftApp, p: &egui::Painter, xf: &Xf) {
     let selected = &st.selection.slices;
     let objects = &st.selection.objects;
     for a in slices.iter() {
-        let auto = a.source == vectorcraft_doc::SliceSource::Auto;
+        let auto = a.source == splinewright_doc::SliceSource::Auto;
         let on = a.id.is_some_and(|id| selected.contains(&id) || objects.contains(&id));
         let q = xf.quad(a.rect);
         let ring: Vec<Pos2> = q.iter().chain(q.first()).copied().collect();
@@ -1314,14 +1318,14 @@ fn slice_overlay(app: &mut VectorcraftApp, p: &egui::Painter, xf: &Xf) {
 /// The print tiling (View → Show Print Tiling, or the Print Tiling tool): each page of the
 /// document's print settings as `print.preview` lays it out, its paper edge and its imageable
 /// area dashed, numbered at its top left; tiles outside the tile range dimmer. Cached per revision.
-fn print_tiling_overlay(app: &mut VectorcraftApp, p: &egui::Painter, xf: &Xf) {
+fn print_tiling_overlay(app: &mut SplinewrightApp, p: &egui::Painter, xf: &Xf) {
     let Some(st) = app.session.active() else { return };
     let key = (st.uid, st.revision);
     let pages = match &app.canvas.print_tiling {
         Some((k, pages)) if *k == key => pages.clone(),
         _ => {
             // Settings that can't print have no pages to show.
-            let pages = std::sync::Arc::new(vectorcraft_engine::cmd::printtiling::pages(&st.doc).unwrap_or_default());
+            let pages = std::sync::Arc::new(splinewright_engine::cmd::printtiling::pages(&st.doc).unwrap_or_default());
             app.canvas.print_tiling = Some((key, pages.clone()));
             pages
         }
@@ -1345,7 +1349,7 @@ fn print_tiling_overlay(app: &mut VectorcraftApp, p: &egui::Painter, xf: &Xf) {
 /// The print tiling's lines: a neutral grey that reads on the paper and on the pasteboard.
 const PRINT_TILING: Color32 = Color32::from_gray(96);
 
-fn selection_overlay(app: &mut VectorcraftApp, p: &egui::Painter, xf: &Xf) {
+fn selection_overlay(app: &mut SplinewrightApp, p: &egui::Painter, xf: &Xf) {
     // The Selection tool's bounding box (rotated with the objects after a rotation).
     let show_box = app.session.tool_id() == "selection"
         && app.ui.view.bounding_box
@@ -1354,7 +1358,7 @@ fn selection_overlay(app: &mut VectorcraftApp, p: &egui::Painter, xf: &Xf) {
     let app = &*app;
     let Some(st) = app.session.active() else { return };
     let tool = app.session.tool_id();
-    let direct = vectorcraft_tools::catalog::edits_anchors(tool);
+    let direct = splinewright_tools::catalog::edits_anchors(tool);
     // Selection & Anchor Display › Size (1–7, 3 the default): anchors, handles and the bounding
     // box's handles a point bigger or smaller per step.
     let look = HandleLook::of(&app.session.prefs);
@@ -1371,7 +1375,7 @@ fn selection_overlay(app: &mut VectorcraftApp, p: &egui::Painter, xf: &Xf) {
         stroke_path(p, &node_outline(n), xf, Stroke::new(1.0, color));
         // Anchors (and handles for selected anchors in direct mode); a mesh envelope's points.
         walk_drawn(n, &mut |c| {
-            if let Some((_, Some(grid))) = vectorcraft_doc::live::envelope_overlay(c) {
+            if let Some((_, Some(grid))) = splinewright_doc::live::envelope_overlay(c) {
                 for q in &grid.points {
                     anchor_square(p, xf.to_screen(q.p), color, false, anchor(direct));
                 }
@@ -1400,7 +1404,7 @@ fn selection_overlay(app: &mut VectorcraftApp, p: &egui::Painter, xf: &Xf) {
         // Point type: baseline marker (area type shows its frame instead, which may not be a
         // rectangle, and type on a path its path).
         if let NodeKind::Text(tx) = &n.kind
-            && matches!(tx.kind, vectorcraft_doc::TextKind::Point)
+            && matches!(tx.kind, splinewright_doc::TextKind::Point)
         {
             let o = xf.to_screen(tx.xf * Point::ZERO);
             let b = n.geometric_bounds().unwrap_or_default();
@@ -1418,11 +1422,11 @@ fn selection_overlay(app: &mut VectorcraftApp, p: &egui::Painter, xf: &Xf) {
     // The spine of each selected blend (or of the blend a selected key object belongs to).
     let mut spines = vec![];
     for id in &st.selection.objects {
-        let is_blend = |b: &vectorcraft_doc::NodeId| st.doc.node(*b).is_some_and(|n| matches!(n.kind, NodeKind::Blend { .. }));
+        let is_blend = |b: &splinewright_doc::NodeId| st.doc.node(*b).is_some_and(|n| matches!(n.kind, NodeKind::Blend { .. }));
         let Some(b) = [Some(*id), st.doc.parent_of(*id)].into_iter().flatten().find(is_blend).filter(|b| !spines.contains(b)) else { continue };
         spines.push(b);
         let Some(NodeKind::Blend { children, spec }) = st.doc.node(b).map(|n| &n.kind) else { continue };
-        let Some((path, _)) = vectorcraft_doc::live::blend_spine(children, spec) else { continue };
+        let Some((path, _)) = splinewright_doc::live::blend_spine(children, spec) else { continue };
         let color = c32(st.doc.layer_color(b));
         stroke_path(p, &path.to_bezpath(), xf, Stroke::new(1.0, color));
         for (_, _, a) in path.anchors() {
@@ -1431,7 +1435,7 @@ fn selection_overlay(app: &mut VectorcraftApp, p: &egui::Painter, xf: &Xf) {
     }
     // Live Corners widgets (Selection on a live rectangle or polygon, Direct Selection on any path).
     if matches!(tool, "selection" | "directSelection")
-        && let Some(w) = vectorcraft_tools::corners::CornerWidgets::showing(
+        && let Some(w) = splinewright_tools::corners::CornerWidgets::showing(
             &st.doc,
             &st.selection,
             xf.zoom,
@@ -1451,15 +1455,15 @@ fn selection_overlay(app: &mut VectorcraftApp, p: &egui::Painter, xf: &Xf) {
     if let Some(b) = bbox {
         let color = c32(st.doc.layer_color(st.selection.objects[0]));
         p.add(Shape::closed_line(b.corners().iter().map(|q| xf.to_screen(*q)).collect(), Stroke::new(1.0, color)));
-        for h in vectorcraft_tools::bbox::Handle::ALL {
+        for h in splinewright_tools::bbox::Handle::ALL {
             let c = xf.to_screen(b.to_doc() * h.pos(b.rect));
             let hr = egui::Rect::from_center_size(c, vec2(6.0 + grow, 6.0 + grow));
             p.rect_filled(hr, 0.0, Color32::WHITE);
             p.rect_stroke(hr, 0.0, Stroke::new(1.0, color), StrokeKind::Inside);
         }
         // The type widget beside it: hollow on point type, filled on area type.
-        if let Some(w) = vectorcraft_tools::typewidget::TypeWidget::of(&st.doc, &st.selection, &b, xf.zoom) {
-            let (c, r) = (xf.to_screen(w.at), vectorcraft_tools::typewidget::RADIUS_PX);
+        if let Some(w) = splinewright_tools::typewidget::TypeWidget::of(&st.doc, &st.selection, &b, xf.zoom) {
+            let (c, r) = (xf.to_screen(w.at), splinewright_tools::typewidget::RADIUS_PX);
             p.circle_filled(c, r, if w.area { color } else { Color32::WHITE });
             p.circle_stroke(c, r, Stroke::new(1.0, color));
         }
@@ -1468,7 +1472,7 @@ fn selection_overlay(app: &mut VectorcraftApp, p: &egui::Painter, xf: &Xf) {
 
 /// While the Type tool edits, let the system IME compose (egui-winit allows it only in frames that
 /// set `ime`) and keep its candidate window under the caret.
-fn ime_output(app: &mut VectorcraftApp, ctx: &egui::Context, xf: &Xf) {
+fn ime_output(app: &mut SplinewrightApp, ctx: &egui::Context, xf: &Xf) {
     let ours = app.session.tool_wants_text() && !ctx.egui_wants_keyboard_input() && app.ui.dialog.is_none() && !app.ui.palette_open;
     let caret = if ours { app.session.tool_ime_caret(app.view_info()) } else { None };
     let Some((a, b)) = caret else {
@@ -1566,13 +1570,13 @@ fn draw_overlays(p: &egui::Painter, xf: &Xf, overlays: &[Overlay], t: &Tokens, l
 }
 
 /// The Home screen (`app.home`; with no document open, unless its preference is off).
-fn home(app: &mut VectorcraftApp, ui: &mut Ui, rect: egui::Rect) {
+fn home(app: &mut SplinewrightApp, ui: &mut Ui, rect: egui::Rect) {
     let t = Tokens::get(ui.ctx());
     ui.painter().rect_filled(rect, 0.0, t.panel_darker);
     let inner = rect.shrink2(vec2((rect.width() - 820.0).max(40.0) / 2.0, 60.0));
     let mut child = ui.new_child(egui::UiBuilder::new().max_rect(inner).layout(egui::Layout::top_down(egui::Align::Min)));
     let ui = &mut child;
-    ui.label(egui::RichText::new(tl!("Welcome to VectorCraft")).font(theme::semibold(26.0)).color(t.text));
+    ui.label(egui::RichText::new(tl!("Welcome to Splinewright")).font(theme::semibold(26.0)).color(t.text));
     ui.add_space(4.0);
     ui.label(egui::RichText::new(tl!("Vector illustration — fast, open, scriptable.")).size(14.0).color(t.text_dim));
     ui.add_space(22.0);
@@ -1592,7 +1596,7 @@ fn home(app: &mut VectorcraftApp, ui: &mut Ui, rect: egui::Rect) {
     let presets = ["Letter", "A4", "Web 1920×1080", "Phone 390×844", "Postcard", "Social Square Post 1080×1080"];
     ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing = vec2(14.0, 14.0);
-        let cards: Vec<_> = presets.iter().filter_map(|name| vectorcraft_engine::cmd::newdoc::find(&app.session, name)).collect();
+        let cards: Vec<_> = presets.iter().filter_map(|name| splinewright_engine::cmd::newdoc::find(&app.session, name)).collect();
         for s in cards {
             if crate::dialogs::preset_card(ui, &s, false).clicked() {
                 app.run("file.new", json!({ "preset": s.name })).ok();
@@ -1606,10 +1610,10 @@ fn home(app: &mut VectorcraftApp, ui: &mut Ui, rect: egui::Rect) {
 }
 
 fn kurbo_flatten(p: &BezPath, tol: f64, f: &mut impl FnMut(PathEl)) {
-    vectorcraft_geom::kurbo::flatten(p.elements().iter().copied(), tol, f);
+    splinewright_geom::kurbo::flatten(p.elements().iter().copied(), tol, f);
 }
 
-fn upload(app: &mut VectorcraftApp, ctx: &egui::Context, img: &vectorcraft_render::Rendered) {
+fn upload(app: &mut SplinewrightApp, ctx: &egui::Context, img: &splinewright_render::Rendered) {
     let color = egui::ColorImage::from_rgba_premultiplied([img.width as usize, img.height as usize], &img.pixels);
     match &mut app.canvas.texture {
         Some(tex) => tex.set(color, egui::TextureOptions::LINEAR),
@@ -1631,7 +1635,7 @@ pub(crate) fn task_bar_rect(ctx: &egui::Context) -> Option<egui::Rect> {
 /// The Contextual Task Bar: a floating pill under the selection with the most likely next actions.
 /// Its handle drags it anywhere on the canvas; unpinned it keeps that offset as it follows the
 /// selection, pinned it stays put ([`crate::state::TaskBarPlace`]).
-fn task_bar(app: &mut VectorcraftApp, ui: &mut Ui, xf: &Xf) {
+fn task_bar(app: &mut SplinewrightApp, ui: &mut Ui, xf: &Xf) {
     let t = Tokens::get(ui.ctx());
     let Some(st) = app.session.active() else { return };
     if st.selection.is_empty() || !matches!(app.session.tool_id(), "selection" | "directSelection" | "groupSelection") {
@@ -1778,10 +1782,10 @@ fn task_bar(app: &mut VectorcraftApp, ui: &mut Ui, xf: &Xf) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vectorcraft_engine::Session;
+    use splinewright_engine::Session;
 
     /// One headless canvas frame on an 800 × 600 window.
-    fn frame(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<egui::Event>) {
+    fn frame(app: &mut SplinewrightApp, ctx: &egui::Context, events: Vec<egui::Event>) {
         let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), events, ..Default::default() };
         let mut out = ctx.run_ui(raw, |ui| show(app, ui));
         out.textures_delta.clear();
@@ -1800,7 +1804,7 @@ mod tests {
     }
 
     /// One headless frame with the canvas under a 40-point bar, as it is under the document tabs.
-    fn frame_under_bar(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<egui::Event>) {
+    fn frame_under_bar(app: &mut SplinewrightApp, ctx: &egui::Context, events: Vec<egui::Event>) {
         let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), events, ..Default::default() };
         let mut out = ctx.run_ui(raw, |ui| {
             ui.add_space(40.0);
@@ -1811,7 +1815,7 @@ mod tests {
 
     #[test]
     fn a_click_just_outside_the_canvas_does_not_reach_the_tool() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         // A square in the middle of the artboard, where the view is centred.
         let id = app.session.execute("shape.rectangle", &json!({"x": 180, "y": 130, "width": 40, "height": 40})).unwrap()["id"].as_u64().unwrap();
@@ -1819,25 +1823,25 @@ mod tests {
         let ctx = egui::Context::default();
         frame_under_bar(&mut app, &ctx, vec![]);
         let rect = app.canvas_rect.unwrap();
-        let click = |app: &mut VectorcraftApp, p: Pos2| {
+        let click = |app: &mut SplinewrightApp, p: Pos2| {
             let button =
                 |pressed| egui::Event::PointerButton { pos: p, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
             frame_under_bar(app, &ctx, vec![egui::Event::PointerMoved(p)]);
             frame_under_bar(app, &ctx, vec![button(true)]);
             frame_under_bar(app, &ctx, vec![button(false)]);
         };
-        let selected = |app: &VectorcraftApp| app.session.active().unwrap().selection.objects.clone();
+        let selected = |app: &SplinewrightApp| app.session.active().unwrap().selection.objects.clone();
         // Two pixels above the canvas, within egui's interaction radius: nothing happens.
         click(&mut app, pos2(rect.center().x, rect.top() - 2.0));
         assert!(selected(&app).is_empty(), "a click above the canvas selected {:?}", selected(&app));
         // At the canvas's centre: the square.
         click(&mut app, rect.center());
-        assert_eq!(selected(&app), vec![vectorcraft_doc::NodeId(id)]);
+        assert_eq!(selected(&app), vec![splinewright_doc::NodeId(id)]);
     }
 
     #[test]
     fn a_drag_from_a_ruler_onto_the_canvas_makes_a_guide() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.ui.view.rulers = true;
         app.ui.view.guides = false;
@@ -1848,13 +1852,13 @@ mod tests {
         let rect = app.canvas_rect.unwrap();
         let xf = Xf::new(rect, app.view().unwrap());
         let button = |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
-        let drag = |app: &mut VectorcraftApp, from: Pos2, to: Pos2| {
+        let drag = |app: &mut SplinewrightApp, from: Pos2, to: Pos2| {
             frame(app, &ctx, vec![egui::Event::PointerMoved(from)]);
             frame(app, &ctx, vec![button(from, true)]);
             frame(app, &ctx, vec![egui::Event::PointerMoved(to)]);
             frame(app, &ctx, vec![button(to, false)]);
         };
-        let guides = |app: &VectorcraftApp| app.session.active().unwrap().doc.guides.iter().map(|g| (g.vertical, g.pos)).collect::<Vec<_>>();
+        let guides = |app: &SplinewrightApp| app.session.active().unwrap().doc.guides.iter().map(|g| (g.vertical, g.pos)).collect::<Vec<_>>();
         // From the top ruler: a horizontal guide where the button was released.
         let to = pos2(rect.center().x, rect.top() + 120.0);
         drag(&mut app, pos2(rect.center().x, rect.top() - RULER / 2.0), to);
@@ -1875,7 +1879,7 @@ mod tests {
     /// its artboard only.
     #[test]
     fn guides_from_the_rulers_snap_and_artboard_guides_span_their_artboard() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.session.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 400, "height": 300})).unwrap();
         app.session.execute("select.none", &json!({})).unwrap();
@@ -1886,13 +1890,13 @@ mod tests {
         let rect = app.canvas_rect.unwrap();
         let xf = Xf::new(rect, app.view().unwrap());
         let button = |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
-        let drag = |app: &mut VectorcraftApp, from: Pos2, to: Pos2| {
+        let drag = |app: &mut SplinewrightApp, from: Pos2, to: Pos2| {
             frame(app, &ctx, vec![egui::Event::PointerMoved(from)]);
             frame(app, &ctx, vec![button(from, true)]);
             frame(app, &ctx, vec![egui::Event::PointerMoved(to)]);
             frame(app, &ctx, vec![button(to, false)]);
         };
-        let guides = |app: &VectorcraftApp| app.session.active().unwrap().doc.guides.iter().map(|g| (g.vertical, g.pos)).collect::<Vec<_>>();
+        let guides = |app: &SplinewrightApp| app.session.active().unwrap().doc.guides.iter().map(|g| (g.vertical, g.pos)).collect::<Vec<_>>();
         // 3 px off the middle of the top and bottom sides: onto the line through them.
         let mid = xf.to_screen(Point::new(200.0, 150.0));
         drag(&mut app, pos2(rect.left() - RULER / 2.0, mid.y), mid + vec2(3.0, 40.0));
@@ -1923,7 +1927,7 @@ mod tests {
     /// ruler.
     #[test]
     fn the_selection_tool_moves_and_deletes_ruler_guides() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         // A square under the guides: the press takes the guide.
         app.session.execute("shape.rectangle", &json!({"x": 50, "y": 50, "width": 300, "height": 200})).unwrap();
@@ -1936,13 +1940,13 @@ mod tests {
         let rect = app.canvas_rect.unwrap();
         let xf = Xf::new(rect, app.view().unwrap());
         let button = |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
-        let drag = |app: &mut VectorcraftApp, from: Pos2, to: Pos2| {
+        let drag = |app: &mut SplinewrightApp, from: Pos2, to: Pos2| {
             frame(app, &ctx, vec![egui::Event::PointerMoved(from)]);
             frame(app, &ctx, vec![button(from, true)]);
             frame(app, &ctx, vec![egui::Event::PointerMoved(to)]);
             frame(app, &ctx, vec![button(to, false)]);
         };
-        let guides = |app: &VectorcraftApp| app.session.active().unwrap().doc.guides.iter().map(|g| (g.vertical, g.pos)).collect::<Vec<_>>();
+        let guides = |app: &SplinewrightApp| app.session.active().unwrap().doc.guides.iter().map(|g| (g.vertical, g.pos)).collect::<Vec<_>>();
         // Two guides out of the rulers.
         let (h, v) = (pos2(rect.center().x + 30.0, rect.center().y + 20.0), pos2(rect.center().x - 40.0, rect.center().y));
         drag(&mut app, pos2(h.x, rect.top() - RULER / 2.0), h);
@@ -1959,7 +1963,7 @@ mod tests {
         let s = shapes(&mut app, &ctx);
         assert!(s.iter().any(|s| matches!(s, Shape::LineSegment { points, stroke } if stroke.color == picked && points[0].y == to.y)), "highlighted");
         // Backspace deletes the selected guide; Delete too.
-        let press = |app: &mut VectorcraftApp, key| {
+        let press = |app: &mut SplinewrightApp, key| {
             let ev = egui::Event::Key { key, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE };
             let mut out = ctx.run_ui(egui::RawInput { events: vec![ev], ..Default::default() }, |ui| crate::shortcuts::handle(app, ui.ctx()));
             out.textures_delta.clear();
@@ -1983,13 +1987,13 @@ mod tests {
 
     #[test]
     fn cmd_with_another_tool_drags_with_the_selection_tool_used_last() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         let id = app.session.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 100, "height": 50})).unwrap()["id"].as_u64().unwrap();
         let ctx = egui::Context::default();
         frame(&mut app, &ctx, vec![]);
         let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-        let cmd_frame = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
+        let cmd_frame = |app: &mut SplinewrightApp, events: Vec<egui::Event>| {
             let screen = egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0));
             let events = std::iter::once(egui::Event::ModifiersChanged(egui::Modifiers::COMMAND)).chain(events).collect();
             let raw = egui::RawInput { screen_rect: Some(screen), events, ..Default::default() };
@@ -1999,7 +2003,7 @@ mod tests {
         let button =
             |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: egui::Modifiers::COMMAND };
         // A Cmd drag from `a` to `b` with the Pen tool; → the tool that did it.
-        let cmd_drag = |app: &mut VectorcraftApp, a: Pos2, b: Pos2| {
+        let cmd_drag = |app: &mut SplinewrightApp, a: Pos2, b: Pos2| {
             app.select_tool("pen");
             cmd_frame(app, vec![egui::Event::PointerMoved(a), button(a, true)]);
             let used = app.session.tool_id().to_string();
@@ -2008,7 +2012,8 @@ mod tests {
             assert_eq!(app.session.tool_id(), "pen", "back to the Pen tool");
             used
         };
-        let bounds = |app: &VectorcraftApp| app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
+        let bounds =
+            |app: &SplinewrightApp| app.session.active().unwrap().doc.node(splinewright_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
         // Direct Selection used last: the drag moves the rectangle's bottom-right corner only.
         app.select_tool("directSelection");
         let corner = xf.to_screen(Point::new(200.0, 150.0));
@@ -2025,7 +2030,7 @@ mod tests {
     }
 
     /// One headless canvas frame → the shapes drawn, `Shape::Vec`s flattened.
-    fn shapes(app: &mut VectorcraftApp, ctx: &egui::Context) -> Vec<Shape> {
+    fn shapes(app: &mut SplinewrightApp, ctx: &egui::Context) -> Vec<Shape> {
         let (shapes, mut delta) = frame_output(app, ctx);
         delta.clear();
         shapes
@@ -2033,7 +2038,7 @@ mod tests {
 
     /// One headless canvas frame → the shapes drawn (`Shape::Vec`s flattened) and the textures
     /// uploaded by it (the art's raster among them, when it was re-rendered).
-    fn frame_output(app: &mut VectorcraftApp, ctx: &egui::Context) -> (Vec<Shape>, egui::TexturesDelta) {
+    fn frame_output(app: &mut SplinewrightApp, ctx: &egui::Context) -> (Vec<Shape>, egui::TexturesDelta) {
         fn flat(s: Shape, out: &mut Vec<Shape>) {
             match s {
                 Shape::Vec(v) => v.into_iter().for_each(|s| flat(s, out)),
@@ -2051,7 +2056,7 @@ mod tests {
     /// screen; off, every pixel is either painted or not, and turning it either way re-renders.
     #[test]
     fn anti_aliased_artwork_preference_smooths_the_canvas() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         // Render on this thread: the worker's frame would land later than the test looks.
         app.canvas.worker_started = true;
@@ -2059,7 +2064,7 @@ mod tests {
         app.session.execute("shape.ellipse", &json!({"x": 100, "y": 50, "width": 200, "height": 200})).unwrap();
         let ctx = egui::Context::default();
         // The alphas of the art's raster uploaded by one frame, None when it was not re-rendered.
-        let alphas = |app: &mut VectorcraftApp| -> Option<Vec<u8>> {
+        let alphas = |app: &mut SplinewrightApp| -> Option<Vec<u8>> {
             let (_, mut delta) = frame_output(app, &ctx);
             let art = app.canvas.texture.as_ref().unwrap().id();
             let alphas = delta.set.iter().find(|e| e.0.eq(&art)).and_then(|e| e.1.last()).map(|d| {
@@ -2086,14 +2091,14 @@ mod tests {
     /// or with the option off.
     #[test]
     fn pixel_grid_shows_in_pixel_preview_from_600_percent() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.session.execute("shape.rectangle", &json!({"x": 100, "y": 50, "width": 200, "height": 200})).unwrap();
         app.canvas.worker_started = true; // render on this thread
         let ctx = egui::Context::default();
         shapes(&mut app, &ctx); // the first frame fits the view to the artboard
         // → (the pixel grid's lines, whether the first of them is drawn over the art).
-        let pixel_lines = |app: &mut VectorcraftApp| {
+        let pixel_lines = |app: &mut SplinewrightApp| {
             let s = shapes(app, &ctx);
             let art = app.canvas.texture.as_ref().unwrap().id();
             let image = s.iter().position(|s| matches!(s, Shape::Mesh(m) if m.texture_id == art)).expect("the art");
@@ -2134,7 +2139,7 @@ mod tests {
     /// over it, as dots in the Dots style; the guides in Guides Color and Style.
     #[test]
     fn grid_and_guides_take_their_preferences() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.session.execute("guide.add", &json!({"vertical": true, "pos": 100})).unwrap();
         app.ui.view.grid = true;
@@ -2144,7 +2149,7 @@ mod tests {
         let ctx = egui::Context::default();
         let red_line = |s: &Shape| matches!(s, Shape::LineSegment { stroke, .. } if stroke.color == red);
         // → (index of the first red gridline, index of the art's image).
-        let order = |app: &mut VectorcraftApp| {
+        let order = |app: &mut SplinewrightApp| {
             let s = shapes(app, &ctx);
             let art = app.canvas.texture.as_ref().unwrap().id();
             let image = s.iter().position(|s| matches!(s, Shape::Mesh(m) if m.texture_id == art)).expect("the art");
@@ -2167,12 +2172,12 @@ mod tests {
     /// Selection & Anchor Display › Size (#394): anchors and the bounding box's handles grow.
     #[test]
     fn anchor_size_scales_anchors_and_handles() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.session.execute("shape.rectangle", &json!({"x": 150, "y": 100, "width": 100, "height": 100})).unwrap();
         let ctx = egui::Context::default();
         // The sizes of the squares drawn (anchors and handles are squares).
-        let sizes = |app: &mut VectorcraftApp| {
+        let sizes = |app: &mut SplinewrightApp| {
             let mut v: Vec<f32> = shapes(app, &ctx).iter().filter_map(|s| if let Shape::Rect(r) = s { Some(r.rect.width()) } else { None }).collect();
             v.sort_by(f32::total_cmp);
             v.dedup();
@@ -2190,16 +2195,16 @@ mod tests {
     /// anchor hides the handles.
     #[test]
     fn handle_style_and_handles_of_multiple_anchors() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         let id = app.session.execute("shape.ellipse", &json!({"x": 100, "y": 100, "width": 100, "height": 100})).unwrap()["id"].clone();
         app.session.select_tool("directSelection", app.view_info()).unwrap();
         let ctx = egui::Context::default();
-        let select = |app: &mut VectorcraftApp, anchors: serde_json::Value| {
+        let select = |app: &mut SplinewrightApp, anchors: serde_json::Value| {
             app.session.execute("select.anchors", &json!({"id": id, "anchors": anchors, "mode": "set"})).unwrap();
         };
         // The handle ends: (radius, filled white).
-        let dots = |app: &mut VectorcraftApp| -> Vec<(f32, bool)> {
+        let dots = |app: &mut SplinewrightApp| -> Vec<(f32, bool)> {
             shapes(app, &ctx)
                 .iter()
                 .filter_map(|s| match s {
@@ -2226,7 +2231,7 @@ mod tests {
     /// shows with Smart Guides on and the option on, and not otherwise.
     #[test]
     fn object_highlighting_preference_hides_the_hover_outline() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         let id = app.session.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 100, "height": 100})).unwrap()["id"].as_u64().unwrap();
         app.session.execute("select.none", &json!({})).unwrap();
@@ -2234,9 +2239,9 @@ mod tests {
         frame(&mut app, &ctx, vec![]);
         let rect = app.canvas_rect.unwrap();
         let over = Xf::new(rect, app.view().unwrap()).to_screen(Point::new(150.0, 150.0));
-        let layer = egui::epaint::ColorMode::Solid(c32(app.session.active().unwrap().doc.layer_color(vectorcraft_doc::NodeId(id))));
+        let layer = egui::epaint::ColorMode::Solid(c32(app.session.active().unwrap().doc.layer_color(splinewright_doc::NodeId(id))));
         // The hover outline: 1.5 px lines in the layer colour.
-        let outlines = |app: &mut VectorcraftApp| {
+        let outlines = |app: &mut SplinewrightApp| {
             frame(app, &ctx, vec![egui::Event::PointerMoved(over)]);
             shapes(app, &ctx).iter().filter(|s| matches!(s, Shape::Path(ps) if ps.stroke.width == 1.5 && ps.stroke.color == layer)).count()
         };
@@ -2252,11 +2257,11 @@ mod tests {
     /// widgets below 90°.
     #[test]
     fn corner_widgets_hide_above_the_preference_angle() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.session.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 100, "height": 100})).unwrap();
         let ctx = egui::Context::default();
-        let widgets = |app: &mut VectorcraftApp| {
+        let widgets = |app: &mut SplinewrightApp| {
             shapes(app, &ctx).iter().filter(|s| matches!(s, Shape::Circle(c) if c.radius == 3.0 && c.fill == Color32::WHITE)).count()
         };
         assert_eq!(widgets(&mut app), 4);
@@ -2268,11 +2273,11 @@ mod tests {
     /// the Selection tool: it isn't a live shape); View → Hide Corner Widget hides them.
     #[test]
     fn a_star_shows_corner_widgets_with_direct_selection() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.session.execute("shape.star", &json!({"cx": 200, "cy": 150, "radius1": 80, "radius2": 40})).unwrap();
         let ctx = egui::Context::default();
-        let widgets = |app: &mut VectorcraftApp| {
+        let widgets = |app: &mut SplinewrightApp| {
             shapes(app, &ctx).iter().filter(|s| matches!(s, Shape::Circle(c) if c.radius == 3.0 && c.fill == Color32::WHITE)).count()
         };
         app.select_tool("selection");
@@ -2287,14 +2292,14 @@ mod tests {
     /// in the layer colour on area type.
     #[test]
     fn the_type_widget_shows_which_kind_the_type_is() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         let id = app.session.execute("text.create", &json!({"x": 100, "y": 100, "text": "Type"})).unwrap()["id"].as_u64().unwrap();
         app.session.execute("select.set", &json!({"ids": [id]})).unwrap();
-        let layer = c32(app.session.active().unwrap().doc.layer_color(vectorcraft_doc::NodeId(id)));
+        let layer = c32(app.session.active().unwrap().doc.layer_color(splinewright_doc::NodeId(id)));
         let ctx = egui::Context::default();
-        let widget = |app: &mut VectorcraftApp| -> Vec<Color32> {
-            let r = vectorcraft_tools::typewidget::RADIUS_PX;
+        let widget = |app: &mut SplinewrightApp| -> Vec<Color32> {
+            let r = splinewright_tools::typewidget::RADIUS_PX;
             shapes(app, &ctx)
                 .iter()
                 .filter_map(|s| if let Shape::Circle(c) = s { (c.radius == r && c.fill != Color32::TRANSPARENT).then_some(c.fill) } else { None })
@@ -2313,11 +2318,11 @@ mod tests {
     /// trackpad pinch zoom about the pointer either way.
     #[test]
     fn zoom_with_mouse_wheel_preference() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         let ctx = egui::Context::default();
         // A canvas frame through the host's input hook (it feeds the control channel's input).
-        let run = |app: &mut VectorcraftApp| {
+        let run = |app: &mut SplinewrightApp| {
             let mut raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), ..Default::default() };
             app.raw_input_hook(&mut raw);
             let mut out = ctx.run_ui(raw, |ui| show(app, ui));
@@ -2328,7 +2333,7 @@ mod tests {
         let at = rect.center() + vec2(60.0, 40.0);
         // One notch up at `at` with `mods` held, or a pinch: → (zoom ratio, scroll in points, how
         // far the point under `at` moved).
-        let turn = |app: &mut VectorcraftApp, mods: &str| {
+        let turn = |app: &mut SplinewrightApp, mods: &str| {
             let before = *app.view().unwrap();
             if mods == "pinch" {
                 app.synthetic.extend([egui::Event::PointerMoved(at), egui::Event::Zoom(1.25)]);
@@ -2366,7 +2371,7 @@ mod tests {
     #[test]
     fn cmd_space_zooms_and_space_pans_whatever_the_tool() {
         use egui::{Event, Modifiers};
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.select_tool("rectangle");
         let ctx = egui::Context::default();
@@ -2375,7 +2380,7 @@ mod tests {
         let space = |pressed, modifiers| Event::Key { key: egui::Key::Space, physical_key: None, pressed, repeat: false, modifiers };
         let button = |pos, pressed, modifiers| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers };
         // A drag from `at` to `to` with Space and `held` down.
-        let drag = |app: &mut VectorcraftApp, held: Modifiers, to: Pos2| {
+        let drag = |app: &mut SplinewrightApp, held: Modifiers, to: Pos2| {
             frame(app, &ctx, vec![Event::ModifiersChanged(held), space(true, held), Event::PointerMoved(at)]);
             frame(app, &ctx, vec![button(at, true, held)]);
             frame(app, &ctx, vec![Event::PointerMoved(to)]);
@@ -2401,7 +2406,7 @@ mod tests {
     #[test]
     fn space_pressed_mid_drag_moves_what_the_tool_draws() {
         use egui::{Event, Modifiers};
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.ui.view.smart_guides = false;
         let ctx = egui::Context::default();
@@ -2410,7 +2415,7 @@ mod tests {
         let space = |pressed| Event::Key { key: egui::Key::Space, physical_key: None, pressed, repeat: false, modifiers: Modifiers::NONE };
         let button = |pos, pressed| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Modifiers::NONE };
         // Press at `a`, drag to `b`, then hold Space while moving on by `by` and let go of both.
-        let draw = |app: &mut VectorcraftApp, a: Pos2, b: Pos2, by: egui::Vec2| {
+        let draw = |app: &mut SplinewrightApp, a: Pos2, b: Pos2, by: egui::Vec2| {
             frame(app, &ctx, vec![Event::PointerMoved(a)]);
             frame(app, &ctx, vec![button(a, true)]);
             frame(app, &ctx, vec![Event::PointerMoved(b)]);
@@ -2444,13 +2449,13 @@ mod tests {
 
     #[test]
     fn double_clicking_type_with_the_selection_tool_puts_the_caret_there() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         let id = app.session.execute("text.create", &json!({"x": 100, "y": 150, "text": "Hello world", "size": 24})).unwrap()["id"].as_u64().unwrap();
         app.session.execute("select.none", &json!({})).unwrap();
         app.select_tool("selection");
         let ctx = egui::Context::default();
-        let timed = |app: &mut VectorcraftApp, time: f64, events: Vec<egui::Event>| {
+        let timed = |app: &mut SplinewrightApp, time: f64, events: Vec<egui::Event>| {
             let screen = egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0));
             let mut out =
                 ctx.run_ui(egui::RawInput { screen_rect: Some(screen), time: Some(time), events, ..Default::default() }, |ui| show(app, ui));
@@ -2458,12 +2463,12 @@ mod tests {
         };
         timed(&mut app, 0.0, vec![]);
         let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-        let text = |app: &VectorcraftApp| match &app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().kind {
+        let text = |app: &SplinewrightApp| match &app.session.active().unwrap().doc.node(splinewright_doc::NodeId(id)).unwrap().kind {
             NodeKind::Text(t) => t.plain_text(),
             _ => panic!("not text"),
         };
         // Double-click the middle of the text.
-        let b = app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
+        let b = app.session.active().unwrap().doc.node(splinewright_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
         let at = xf.to_screen(b.center());
         let button = |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
         timed(&mut app, 1.0, vec![egui::Event::PointerMoved(at), button(true), button(false), button(true), button(false)]);
@@ -2483,7 +2488,7 @@ mod tests {
 
     #[test]
     fn a_symbol_dropped_on_the_canvas_is_placed_there() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.session.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 40, "height": 20})).unwrap();
         let name = app.session.execute("symbol.new", &json!({})).unwrap()["name"].as_str().unwrap().to_string();
@@ -2506,7 +2511,7 @@ mod tests {
 
     #[test]
     fn a_brush_dropped_on_a_path_is_applied_to_it() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         let id =
             app.session.execute("path.create", &json!({"anchors": [{"x": 100, "y": 150}, {"x": 300, "y": 150}]})).unwrap()["id"].as_u64().unwrap();
@@ -2514,11 +2519,11 @@ mod tests {
         let ctx = egui::Context::default();
         frame(&mut app, &ctx, vec![]);
         let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-        let brush = |app: &VectorcraftApp| {
+        let brush = |app: &SplinewrightApp| {
             let st = app.session.active().unwrap();
-            st.doc.node(vectorcraft_doc::NodeId(id)).unwrap().appearance.stroke().and_then(|s| s.brush.clone())
+            st.doc.node(splinewright_doc::NodeId(id)).unwrap().appearance.stroke().and_then(|s| s.brush.clone())
         };
-        let drop = |app: &mut VectorcraftApp, at: Point| {
+        let drop = |app: &mut SplinewrightApp, at: Point| {
             let at = xf.to_screen(at);
             egui::DragAndDrop::set_payload(&ctx, widgets::PanelDrag::Brush { name: "Arrow".into(), def: json!({}) });
             let up = egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed: false, modifiers: Default::default() };
@@ -2534,7 +2539,7 @@ mod tests {
 
     #[test]
     fn middle_drag_pans_the_view_with_any_tool() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         // A drawing tool: the middle button must pan, never draw.
         app.select_tool("rectangle");
@@ -2556,22 +2561,22 @@ mod tests {
 
     #[test]
     fn swatches_and_proxy_paints_dropped_on_art_fill_the_object_hit() {
-        use vectorcraft_color::{Color, GradientGeom, GradientPaint, Paint};
+        use splinewright_color::{Color, GradientGeom, GradientPaint, Paint};
         use widgets::{PanelDrag, SwatchRows};
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         let id = app.session.execute("shape.rectangle", &json!({"x": 50, "y": 50, "width": 100, "height": 100})).unwrap()["id"].as_u64().unwrap();
         app.session.execute("select.none", &json!({})).unwrap();
         let ctx = egui::Context::default();
         frame(&mut app, &ctx, vec![]);
         let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-        let drop = |app: &mut VectorcraftApp, d: PanelDrag, at: Point| {
+        let drop = |app: &mut SplinewrightApp, d: PanelDrag, at: Point| {
             let at = xf.to_screen(at);
             egui::DragAndDrop::set_payload(&ctx, d);
             let up = egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed: false, modifiers: Default::default() };
             frame(app, &ctx, vec![egui::Event::PointerMoved(at), up]);
         };
-        let fill = |app: &VectorcraftApp| app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().appearance.fill_paint();
+        let fill = |app: &SplinewrightApp| app.session.active().unwrap().doc.node(splinewright_doc::NodeId(id)).unwrap().appearance.fill_paint();
         let red = Paint::solid(Color::from_hex("#ed1c24").unwrap());
         let rows = SwatchRows { grabbed: "Red".into(), names: vec!["Red".into()], groups: false };
         let swatch = PanelDrag::Paint { paint: red.clone(), params: json!({"swatch": "Red"}), rows: Some(rows) };
@@ -2593,9 +2598,9 @@ mod tests {
 
     #[test]
     fn dropping_the_appearance_thumbnail_on_art_copies_the_appearance() {
-        use vectorcraft_doc::NodeId;
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
-        let run = |app: &mut VectorcraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
+        use splinewright_doc::NodeId;
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
+        let run = |app: &mut SplinewrightApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
         run(&mut app, "file.new", json!({"width": 400, "height": 300}));
         let a = run(&mut app, "shape.rectangle", json!({"x": 20, "y": 20, "width": 100, "height": 100}))["id"].as_u64().unwrap();
         run(&mut app, "effect.apply", json!({"effect": "distort.twist"}));
@@ -2606,7 +2611,7 @@ mod tests {
         frame(&mut app, &ctx, vec![]);
         // The Appearance panel's thumbnail (its drag payload) released over the second rectangle.
         let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-        let drop = |app: &mut VectorcraftApp, at: Point| {
+        let drop = |app: &mut SplinewrightApp, at: Point| {
             let at = xf.to_screen(at);
             egui::DragAndDrop::set_payload(&ctx, widgets::PanelDrag::Appearance(NodeId(a)));
             frame(app, &ctx, vec![egui::Event::PointerMoved(at)]);
@@ -2627,9 +2632,9 @@ mod tests {
 
     #[test]
     fn a_graphic_style_dropped_on_art_applies_to_the_object_hit() {
-        use vectorcraft_doc::NodeId;
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
-        let run = |app: &mut VectorcraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
+        use splinewright_doc::NodeId;
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
+        let run = |app: &mut SplinewrightApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
         run(&mut app, "file.new", json!({"width": 400, "height": 300}));
         let a = NodeId(run(&mut app, "shape.rectangle", json!({"x": 20, "y": 20, "width": 100, "height": 100}))["id"].as_u64().unwrap());
         let b = NodeId(run(&mut app, "shape.rectangle", json!({"x": 200, "y": 20, "width": 100, "height": 100}))["id"].as_u64().unwrap());
@@ -2654,10 +2659,10 @@ mod tests {
 
     #[test]
     fn art_moved_off_the_canvas_becomes_a_panel_drag_and_stays_put() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         let id = app.session.execute("shape.rectangle", &json!({"x": 50, "y": 50, "width": 100, "height": 100})).unwrap()["id"].as_u64().unwrap();
-        let id = vectorcraft_doc::NodeId(id);
+        let id = splinewright_doc::NodeId(id);
         app.select_tool("selection");
         let ctx = egui::Context::default();
         frame(&mut app, &ctx, vec![]);
@@ -2689,7 +2694,7 @@ mod tests {
     }
 
     /// One frame of keyboard handling and canvas, as the app runs them; returns the IME output.
-    fn typing_frame(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<egui::Event>) -> Option<egui::output::IMEOutput> {
+    fn typing_frame(app: &mut SplinewrightApp, ctx: &egui::Context, events: Vec<egui::Event>) -> Option<egui::output::IMEOutput> {
         let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), events, ..Default::default() };
         let mut out = ctx.run_ui(raw, |ui| {
             crate::shortcuts::handle(app, ui.ctx());
@@ -2703,8 +2708,8 @@ mod tests {
         egui::Event::Ime(egui::ImeEvent::Preedit { text: t.into(), active_range_chars: Some(chars..chars) })
     }
 
-    fn plain(app: &VectorcraftApp, id: u64) -> String {
-        match &app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().kind {
+    fn plain(app: &SplinewrightApp, id: u64) -> String {
+        match &app.session.active().unwrap().doc.node(splinewright_doc::NodeId(id)).unwrap().kind {
             NodeKind::Text(t) => t.plain_text(),
             _ => panic!("not text"),
         }
@@ -2712,7 +2717,7 @@ mod tests {
 
     #[test]
     fn japanese_ime_composes_on_the_canvas_with_its_window_at_the_caret() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         // The type placed starts empty (Fill New Type Objects With Placeholder Text off).
         app.session.prefs.placeholder_text = false;
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
@@ -2759,7 +2764,7 @@ mod tests {
 
     #[test]
     fn clicking_away_mid_composition_keeps_the_text_and_interrupts_the_ime() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         let ctx = egui::Context::default();
         typing_frame(&mut app, &ctx, vec![]);
@@ -2788,7 +2793,7 @@ mod tests {
 
     #[test]
     fn ime_edge_orders_never_eat_committed_text_or_lose_the_composition() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         let ctx = egui::Context::default();
         typing_frame(&mut app, &ctx, vec![]);
@@ -2835,7 +2840,7 @@ mod tests {
     }
 
     /// A pen stroke across `pts` (document points), one frame per sample, with its pressures.
-    fn pen_stroke(app: &mut VectorcraftApp, ctx: &egui::Context, pts: &[(f64, f64, f32)]) {
+    fn pen_stroke(app: &mut SplinewrightApp, ctx: &egui::Context, pts: &[(f64, f64, f32)]) {
         let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
         let last = pts.len() - 1;
         for (i, &(x, y, force)) in pts.iter().enumerate() {
@@ -2851,7 +2856,7 @@ mod tests {
     /// use it; the pointer leaving with the lift doesn't move the stroke's end.
     #[test]
     fn pen_and_touch_input_drive_the_tools_with_their_pressure() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 800, "height": 600})).unwrap();
         let ctx = egui::Context::default();
         frame(&mut app, &ctx, vec![]);
@@ -2876,7 +2881,7 @@ mod tests {
     /// lift (the pointer gone with it) doesn't drag the selection to the canvas's centre.
     #[test]
     fn a_pen_tap_within_one_frame_clicks_where_it_tapped() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 800, "height": 600})).unwrap();
         let id = app.session.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 100, "height": 100})).unwrap()["id"].as_u64().unwrap();
         app.session.execute("select.none", &json!({})).unwrap();
@@ -2890,7 +2895,7 @@ mod tests {
         frame(&mut app, &ctx, tap);
         frame(&mut app, &ctx, vec![]);
         let doc = app.session.active().unwrap();
-        assert_eq!(doc.selection.objects, vec![vectorcraft_doc::NodeId(id)]);
+        assert_eq!(doc.selection.objects, vec![splinewright_doc::NodeId(id)]);
         assert_eq!(doc.doc.art_bounds(), before, "the tap moved nothing");
     }
 
@@ -2900,7 +2905,7 @@ mod tests {
     /// also when the window shrinks.
     #[test]
     fn the_task_bar_is_dragged_by_its_handle_pinned_and_reset() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         let mut square =
             |x: f64, y: f64| app.session.execute("shape.rectangle", &json!({"x": x, "y": y, "width": 40, "height": 40})).unwrap()["id"].clone();
@@ -2908,14 +2913,14 @@ mod tests {
         app.select_tool("selection");
         let ctx = egui::Context::default();
         let bar = || task_bar_rect(&ctx).expect("the task bar shows");
-        let select = |app: &mut VectorcraftApp, id: &serde_json::Value| {
+        let select = |app: &mut SplinewrightApp, id: &serde_json::Value| {
             app.session.execute("select.set", &json!({"ids": [id]})).unwrap();
             frame(app, &ctx, vec![]);
             frame(app, &ctx, vec![]);
             bar().min
         };
         let button = |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
-        let drag = |app: &mut VectorcraftApp, by: Vec2| {
+        let drag = |app: &mut SplinewrightApp, by: Vec2| {
             let grip = pos2(bar().left() + 11.0, bar().center().y);
             frame(app, &ctx, vec![egui::Event::PointerMoved(grip)]);
             frame(app, &ctx, vec![button(grip, true)]);

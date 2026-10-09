@@ -9,12 +9,12 @@
 
 use egui::{Sense, Ui, vec2};
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeId;
+use splinewright_doc::NodeId;
 
 use super::{pstate, set_pstate};
 use crate::theme::{self, Tokens};
 use crate::widgets::{self, menu_item};
-use crate::{VectorcraftApp, icons};
+use crate::{SplinewrightApp, icons};
 
 pub const ID: &str = "links";
 /// Seconds between two looks at the linked files (they change outside the app).
@@ -62,7 +62,7 @@ fn set_options(ctx: &egui::Context, f: impl FnOnce(&mut Options)) {
 
 /// The rows to show (cached per document revision, the files looked at again every [`RECHECK`]
 /// seconds) and the Link Info of the first selected image when the section is open.
-fn cached(app: &mut VectorcraftApp, ctx: &egui::Context, o: &Options) -> Option<Cache> {
+fn cached(app: &mut SplinewrightApp, ctx: &egui::Context, o: &Options) -> Option<Cache> {
     let st = app.session.active()?;
     let key = Some((st.uid, st.revision, o.show, o.sort));
     let first = selected_images(app).first().copied();
@@ -84,9 +84,9 @@ fn cached(app: &mut VectorcraftApp, ctx: &egui::Context, o: &Options) -> Option<
 }
 
 /// The ids of the selected image objects.
-fn selected_images(app: &VectorcraftApp) -> Vec<u64> {
+fn selected_images(app: &SplinewrightApp) -> Vec<u64> {
     let Some(st) = app.session.active() else { return vec![] };
-    let image = |id: &NodeId| st.doc.node(*id).is_some_and(|n| matches!(n.kind, vectorcraft_doc::NodeKind::Image(_)));
+    let image = |id: &NodeId| st.doc.node(*id).is_some_and(|n| matches!(n.kind, splinewright_doc::NodeKind::Image(_)));
     st.selection.objects.iter().filter(|id| image(id)).map(|id| id.0).collect()
 }
 
@@ -104,7 +104,7 @@ fn status_is(r: &Value, status: &str) -> bool {
     r["status"].as_str() == Some(status)
 }
 
-fn report(app: &mut VectorcraftApp, r: Result<Value, String>, done: impl FnOnce(&Value) -> String) {
+fn report(app: &mut SplinewrightApp, r: Result<Value, String>, done: impl FnOnce(&Value) -> String) {
     let msg = match r {
         Ok(v) => done(&v),
         Err(e) => e,
@@ -113,15 +113,15 @@ fn report(app: &mut VectorcraftApp, r: Result<Value, String>, done: impl FnOnce(
 }
 
 /// Relink images `ids` to a picked file.
-pub(crate) fn relink(app: &mut VectorcraftApp, ids: Vec<u64>) {
-    let pick = crate::FilePick { filters: vectorcraft_engine::cmd::fileio::place_filters().collect(), ..Default::default() };
+pub(crate) fn relink(app: &mut SplinewrightApp, ids: Vec<u64>) {
+    let pick = crate::FilePick { filters: splinewright_engine::cmd::fileio::place_filters().collect(), ..Default::default() };
     let Some(path) = app.services.pick_open.as_mut().and_then(|f| f(&pick)) else { return };
     let r = app.run("links.relink", json!({ "ids": ids, "path": path }));
     report(app, r, |v| format!("Relinked {} image(s)", v["relinked"].as_array().map_or(0, Vec::len)));
 }
 
 /// Relink images `ids` (none: every missing one) to the files of their names in a picked folder.
-fn relink_to_folder(app: &mut VectorcraftApp, ids: Vec<u64>) {
+fn relink_to_folder(app: &mut SplinewrightApp, ids: Vec<u64>) {
     let Some(folder) = app.services.pick_folder.as_mut().and_then(|f| f()) else { return };
     let ids = Some(ids).filter(|i| !i.is_empty());
     let r = app.run("links.relink", json!({ "ids": ids, "folder": folder }));
@@ -133,20 +133,20 @@ fn relink_to_folder(app: &mut VectorcraftApp, ids: Vec<u64>) {
 }
 
 /// Select image `id` and scroll it into view.
-pub(crate) fn go_to(app: &mut VectorcraftApp, id: u64) {
+pub(crate) fn go_to(app: &mut SplinewrightApp, id: u64) {
     let Ok(r) = app.run("links.goTo", json!({ "id": id })) else { return };
     let b: Vec<f64> = r["bounds"].as_array().into_iter().flatten().filter_map(Value::as_f64).collect();
     if let (&[x0, y0, x1, y1], Some(v)) = (&b[..], app.view_mut()) {
-        v.center = vectorcraft_geom::Point::new((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+        v.center = splinewright_geom::Point::new((x0 + x1) / 2.0, (y0 + y1) / 2.0);
         v.fitted = true;
     }
 }
 
 /// Write embedded image `id` to a picked file (the web downloads it) and link it there.
-pub(crate) fn unembed(app: &mut VectorcraftApp, id: u64, name: &str) {
+pub(crate) fn unembed(app: &mut SplinewrightApp, id: u64, name: &str) {
     if let Some(dl) = app.services.download.as_mut() {
         if let Ok(v) = app.session.execute("links.unembed", &json!({ "id": id }))
-            && let (Some(name), Some(bytes)) = (v["name"].as_str(), v["dataBase64"].as_str().and_then(vectorcraft_format::base64_decode))
+            && let (Some(name), Some(bytes)) = (v["name"].as_str(), v["dataBase64"].as_str().and_then(splinewright_format::base64_decode))
         {
             dl(name, &bytes);
         }
@@ -159,7 +159,7 @@ pub(crate) fn unembed(app: &mut VectorcraftApp, id: u64, name: &str) {
 
 /// The UI commands `links.editOriginal` (open the linked file in its app) and `links.reveal`
 /// (show it in its folder) for image `id` (default: the selected linked image) → `{path}`.
-pub(crate) fn open_file(app: &mut VectorcraftApp, p: &Value, reveal: bool) -> Result<Value, String> {
+pub(crate) fn open_file(app: &mut SplinewrightApp, p: &Value, reveal: bool) -> Result<Value, String> {
     let id = p.get("id").and_then(Value::as_u64).or_else(|| {
         let list = app.session.execute("links.list", &json!({})).ok()?;
         let sel = selected_images(app);
@@ -205,7 +205,7 @@ fn status_tip(r: &Value) -> String {
     }
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let o = options(ui.ctx());
     let Some(cache) = cached(app, ui.ctx(), &o) else {
@@ -324,7 +324,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
 }
 
 /// Pick-a-file actions need a file dialog (the desktop app).
-fn can_pick(app: &VectorcraftApp) -> bool {
+fn can_pick(app: &SplinewrightApp) -> bool {
     app.services.pick_open.is_some()
 }
 
@@ -339,7 +339,7 @@ fn size_label(bytes: u64) -> String {
 
 /// Milliseconds since the Unix epoch as a UTC date and time.
 pub(crate) fn date_label(ms: u64) -> String {
-    let [y, mo, d, h, mi, _] = vectorcraft_doc::metadata::civil(i64::try_from(ms / 1000).unwrap_or(i64::MAX));
+    let [y, mo, d, h, mi, _] = splinewright_doc::metadata::civil(i64::try_from(ms / 1000).unwrap_or(i64::MAX));
     format!("{y:04}-{mo:02}-{d:02} {h:02}:{mi:02} UTC")
 }
 
@@ -393,7 +393,7 @@ fn link_info(ui: &mut Ui, info: Option<&Value>) {
     row(ui, tl!("Status"), status.into());
 }
 
-pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(app: &mut SplinewrightApp, ui: &mut Ui) {
     let o = options(ui.ctx());
     // The rows the panel shows (the menu opens from it).
     let list = pstate::<Cache>(ui.ctx(), "links-cache").list;

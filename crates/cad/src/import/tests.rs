@@ -5,9 +5,9 @@
 use std::sync::Arc;
 
 use kurbo::ParamCurve;
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Appearance, Document, Justify, Node, NodeKind, TextObject, Unit};
-use vectorcraft_geom::{Affine, FillRule, Point, Rect, shapes};
+use splinewright_color::{Color, Paint};
+use splinewright_doc::{Appearance, Document, Justify, Node, NodeKind, TextObject, Unit};
+use splinewright_geom::{Affine, FillRule, Point, Rect, shapes};
 
 use super::*;
 
@@ -399,7 +399,7 @@ fn text_and_multiline_text() {
 
 /// Where the first line's baseline starts and ends, in document coordinates.
 fn baseline_ends(t: &TextObject) -> (Point, Point) {
-    let layout = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+    let layout = splinewright_text::layout(splinewright_text::FontDb::global(), t);
     let l = &layout.lines[0];
     (t.xf * Point::new(l.x0, l.baseline), t.xf * Point::new(l.x1, l.baseline))
 }

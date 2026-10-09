@@ -4,7 +4,7 @@
 
 use std::ops::Range;
 
-use vectorcraft_doc::{CharStyle, TextRun};
+use splinewright_doc::{CharStyle, TextRun};
 
 /// Total byte length of `runs`.
 pub fn runs_len(runs: &[TextRun]) -> usize {

@@ -6,8 +6,8 @@ use std::f64::consts::PI;
 
 use kurbo::{ParamCurve, Point, Rect, Shape as _};
 use proptest::prelude::*;
-use vectorcraft_geom::{FillRule, PathData, SubPath};
-use vectorcraft_pathops::*;
+use splinewright_geom::{FillRule, PathData, SubPath};
+use splinewright_pathops::*;
 
 const NZ: FillRule = FillRule::NonZero;
 

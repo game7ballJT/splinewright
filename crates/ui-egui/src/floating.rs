@@ -18,7 +18,7 @@ use serde_json::{Value, json};
 
 use crate::state::{DockTab, FloatingPanels, UiState, all_panels};
 use crate::theme::{self, Tokens};
-use crate::{VectorcraftApp, dock, icons, panels};
+use crate::{SplinewrightApp, dock, icons, panels};
 
 /// Height of a floating group's title bar (its grip and ×).
 pub const TITLE: f32 = 14.0;
@@ -180,7 +180,7 @@ pub(crate) fn strip_grab(ctx: &egui::Context, left: f32) -> Vec2 {
 
 /// Float `ids` under the pointer, held `grab` from the new group's top-left corner, and carry on
 /// moving them with the pointer (a tab or group dragged out of the dock or out of its group).
-pub(crate) fn tear(app: &mut VectorcraftApp, ctx: &egui::Context, ids: &[&'static str], active: &'static str, grab: Vec2) {
+pub(crate) fn tear(app: &mut SplinewrightApp, ctx: &egui::Context, ids: &[&'static str], active: &'static str, grab: Vec2) {
     let Some(at) = ctx.input(|i| i.pointer.interact_pos()) else { return };
     float(&mut app.ui, ids, active, at - grab);
     start(ctx, Moving::Panel(active), grab);
@@ -188,7 +188,7 @@ pub(crate) fn tear(app: &mut VectorcraftApp, ctx: &egui::Context, ids: &[&'stati
 
 /// The Tools panel's title bar was pressed (`title`, the panel's bounds `bounds`): docked, dragging
 /// it out of the panel floats the panel under the pointer; floating at `floating`, a drag moves it.
-pub(crate) fn drag_tools(app: &mut VectorcraftApp, ctx: &egui::Context, title: &egui::Response, bounds: Rect, floating: Option<Pos2>) {
+pub(crate) fn drag_tools(app: &mut SplinewrightApp, ctx: &egui::Context, title: &egui::Response, bounds: Rect, floating: Option<Pos2>) {
     let Some(at) = ctx.input(|i| i.pointer.interact_pos()) else { return };
     match floating {
         Some(pos) if title.drag_started() => start(ctx, Moving::Tools, at - pos),
@@ -204,7 +204,7 @@ pub(crate) fn drag_tools(app: &mut VectorcraftApp, ctx: &egui::Context, title: &
 }
 
 /// Where the pointer at `at` would drop `what`, and the zone that lights up for it.
-fn drop_target(app: &VectorcraftApp, ctx: &egui::Context, what: Moving, at: Pos2) -> Option<(Drop, Rect)> {
+fn drop_target(app: &SplinewrightApp, ctx: &egui::Context, what: Moving, at: Pos2) -> Option<(Drop, Rect)> {
     let zone = |id: Id| ctx.data(|d| d.get_temp::<Rect>(id)).filter(|r| r.contains(at));
     let Moving::Panel(id) = what else { return zone(tools_zone_id()).map(|r| (Drop::Dock, r)) };
     let own = group_of(&app.ui, id);
@@ -228,7 +228,7 @@ fn highlight(ctx: &egui::Context, zone: Rect) {
 
 /// Carry a move on (at the start of a frame, before the panels are drawn): the group or Tools panel
 /// follows the pointer and the zone it would drop on lights up; the release drops it there.
-pub fn track(app: &mut VectorcraftApp, ctx: &egui::Context) {
+pub fn track(app: &mut SplinewrightApp, ctx: &egui::Context) {
     let Some(m) = ctx.data(|d| d.get_temp::<Move>(move_id())) else { return };
     let at = ctx.input(|i| i.pointer.interact_pos());
     let target = at.filter(|at| at.distance(m.from) > TRAVEL).and_then(|at| drop_target(app, ctx, m.what, at));
@@ -281,7 +281,7 @@ enum Action {
 
 /// The floating groups, each a stack of tabs under a title bar. Hidden with the dock (Tab,
 /// Presentation Mode).
-pub fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
+pub fn show(app: &mut SplinewrightApp, ctx: &egui::Context) {
     if app.ui.floating_panels.is_empty() || !app.ui.dock || app.ui.screen_mode >= 3 {
         return;
     }
@@ -397,7 +397,7 @@ pub fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
 }
 
 /// `window.panel.float` and `window.panel.dock`; `None` for other commands.
-pub fn command(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
+pub fn command(app: &mut SplinewrightApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
     let float = match id {
         "window.panel.float" => true,
         "window.panel.dock" => false,
@@ -419,7 +419,7 @@ fn position(p: &Value) -> Result<Option<Pos2>, String> {
     }
 }
 
-fn float_or_dock(app: &mut VectorcraftApp, float_it: bool, p: &Value) -> Result<Value, String> {
+fn float_or_dock(app: &mut SplinewrightApp, float_it: bool, p: &Value) -> Result<Value, String> {
     let raw = p.get("panel").and_then(Value::as_str).unwrap_or_default().trim();
     let group = crate::menus::opt_bool(p, "group")?.unwrap_or(false);
     let at = position(p)?;
@@ -471,7 +471,7 @@ fn float_or_dock(app: &mut VectorcraftApp, float_it: bool, p: &Value) -> Result<
 mod tests {
     use egui::{Event, PointerButton};
     use serde_json::json;
-    use vectorcraft_engine::Session;
+    use splinewright_engine::Session;
 
     use super::*;
 
@@ -480,7 +480,7 @@ mod tests {
     /// Frames of the whole window, 1400 × 900, with pointer input one event a frame (as the
     /// control channel's `ui.drag` sends it).
     struct Harness {
-        app: VectorcraftApp,
+        app: SplinewrightApp,
         ctx: egui::Context,
         time: f64,
     }
@@ -491,7 +491,7 @@ mod tests {
 
     impl Harness {
         fn new() -> Self {
-            let mut app = VectorcraftApp::new(Session::new(), Default::default());
+            let mut app = SplinewrightApp::new(Session::new(), Default::default());
             app.run("file.new", json!({"width": 300, "height": 300})).unwrap();
             let mut h = Self { app, ctx: egui::Context::default(), time: 0.0 };
             h.settle();
@@ -737,7 +737,7 @@ mod tests {
 
     #[test]
     fn float_and_dock_commands_check_their_params() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         assert!(app.run("window.panel.float", json!({"panel": "nope"})).is_err());
         assert!(app.run("window.panel.float", json!({"panel": "layers", "x": "left", "y": 2})).is_err());
         assert!(app.run("window.panel.float", json!({"panel": "layers", "x": 2})).is_err(), "both x and y");
@@ -763,7 +763,7 @@ mod tests {
         assert!(app.ui.toolbar && app.ui.toolbar_pos == Some(TOOLS_AT), "floating shows the Tools panel");
     }
 
-    fn floating_pos(app: &VectorcraftApp, id: &str) -> [f32; 2] {
+    fn floating_pos(app: &SplinewrightApp, id: &str) -> [f32; 2] {
         group_of(&app.ui, id).map(|i| app.ui.floating_panels[i].pos).unwrap()
     }
 }

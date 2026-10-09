@@ -5,8 +5,8 @@
 //! `TextObject::wrap` (text space); the layout engine subtracts them from each line's span.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{Document, Node, NodeId, NodeKind, TextKind, TextWrap, WrapShape};
-use vectorcraft_geom::{PathData, shapes};
+use splinewright_doc::{Document, Node, NodeId, NodeKind, TextKind, TextWrap, WrapShape};
+use splinewright_geom::{PathData, shapes};
 
 use super::edit::selected_roots;
 use super::typecmd::refresh_bounds;
@@ -203,13 +203,13 @@ pub(crate) fn refresh(doc: &mut Document) {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use vectorcraft_doc::NodeKind;
+    use splinewright_doc::NodeKind;
 
     use crate::{NodeId, Session};
 
     fn lines(s: &Session, id: u64) -> Vec<(f64, f64)> {
         let Some(NodeKind::Text(t)) = s.doc().unwrap().doc.node(NodeId(id)).map(|n| n.kind.clone()) else { panic!() };
-        vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t).lines.iter().map(|l| l.avail).collect()
+        splinewright_text::layout(splinewright_text::FontDb::global(), &t).lines.iter().map(|l| l.avail).collect()
     }
 
     #[test]
@@ -262,7 +262,7 @@ mod tests {
         s.execute("select.set", &json!({"ids": [r]})).unwrap();
         s.execute("object.textWrap.make", &json!({})).unwrap();
         let Some(NodeKind::Text(tx)) = s.doc().unwrap().doc.node(NodeId(t)).map(|n| n.kind.clone()) else { panic!() };
-        let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &tx);
+        let lay = splinewright_text::layout(splinewright_text::FontDb::global(), &tx);
         // Beside the circle each line band holds two lines: left of it and right of it.
         let beside: Vec<_> = lay.lines.iter().filter(|l| l.baseline > 120.0 && l.baseline < 180.0).collect();
         assert!(

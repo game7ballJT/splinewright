@@ -26,9 +26,9 @@
 use std::borrow::Cow;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::hit::{HitKind, hit_test};
-use vectorcraft_doc::{AnchorRef, Node, NodeId, NodeKind};
-use vectorcraft_geom::{Anchor, PathData, Point, Rect};
+use splinewright_doc::hit::{HitKind, hit_test};
+use splinewright_doc::{AnchorRef, Node, NodeId, NodeKind};
+use splinewright_geom::{Anchor, PathData, Point, Rect};
 
 use crate::bbox::move_delta;
 use crate::corners::{self, CornerDrag, over_widget};
@@ -143,7 +143,7 @@ pub(crate) fn spines(cx: &ToolContext) -> Vec<(NodeId, PathData)> {
     let mut v = vec![];
     cx.doc.walk(|n| {
         if let NodeKind::Blend { children, spec } = &n.kind
-            && let Some((path, _)) = vectorcraft_doc::live::blend_spine(children, spec)
+            && let Some((path, _)) = splinewright_doc::live::blend_spine(children, spec)
         {
             v.push((n.id, path));
         }
@@ -172,9 +172,9 @@ fn hit_spine_handle(cx: &ToolContext, sel: (NodeId, usize), p: Point, tol: f64) 
 }
 
 /// Anchor `sel.1` of blend `sel.0`'s spine.
-fn spine_anchor(cx: &ToolContext, (id, ai): (NodeId, usize)) -> Option<vectorcraft_geom::Anchor> {
+fn spine_anchor(cx: &ToolContext, (id, ai): (NodeId, usize)) -> Option<splinewright_geom::Anchor> {
     match &cx.doc.node(id)?.kind {
-        NodeKind::Blend { children, spec } => vectorcraft_doc::live::blend_spine(children, spec)?.0.subpaths.first()?.anchors.get(ai).copied(),
+        NodeKind::Blend { children, spec } => splinewright_doc::live::blend_spine(children, spec)?.0.subpaths.first()?.anchors.get(ai).copied(),
         _ => None,
     }
 }
@@ -464,7 +464,7 @@ impl Tool for DirectSelectionTool {
                 }
                 out.push(Action::Preview(
                     "object.transform".into(),
-                    json!({"matrix": matrix_json(vectorcraft_geom::Affine::translate(d)), "copy": ev.mods.alt}),
+                    json!({"matrix": matrix_json(splinewright_geom::Affine::translate(d)), "copy": ev.mods.alt}),
                 ));
                 out
             }
@@ -663,13 +663,13 @@ impl DirectSelectionTool {
 mod tests {
     use super::*;
     use crate::testutil::*;
-    use vectorcraft_doc::Selection;
+    use splinewright_doc::Selection;
 
     /// #414: a ruler guide is picked over the art, but an anchor on it is picked first.
     #[test]
     fn direct_and_group_selection_pick_ruler_guides() {
         let (mut d, id) = doc_with_rect();
-        d.guides.push(vectorcraft_doc::Guide::new(true, 100.0));
+        d.guides.push(splinewright_doc::Guide::new(true, 100.0));
         let (s, p) = (Selection::default(), paint());
         let c = cx(&d, &s, &p);
         let down = |t: &mut DirectSelectionTool, y: f64| t.pointer(&c, &PointerEvent::new(PointerKind::Down, 100.0, y));
@@ -686,15 +686,15 @@ mod tests {
     }
 
     /// A blend of two 20 pt squares centred on (110, 310) and (210, 310), selected.
-    fn blend_doc() -> (vectorcraft_doc::Document, NodeId, NodeId) {
+    fn blend_doc() -> (splinewright_doc::Document, NodeId, NodeId) {
         let (mut d, _) = doc_with_rect();
         let l = d.layers[0].id;
         let key = |id: NodeId, x: f64| {
-            let r = vectorcraft_geom::shapes::rectangle(Rect::new(x, 300.0, x + 20.0, 320.0));
-            std::sync::Arc::new(vectorcraft_doc::Node::path(id, r, vectorcraft_doc::Appearance::default_art()))
+            let r = splinewright_geom::shapes::rectangle(Rect::new(x, 300.0, x + 20.0, 320.0));
+            std::sync::Arc::new(splinewright_doc::Node::path(id, r, splinewright_doc::Appearance::default_art()))
         };
         let (g, k1, k2) = (d.alloc_id(), d.alloc_id(), d.alloc_id());
-        let b = vectorcraft_doc::Node::new(g, NodeKind::Blend { children: vec![key(k1, 100.0), key(k2, 200.0)], spec: Default::default() });
+        let b = splinewright_doc::Node::new(g, NodeKind::Blend { children: vec![key(k1, 100.0), key(k2, 200.0)], spec: Default::default() });
         d.insert(Some(l), 1, b).unwrap();
         (d, g, k1)
     }
@@ -826,14 +826,14 @@ mod tests {
     }
 
     /// An open path from (100, 300) to (200, 300) arching up through (150, 262.5).
-    fn arch_doc() -> (vectorcraft_doc::Document, NodeId) {
+    fn arch_doc() -> (splinewright_doc::Document, NodeId) {
         let (mut d, _) = doc_with_rect();
         let l = d.layers[0].id;
         let id = d.alloc_id();
-        let mut sp = vectorcraft_geom::SubPath::polyline(&[Point::new(100.0, 300.0), Point::new(200.0, 300.0)], false);
+        let mut sp = splinewright_geom::SubPath::polyline(&[Point::new(100.0, 300.0), Point::new(200.0, 300.0)], false);
         sp.anchors[0].h_out = Point::new(100.0, 250.0);
         sp.anchors[1].h_in = Point::new(200.0, 250.0);
-        d.insert(Some(l), 1, vectorcraft_doc::Node::path(id, PathData::single(sp), vectorcraft_doc::Appearance::default_art())).unwrap();
+        d.insert(Some(l), 1, splinewright_doc::Node::path(id, PathData::single(sp), splinewright_doc::Appearance::default_art())).unwrap();
         (d, id)
     }
 
@@ -923,9 +923,9 @@ mod tests {
         let (mut d, _) = doc_with_rect();
         let l = d.layers[0].id;
         let id = d.alloc_id();
-        let mut sp = vectorcraft_geom::SubPath::polyline(&[Point::new(100.0, 300.0), Point::new(200.0, 300.0)], false);
+        let mut sp = splinewright_geom::SubPath::polyline(&[Point::new(100.0, 300.0), Point::new(200.0, 300.0)], false);
         sp.anchors[0].h_out = Point::new(102.0, 300.0);
-        d.insert(Some(l), 1, vectorcraft_doc::Node::path(id, PathData::single(sp), vectorcraft_doc::Appearance::default_art())).unwrap();
+        d.insert(Some(l), 1, splinewright_doc::Node::path(id, PathData::single(sp), splinewright_doc::Appearance::default_art())).unwrap();
         let s = anchors_of(id, &[(0, 0)]);
         let p = paint();
         let c = cx(&d, &s, &p);
@@ -938,12 +938,12 @@ mod tests {
     }
 
     /// [`doc_with_rect`] (A, 100..200) and a second square B, 300..400: (A, B).
-    fn two_squares() -> (vectorcraft_doc::Document, NodeId, NodeId) {
+    fn two_squares() -> (splinewright_doc::Document, NodeId, NodeId) {
         let (mut d, a) = doc_with_rect();
         let l = d.layers[0].id;
         let b = d.alloc_id();
-        let sq = vectorcraft_geom::shapes::rectangle(Rect::new(300.0, 300.0, 400.0, 400.0));
-        d.insert(Some(l), 1, vectorcraft_doc::Node::path(b, sq, vectorcraft_doc::Appearance::default_art())).unwrap();
+        let sq = splinewright_geom::shapes::rectangle(Rect::new(300.0, 300.0, 400.0, 400.0));
+        d.insert(Some(l), 1, splinewright_doc::Node::path(b, sq, splinewright_doc::Appearance::default_art())).unwrap();
         (d, a, b)
     }
 

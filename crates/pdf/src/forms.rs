@@ -11,7 +11,7 @@ use std::io::Read;
 use krilla::geom::PathBuilder;
 use krilla::graphic::Graphic;
 use krilla::surface::Surface;
-use vectorcraft_doc::{Document, NodeKind};
+use splinewright_doc::{Document, NodeKind};
 
 use crate::encrypt::{Lexer, Obj, StreamSpans, Tok, int, stream_spans};
 use crate::output::{deflate, text_string};

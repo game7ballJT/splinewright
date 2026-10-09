@@ -7,10 +7,10 @@
 use std::sync::Arc;
 
 use serde_json::Value;
-use vectorcraft_doc::links::LinkInfo;
-use vectorcraft_doc::{Document, ImageBlob, ImageObject, Node, NodeKind};
-use vectorcraft_format::{ICC_MIME, SaveOptions, load, load_file, pdf_content, save_with};
-use vectorcraft_geom::Affine;
+use splinewright_doc::links::LinkInfo;
+use splinewright_doc::{Document, ImageBlob, ImageObject, Node, NodeKind};
+use splinewright_format::{ICC_MIME, SaveOptions, load, load_file, pdf_content, save_with};
+use splinewright_geom::Affine;
 
 fn json_of(bytes: &[u8]) -> Value {
     serde_json::from_slice(bytes).unwrap()

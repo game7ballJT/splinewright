@@ -9,7 +9,7 @@
 use std::sync::Arc;
 
 use serde_json::{Map, Value, json};
-use vectorcraft_doc::Document;
+use splinewright_doc::Document;
 
 use super::super::*;
 use super::{
@@ -20,7 +20,7 @@ use crate::{DocState, Prefs};
 
 /// The formats Save As offers, in menu order (append-only). The other writable formats are exports:
 /// they never become the document's own file.
-pub const SAVE_FORMATS: &[&str] = &["vectorcraft", "template", "pdf", "svg", "svgz", "ai"];
+pub const SAVE_FORMATS: &[&str] = &["splinewright", "template", "pdf", "svg", "svgz", "ai"];
 
 /// Save-panel filters `(label, [extension])` for `first` (a format id, or a file name whose
 /// extension names one): when Save writes that format, one per [`SAVE_FORMATS`] entry with it
@@ -98,13 +98,13 @@ pub fn stamp_save_dates(st: &mut DocState, at: i64) {
     d.metadata.modified = Some(at);
 }
 
-/// The Templates folder: the `templatesFolder` preference, else `Documents/VectorCraft Templates`
+/// The Templates folder: the `templatesFolder` preference, else `Documents/Splinewright Templates`
 /// in the user's home (none where there is no home folder, as on the web).
 pub fn templates_folder(prefs: &Prefs) -> Option<String> {
     if !prefs.templates_folder.is_empty() {
         return Some(prefs.templates_folder.clone());
     }
-    Some(std::path::Path::new(&home_folder()?).join("Documents").join("VectorCraft Templates").to_string_lossy().to_string())
+    Some(std::path::Path::new(&home_folder()?).join("Documents").join("Splinewright Templates").to_string_lossy().to_string())
 }
 
 /// The user's home folder (`HOME`, else `USERPROFILE` on Windows; none on the web).
@@ -137,7 +137,7 @@ fn save_format_of(f: &str) -> std::result::Result<&'static Format, String> {
 /// The format Save writes for `format` (an id or extension), else the format `path`'s extension
 /// names, else native (see [`SAVE_FORMATS`]); other formats are exports.
 pub fn save_format(format: Option<&str>, path: Option<&str>) -> std::result::Result<&'static Format, String> {
-    save_format_of(format.or_else(|| path.and_then(format_for_name).map(|f| f.id)).unwrap_or("vectorcraft"))
+    save_format_of(format.or_else(|| path.and_then(format_for_name).map(|f| f.id)).unwrap_or("splinewright"))
 }
 
 /// [`save_format_of`] for command `cmd`.
@@ -205,7 +205,7 @@ fn reads_option(f: &Format, key: &str) -> bool {
 /// Formats that carry the whole native document: they lose nothing, and record links relative to
 /// where they are written. A `.ai` file is a PDF carrying it.
 fn is_native(f: &Format) -> bool {
-    matches!(f.id, "vectorcraft" | "template" | "ai")
+    matches!(f.id, "splinewright" | "template" | "ai")
 }
 
 fn is_pdf(f: &Format) -> bool {
@@ -231,7 +231,7 @@ fn doc_to_save(st: &DocState, f: &Format) -> Arc<Document> {
 fn fidelity_warning(f: &Format) -> Option<String> {
     (!is_native(f)).then(|| {
         format!(
-            "{} keeps the artwork but not everything a VectorCraft document holds (editable effects, symbols, swatches, styles): save as VectorCraft to keep it all editable",
+            "{} keeps the artwork but not everything a Splinewright document holds (editable effects, symbols, swatches, styles): save as Splinewright to keep it all editable",
             f.label
         )
     })
@@ -281,8 +281,8 @@ fn artboard_doc(doc: &Document, i: usize) -> Document {
 }
 
 /// Keep in layer `n` (and its sublayers) only the objects touching `r`.
-fn keep_on(n: &mut Arc<vectorcraft_doc::Node>, r: vectorcraft_geom::Rect) {
-    let touches = |b: vectorcraft_geom::Rect| b.x0 <= r.x1 && b.x1 >= r.x0 && b.y0 <= r.y1 && b.y1 >= r.y0;
+fn keep_on(n: &mut Arc<splinewright_doc::Node>, r: splinewright_geom::Rect) {
+    let touches = |b: splinewright_geom::Rect| b.x0 <= r.x1 && b.x1 >= r.x0 && b.y0 <= r.y1 && b.y1 >= r.y0;
     if let Some(children) = Arc::make_mut(n).children_mut() {
         children.retain(|c| c.is_layer() || c.visual_bounds().is_some_and(touches));
         for c in children.iter_mut().filter(|c| c.is_layer()) {
@@ -303,7 +303,7 @@ fn blank_pages(doc: &Document) -> Document {
 }
 
 /// Why a `.ai` file saved without PDF content looks empty elsewhere.
-const NOT_PDF_COMPATIBLE: &str = "saved without PDF content: VectorCraft opens it as before, other apps show empty pages";
+const NOT_PDF_COMPATIBLE: &str = "saved without PDF content: Splinewright opens it as before, other apps show empty pages";
 
 /// Snapshot the active document for `plan` (stamping File Info's dates when the file becomes the
 /// document's own). Bad options fail here, before anything is encoded.
@@ -332,7 +332,7 @@ pub(crate) fn job_for(s: &Session, st: &DocState, plan: SavePlan) -> Result<Save
         params.entry("hiddenLayers").or_insert(Value::Bool(true));
     }
     let mut params = Value::Object(params);
-    if matches!(plan.format.id, "vectorcraft" | "template") {
+    if matches!(plan.format.id, "splinewright" | "template") {
         // Not remembered with the options: the preference decides each time it isn't given.
         params = with_compression_pref(&s.prefs, &params);
         super::native::save_options(cmd, plan.format, &doc, &params)?;
@@ -502,7 +502,7 @@ fn revert(s: &mut Session, _: &Value) -> Result<Value> {
 fn format_options(s: &mut Session, p: &Value) -> Result<Value> {
     const C: &str = "file.formatOptions";
     let st = s.active();
-    let id = str_param(p, "format").or(st.map(|d| d.format)).unwrap_or("vectorcraft");
+    let id = str_param(p, "format").or(st.map(|d| d.format)).unwrap_or("splinewright");
     let f = format(id)
         .filter(|f| f.write || SAVE_FORMATS.contains(&f.id))
         .ok_or_else(|| bad(C, format!("`{id}` is no writable format (see document.formats)")))?;
@@ -512,7 +512,7 @@ fn format_options(s: &mut Session, p: &Value) -> Result<Value> {
     let mut v = f.to_json();
     if let Some(options) = v["options"].as_object_mut() {
         for (name, o) in options.iter_mut() {
-            let default = prefs.get(name).filter(|_| matches!(f.id, "vectorcraft" | "template")).unwrap_or(&o["default"]);
+            let default = prefs.get(name).filter(|_| matches!(f.id, "splinewright" | "template")).unwrap_or(&o["default"]);
             o["value"] = saved.and_then(|m| m.get(name)).unwrap_or(default).clone();
         }
     }
@@ -528,7 +528,7 @@ pub(super) fn specs() -> Vec<CommandSpec> {
             "Save Document",
             [],
             None,
-            "{path?, format?: vectorcraft|template|pdf|svg|svgz|ai (default: the path's extension, else the document's own format), options?: {…the format's options, see file.formatOptions; default: as last saved}, svg?: {…SVG options} (SVG options may also be given flat; an SVG save keeps hidden layers, display:none, unless hiddenLayers is false), native (also flat): compress?: bool (gzip; default: the useCompression preference), version?: 3 (2 or 1: for older VectorCraft versions, never compressed), preview?: false (embed a PNG of the first artboard, at most 256 px), native and .ai: separateArtboards?: false (also save each artboard of range?: \"1-3, 5\"|\"all\" (default) to <name>-<artboard>.<ext> beside the file, holding that artboard and the art touching it; the result's files lists every file written), includeLinked?: false (keep linked files' own pixels, not just their previews; they stay linked), embedProfiles?: true (carry the ICC profiles loaded from files that the document is tagged with; opening the file installs them where missing), pdfCompatible?: false for native (also carry a PDF of every artboard) | true for .ai (false: blank pages, only the native document), .ai: compress?: true (compression.compressText), modified?: Unix seconds|null (the File Info modified date, and created date when there is none, a save to a file stamps; default now, recorded in the journal so a replay matches; null: leave the dates)} → {path, format, bytes, warnings, files?: [path…] (the file and its artboards' files), linked?: [path…] (images an SVG links to)}. Save writes one artboard, except a .ai file: a PDF-compatible file of every artboard carrying the native document (preserveEditing always on; PDF options flat or in options), which document.open restores exactly; separateArtboards writes more files, one per artboard. Without a path it writes the document's own file in its own format: a document opened from or saved as SVG/PDF saves as that again (warnings name what the format loses). No path known (never saved, converted from an older version, restored by Data Recovery, or another format) → {dataBase64, format, name, folder?, warnings} and the document stays modified",
+            "{path?, format?: splinewright|template|pdf|svg|svgz|ai (default: the path's extension, else the document's own format), options?: {…the format's options, see file.formatOptions; default: as last saved}, svg?: {…SVG options} (SVG options may also be given flat; an SVG save keeps hidden layers, display:none, unless hiddenLayers is false), native (also flat): compress?: bool (gzip; default: the useCompression preference), version?: 3 (2 or 1: for older Splinewright versions, never compressed), preview?: false (embed a PNG of the first artboard, at most 256 px), native and .ai: separateArtboards?: false (also save each artboard of range?: \"1-3, 5\"|\"all\" (default) to <name>-<artboard>.<ext> beside the file, holding that artboard and the art touching it; the result's files lists every file written), includeLinked?: false (keep linked files' own pixels, not just their previews; they stay linked), embedProfiles?: true (carry the ICC profiles loaded from files that the document is tagged with; opening the file installs them where missing), pdfCompatible?: false for native (also carry a PDF of every artboard) | true for .ai (false: blank pages, only the native document), .ai: compress?: true (compression.compressText), modified?: Unix seconds|null (the File Info modified date, and created date when there is none, a save to a file stamps; default now, recorded in the journal so a replay matches; null: leave the dates)} → {path, format, bytes, warnings, files?: [path…] (the file and its artboards' files), linked?: [path…] (images an SVG links to)}. Save writes one artboard, except a .ai file: a PDF-compatible file of every artboard carrying the native document (preserveEditing always on; PDF options flat or in options), which document.open restores exactly; separateArtboards writes more files, one per artboard. Without a path it writes the document's own file in its own format: a document opened from or saved as SVG/PDF saves as that again (warnings name what the format loses). No path known (never saved, converted from an older version, restored by Data Recovery, or another format) → {dataBase64, format, name, folder?, warnings} and the document stays modified",
             has_doc,
             |s, p| save(s, SaveMode::Save, p)
         ),
@@ -537,7 +537,7 @@ pub(super) fn specs() -> Vec<CommandSpec> {
             "Save As…",
             ["File"],
             Some("Cmd+Shift+S"),
-            "{path?, format?: vectorcraft|template|pdf|svg|svgz|ai (default: the path's extension, else the document's own), options?, svg?, modified? (as document.save)} the document takes on the new path, name and format (except a template, which is always a copy) → {path, format, bytes, warnings}; no path → {dataBase64, format, name, folder?, warnings}",
+            "{path?, format?: splinewright|template|pdf|svg|svgz|ai (default: the path's extension, else the document's own), options?, svg?, modified? (as document.save)} the document takes on the new path, name and format (except a template, which is always a copy) → {path, format, bytes, warnings}; no path → {dataBase64, format, name, folder?, warnings}",
             has_doc,
             |s, p| save(s, SaveMode::SaveAs, p)
         ),

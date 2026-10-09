@@ -9,7 +9,7 @@ use unicode_script::{Script, UnicodeScript};
 use harfrust::{Direction, Feature, ShapeOptions, UnicodeBuffer};
 use skrifa::MetadataProvider;
 use skrifa::instance::Size;
-use vectorcraft_doc::CharStyle;
+use splinewright_doc::CharStyle;
 
 use crate::features::OtFeatures;
 use crate::fontdb::{FontDb, FontFace};

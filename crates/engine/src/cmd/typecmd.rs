@@ -4,8 +4,8 @@
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{Document, Justify, Node, NodeId, NodeKind, TextObject};
-use vectorcraft_geom::{Affine, PathData, Vec2};
+use splinewright_doc::{Document, Justify, Node, NodeId, NodeKind, TextObject};
+use splinewright_geom::{Affine, PathData, Vec2};
 
 use super::edit::selected_roots;
 use super::pathops::{len_param, num_param, shape_node};
@@ -99,7 +99,7 @@ fn orientation(s: &mut Session, p: &Value, vertical: bool) -> Result<Value> {
 
 /// Recompute the layout caches (bounds and baselines) after a text edit.
 pub(crate) fn refresh_bounds(t: &mut TextObject) {
-    let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+    let lay = splinewright_text::layout(splinewright_text::FontDb::global(), t);
     t.cached_bounds = Some(lay.bounds);
     t.cached_baselines = lay.baselines();
 }
@@ -131,7 +131,7 @@ fn create_outlines(s: &mut Session, _: &Value) -> Result<Value> {
         for tid in texts {
             let Some(n) = d.node(tid).cloned() else { continue };
             let NodeKind::Text(t) = &n.kind else { continue };
-            let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+            let lay = splinewright_text::layout(splinewright_text::FontDb::global(), t);
             let mut children = vec![];
             for g in &lay.glyphs {
                 let path = PathData::from_bezpath(&g.outline).transformed(t.xf);
@@ -181,7 +181,7 @@ fn set_text(s: &mut Session, p: &Value) -> Result<Value> {
         for id in &ids {
             let Some(NodeKind::Text(t)) = d.node_mut(*id).map(|n| &mut n.kind) else { continue };
             let style = t.first_style();
-            t.runs = vec![vectorcraft_doc::TextRun { text: text.clone(), style }];
+            t.runs = vec![splinewright_doc::TextRun { text: text.clone(), style }];
             refresh_bounds(t);
         }
         Ok(())
@@ -223,8 +223,8 @@ fn set_style(s: &mut Session, p: &Value) -> Result<Value> {
     };
     let fill = match p.get("fill") {
         None | Some(Value::Null) => None,
-        Some(Value::String(n)) if n.eq_ignore_ascii_case("none") => Some(vectorcraft_color::Paint::None),
-        Some(v) => Some(vectorcraft_color::Paint::solid(color_value(v).ok_or_else(|| bad(C, "bad fill colour"))?)),
+        Some(Value::String(n)) if n.eq_ignore_ascii_case("none") => Some(splinewright_color::Paint::None),
+        Some(v) => Some(splinewright_color::Paint::solid(color_value(v).ok_or_else(|| bad(C, "bad fill colour"))?)),
     };
     let features = super::textedit::features_param(p, C)?;
     if font.is_none()
@@ -287,7 +287,7 @@ fn set_style(s: &mut Session, p: &Value) -> Result<Value> {
 pub(crate) fn reshape_area_with(t: &mut TextObject, f: impl FnOnce(&mut TextObject) -> bool) -> bool {
     let before = t.kind.clone();
     let within = |t: &TextObject| match &t.kind {
-        vectorcraft_doc::TextKind::Area { frame } => {
+        splinewright_doc::TextKind::Area { frame } => {
             frame.bounds().is_some_and(|b| [b.x0, b.y0, b.x1, b.y1].iter().all(|v| v.abs() <= crate::MAX_COORD))
         }
         _ => false,
@@ -303,15 +303,15 @@ pub(crate) fn reshape_area_with(t: &mut TextObject, f: impl FnOnce(&mut TextObje
 /// Area type's text, if `n` is area type.
 fn area_text(n: Option<&Node>) -> Option<&TextObject> {
     match n.map(|n| &n.kind) {
-        Some(NodeKind::Text(t)) if matches!(t.kind, vectorcraft_doc::TextKind::Area { .. }) => Some(t),
+        Some(NodeKind::Text(t)) if matches!(t.kind, splinewright_doc::TextKind::Area { .. }) => Some(t),
         _ => None,
     }
 }
 
 /// The width and height of area type's frame in points, along the type's own axes, and the frame's
 /// bounds in text space.
-fn area_size(t: &TextObject) -> Option<(f64, f64, vectorcraft_geom::Rect)> {
-    let vectorcraft_doc::TextKind::Area { frame } = &t.kind else { return None };
+fn area_size(t: &TextObject) -> Option<(f64, f64, splinewright_geom::Rect)> {
+    let splinewright_doc::TextKind::Area { frame } = &t.kind else { return None };
     let b = frame.bounds()?;
     let [a, bb, c, d, _, _] = t.xf.as_coeffs();
     Some((b.width() * a.hypot(bb), b.height() * c.hypot(d), b))
@@ -365,7 +365,7 @@ fn area_options(s: &mut Session, p: &Value) -> Result<Value> {
     if !changed {
         return Ok(v);
     }
-    let mut opts: vectorcraft_doc::AreaOptions = serde_json::from_value(v).map_err(|e| bad(C, e.to_string()))?;
+    let mut opts: splinewright_doc::AreaOptions = serde_json::from_value(v).map_err(|e| bad(C, e.to_string()))?;
     opts.rows = opts.rows.clamp(1, 100);
     opts.columns = opts.columns.clamp(1, 100);
     opts.gutter = opts.gutter.clamp(0.0, 10_000.0);
@@ -416,7 +416,7 @@ mod area_tests {
 
     #[test]
     fn burasagari_is_set_per_paragraph_and_saved_only_when_on() {
-        use vectorcraft_doc::Burasagari;
+        use splinewright_doc::Burasagari;
         let mut s = Session::new();
         s.execute("file.new", &json!({"width": 400, "height": 400})).unwrap();
         let id = s.execute("text.create", &json!({"x": 10, "y": 10, "text": "雅楽、笙。", "area": {"width": 200, "height": 100}})).unwrap()["id"]
@@ -440,7 +440,7 @@ mod area_tests {
         s.execute("edit.undo", &json!({})).unwrap();
         s.execute("edit.undo", &json!({})).unwrap();
         assert_eq!(para(&s).burasagari, Burasagari::Standard);
-        let old: vectorcraft_doc::ParaStyle = serde_json::from_value(json!({"justify": "Left"})).unwrap();
+        let old: splinewright_doc::ParaStyle = serde_json::from_value(json!({"justify": "Left"})).unwrap();
         assert_eq!(old.burasagari, Burasagari::None);
     }
 
@@ -450,7 +450,7 @@ mod area_tests {
     /// baseline.
     #[test]
     fn new_type_takes_the_japanese_defaults_while_the_interface_is_japanese() {
-        use vectorcraft_doc::{CharAlign, LeadingModel};
+        use splinewright_doc::{CharAlign, LeadingModel};
         let mut s = Session::new();
         s.execute("file.new", &json!({"width": 400, "height": 400})).unwrap();
         let made = |s: &mut Session, cmd: &str, p: Value| -> (LeadingModel, CharAlign) {
@@ -501,7 +501,7 @@ mod area_tests {
         // Imported text keeps the Roman baseline.
         s.ui_language = Some("ja".into());
         let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><text x="10" y="50">雅楽</text></svg>"#;
-        s.execute("document.open", &json!({"name": "t.svg", "dataBase64": vectorcraft_format::base64_encode(svg.as_bytes())})).unwrap();
+        s.execute("document.open", &json!({"name": "t.svg", "dataBase64": splinewright_format::base64_encode(svg.as_bytes())})).unwrap();
         let mut found = vec![];
         s.doc().unwrap().doc.walk(|n| {
             if let NodeKind::Text(t) = &n.kind {
@@ -513,7 +513,7 @@ mod area_tests {
 
     #[test]
     fn leading_model_is_set_per_paragraph_and_saved_only_when_top_to_top() {
-        use vectorcraft_doc::LeadingModel;
+        use splinewright_doc::LeadingModel;
         let mut s = Session::new();
         s.execute("file.new", &json!({"width": 400, "height": 400})).unwrap();
         let id = s.execute("text.create", &json!({"x": 10, "y": 10, "text": "一\n二", "area": {"width": 200, "height": 100}})).unwrap()["id"]
@@ -538,7 +538,7 @@ mod area_tests {
 
     #[test]
     fn character_alignment_is_a_character_attribute_saved_only_when_set() {
-        use vectorcraft_doc::CharAlign;
+        use splinewright_doc::CharAlign;
         let mut s = Session::new();
         s.execute("file.new", &json!({"width": 400, "height": 400})).unwrap();
         let id = s.execute("text.create", &json!({"x": 10, "y": 50, "text": "雅楽"})).unwrap()["id"].as_u64().unwrap();
@@ -564,7 +564,7 @@ mod area_tests {
 
     #[test]
     fn new_type_is_composed_with_line_end_half_width_punctuation() {
-        use vectorcraft_doc::Mojikumi;
+        use splinewright_doc::Mojikumi;
         let mut s = Session::new();
         s.execute("file.new", &json!({"width": 400, "height": 400})).unwrap();
         let id = s.execute("text.create", &json!({"x": 10, "y": 50, "text": "雅楽。"})).unwrap()["id"].as_u64().unwrap();
@@ -582,7 +582,7 @@ mod area_tests {
         // Saved only when set; documents from before it read as None.
         let json = serde_json::to_value(para(&s)).unwrap();
         assert_eq!(json["mojikumi"], "lineEndHalf");
-        let old: vectorcraft_doc::ParaStyle = serde_json::from_value(json!({"justify": "Left"})).unwrap();
+        let old: splinewright_doc::ParaStyle = serde_json::from_value(json!({"justify": "Left"})).unwrap();
         assert_eq!(old.mojikumi, Mojikumi::None);
         assert!(serde_json::to_value(&old).unwrap().get("mojikumi").is_none());
     }
@@ -616,7 +616,7 @@ mod area_tests {
         let q = s.execute("text.areaOptions", &json!({})).unwrap();
         assert_eq!((q["rows"].as_u64(), q["columns"].as_u64()), (Some(1), Some(1)));
         let lay = |s: &Session| match &s.doc().unwrap().doc.node(NodeId(id)).unwrap().kind {
-            NodeKind::Text(t) => vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t),
+            NodeKind::Text(t) => splinewright_text::layout(splinewright_text::FontDb::global(), t),
             _ => panic!(),
         };
         assert_eq!(lay(&s).frames.len(), 1);
@@ -637,8 +637,8 @@ mod area_tests {
 fn headline_fit(t: &TextObject, tracking: f64) -> Option<(f64, f64, usize)> {
     let mut probe = t.clone();
     let para_end = probe.plain_text().find('\n').unwrap_or(usize::MAX);
-    vectorcraft_text::edit::style_range(&mut probe.runs, 0, para_end.min(vectorcraft_text::edit::runs_len(&t.runs)), |st| st.tracking = tracking);
-    let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &probe);
+    splinewright_text::edit::style_range(&mut probe.runs, 0, para_end.min(splinewright_text::edit::runs_len(&t.runs)), |st| st.tracking = tracking);
+    let lay = splinewright_text::layout(splinewright_text::FontDb::global(), &probe);
     let cell = lay.frames.first()?;
     let line = lay.lines.first()?;
     let avail = cell.width() - 2.0 * t.area.inset - t.para.left_indent - t.para.right_indent;
@@ -652,7 +652,7 @@ fn fit_headline(s: &mut Session, p: &Value) -> Result<Value> {
     let mut plans = vec![];
     for id in &ids {
         let Some(NodeKind::Text(t)) = d.node(*id).map(|n| &n.kind) else { continue };
-        if !matches!(t.kind, vectorcraft_doc::TextKind::Area { .. }) {
+        if !matches!(t.kind, splinewright_doc::TextKind::Area { .. }) {
             continue;
         }
         // Largest tracking that keeps the first paragraph on one line (bisection).
@@ -671,8 +671,8 @@ fn fit_headline(s: &mut Session, p: &Value) -> Result<Value> {
     s.edit("Fit Headline", |d, _| {
         for (id, tr) in &plans {
             if let Some(NodeKind::Text(t)) = d.node_mut(*id).map(|n| &mut n.kind) {
-                let end = t.plain_text().find('\n').unwrap_or(usize::MAX).min(vectorcraft_text::edit::runs_len(&t.runs));
-                vectorcraft_text::edit::style_range(&mut t.runs, 0, end, |st| st.tracking = *tr);
+                let end = t.plain_text().find('\n').unwrap_or(usize::MAX).min(splinewright_text::edit::runs_len(&t.runs));
+                splinewright_text::edit::style_range(&mut t.runs, 0, end, |st| st.tracking = *tr);
                 refresh_bounds(t);
             }
         }

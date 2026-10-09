@@ -6,13 +6,13 @@
 //! `document.setup` with them: one undo step. On an error the dialog stays open.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::setup::{GRID_COLOR_PRESETS, LANGUAGES};
-use vectorcraft_doc::{GridSize, Quotes, Unit};
+use splinewright_doc::setup::{GRID_COLOR_PRESETS, LANGUAGES};
+use splinewright_doc::{GridSize, Quotes, Unit};
 
 use super::{DialogSpec, form};
 use crate::state::Dialog;
 use crate::theme::Tokens;
-use crate::{VectorcraftApp, widgets};
+use crate::{SplinewrightApp, widgets};
 
 pub(super) const KIND: &str = "documentSetup";
 const TABS: [&str; 3] = ["General", "Transparency", "Type"];
@@ -24,7 +24,7 @@ pub(super) const SPEC: DialogSpec =
     DialogSpec { heading: |_| tl!("Document Setup").into(), body, confirm, min_width: 540.0, max_width: Some(540.0), ..DialogSpec::FORM };
 
 /// Open Document Setup on the active document's settings.
-pub fn open(app: &mut VectorcraftApp) -> Result<Value, String> {
+pub fn open(app: &mut SplinewrightApp) -> Result<Value, String> {
     let mut fields = app.session.execute("document.setup", &json!({})).map_err(|e| e.to_string())?;
     let linked = fields["bleed"].as_array().is_some_and(|b| b.windows(2).all(|w| w[0] == w[1]));
     fields["bleedLinked"] = json!(linked);
@@ -33,7 +33,7 @@ pub fn open(app: &mut VectorcraftApp) -> Result<Value, String> {
     Ok(Value::Null)
 }
 
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut SplinewrightApp, d: &Dialog) -> Result<Value, String> {
     let params = d.fields.iter().filter(|(k, _)| !UI_ONLY.contains(&k.as_str())).map(|(k, v)| (k.clone(), v.clone())).collect();
     let r = app.run("document.setup", Value::Object(params));
     if r.is_ok() {
@@ -42,7 +42,7 @@ fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
     r
 }
 
-fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
+fn body(app: &mut SplinewrightApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     let tab = TABS.iter().position(|t| *t == d.str("tab")).unwrap_or(0);
     if let Some(i) = widgets::tab_bar(ui, &TABS, tab) {
         d.fields.insert("tab".into(), json!(TABS[i]));
@@ -77,7 +77,7 @@ fn unit(d: &Dialog) -> Unit {
     Unit::named(&d.str("units")).unwrap_or_default()
 }
 
-fn general(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) {
+fn general(app: &mut SplinewrightApp, ui: &mut egui::Ui, d: &mut Dialog) {
     let units: Vec<(&str, &str)> = Unit::ALL.iter().map(|u| (u.label(), u.label())).collect();
     choice(ui, d, "units", tl!("Units:"), &units);
     ui.add_space(6.0);
@@ -96,7 +96,7 @@ fn general(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) {
     check(ui, d, "highlightSubstitutedGlyphs", tl!("Highlight Substituted Glyphs"));
 }
 
-fn transparency(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) {
+fn transparency(app: &mut SplinewrightApp, ui: &mut egui::Ui, d: &mut Dialog) {
     let t = Tokens::get(ui.ctx());
     widgets::subheader(ui, tl!("Transparency Grid"));
     let sizes: Vec<(&str, &str)> = GridSize::ALL.iter().map(|g| (g.id(), g.label())).collect();
@@ -122,11 +122,11 @@ fn transparency(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) {
         for i in 0..2 {
             let hex = colors.get(i).map_or("", |h| h.trim_start_matches('#'));
             let (chip, _) = ui.allocate_exact_size(egui::vec2(18.0, 18.0), egui::Sense::hover());
-            if let Some(c) = vectorcraft_color::Color::from_hex(hex) {
+            if let Some(c) = splinewright_color::Color::from_hex(hex) {
                 ui.painter().rect_filled(chip, 2.0, crate::panels::c32(&c));
             }
             ui.painter().rect_stroke(chip, 2.0, egui::Stroke::new(1.0, t.input_border), egui::StrokeKind::Inside);
-            if let Some(c) = widgets::hex_field(ui, ("grid-color", i), hex).and_then(|h| vectorcraft_color::Color::from_hex(&h)) {
+            if let Some(c) = widgets::hex_field(ui, ("grid-color", i), hex).and_then(|h| splinewright_color::Color::from_hex(&h)) {
                 let mut v = colors.clone();
                 v.resize(2, "#ffffff".into());
                 v[i] = c.to_hex();
@@ -152,7 +152,7 @@ fn typography(ui: &mut egui::Ui, d: &mut Dialog) {
     choice(ui, d, "language", tl!("Language:"), &langs);
     // A language brings its quotes.
     if d.str("language") != before
-        && let Some(q) = vectorcraft_doc::setup::language_quotes(&d.str("language"))
+        && let Some(q) = splinewright_doc::setup::language_quotes(&d.str("language"))
     {
         d.fields.insert("quotes".into(), json!({"double": q.double.iter().collect::<String>(), "single": q.single.iter().collect::<String>()}));
     }
@@ -204,11 +204,11 @@ fn typography(ui: &mut egui::Ui, d: &mut Dialog) {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use vectorcraft_engine::Session;
+    use splinewright_engine::Session;
 
-    use crate::VectorcraftApp;
+    use crate::SplinewrightApp;
 
-    fn frame(app: &mut VectorcraftApp) {
+    fn frame(app: &mut SplinewrightApp) {
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
         crate::theme::apply(&ctx, Default::default());
@@ -219,7 +219,7 @@ mod tests {
 
     #[test]
     fn every_tab_draws_and_ok_is_one_undo_step() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
         app.run("file.documentSetup", json!({})).unwrap();
         for tab in ["General", "Transparency", "Type"] {
@@ -236,7 +236,7 @@ mod tests {
         assert!(app.ui.dialog.is_none());
         let st = app.session.active().unwrap();
         assert_eq!((st.doc.setup.bleed, st.doc.setup.grid_colors_name()), ([9.0; 4], "Blue"));
-        assert_eq!((st.doc.setup.quotes.double, st.doc.units), (['„', '“'], vectorcraft_doc::Unit::Millimeters));
+        assert_eq!((st.doc.setup.quotes.double, st.doc.units), (['„', '“'], splinewright_doc::Unit::Millimeters));
         assert_eq!(st.history.undo.len(), 1);
         // A bad value keeps the dialog open.
         app.run("file.documentSetup", json!({})).unwrap();

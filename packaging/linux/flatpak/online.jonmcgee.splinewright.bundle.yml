@@ -1,0 +1,47 @@
+# Flatpak manifest for the single-file bundle attached to every GitHub release
+# (splinewright-<version>-linux-<arch>.flatpak). Build it with packaging/linux/flatpak-bundle.sh.
+#
+# It repackages the release's own Linux tarball (splinewright-<version>-linux-<arch>.tar.gz,
+# built on Ubuntu 22.04 by package.sh) instead of compiling Rust inside flatpak-builder: no
+# network and no vendored crate sources during the build, a few seconds instead of 20+ minutes,
+# and byte-for-byte the same binaries as the AppImage/deb/rpm. The script unpacks the tarball
+# into `stage/` next to a copy of this file. The binaries need glibc >= 2.35 and load X11,
+# Wayland, xkbcommon and Vulkan at runtime; the freedesktop runtime has all of them, and the
+# GPU driver comes from its org.freedesktop.Platform.GL extension.
+#
+# online.jonmcgee.splinewright.yml (same directory) is the from-source manifest for Flathub. Keep
+# runtime, runtime-version, sdk and finish-args identical in both (packaging-lint checks this).
+id: online.jonmcgee.splinewright
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+command: splinewright
+finish-args:
+  # X11 shared memory (MIT-SHM). Without it the X11 fallback is slow or fails.
+  - --share=ipc
+  # Display: Wayland first; X11 only when no Wayland compositor is running.
+  - --socket=wayland
+  - --socket=fallback-x11
+  # GPU access for the wgpu renderer (Vulkan, or GL as a fallback).
+  - --device=dri
+  # Open/Save dialogs use the file-chooser portal (rfd), and drag-and-drop uses the document
+  # portal, so broad filesystem access isn't needed. Pictures is granted for opening files by
+  # path from the command line.
+  - --filesystem=xdg-pictures
+  # Deliberately not granted: network (the optional --control server listens on 127.0.0.1 in
+  # the sandbox; `flatpak override --user --share=network online.jonmcgee.splinewright` exposes it
+  # to host agents) and home/host filesystem access.
+modules:
+  - name: splinewright
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 bin/splinewright /app/bin/splinewright
+      - install -Dm755 bin/splinewright-cli /app/bin/splinewright-cli
+      - install -Dm644 share/applications/online.jonmcgee.splinewright.desktop /app/share/applications/online.jonmcgee.splinewright.desktop
+      - install -Dm644 share/mime/packages/online.jonmcgee.splinewright.xml /app/share/mime/packages/online.jonmcgee.splinewright.xml
+      # Already has the release's version and date substituted by package.sh.
+      - install -Dm644 share/metainfo/online.jonmcgee.splinewright.metainfo.xml /app/share/metainfo/online.jonmcgee.splinewright.metainfo.xml
+      - mkdir -p /app/share/icons /app/share/doc && cp -R share/icons/hicolor /app/share/icons/ && cp -R share/doc/splinewright /app/share/doc/
+    sources:
+      - type: dir
+        path: stage

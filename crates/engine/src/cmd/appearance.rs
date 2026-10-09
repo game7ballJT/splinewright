@@ -18,9 +18,9 @@
 //! `appearance.moveItem {from: "contents"}`).
 
 use serde_json::{Value, json};
-use vectorcraft_color::{BlendMode, Paint};
-use vectorcraft_doc::{Appearance, AppearanceItem, CharStyle, FillLayer, Node, NodeKind, ParaStyle, StrokeLayer};
-use vectorcraft_geom::Rect;
+use splinewright_color::{BlendMode, Paint};
+use splinewright_doc::{Appearance, AppearanceItem, CharStyle, FillLayer, Node, NodeKind, ParaStyle, StrokeLayer};
+use splinewright_geom::Rect;
 
 use super::edit::selected_roots;
 use super::opacitymask::percent;

@@ -3,10 +3,10 @@
 
 use egui::Ui;
 use serde_json::json;
-use vectorcraft_text::OtFeatures;
+use splinewright_text::OtFeatures;
 
 use super::character::{text_editing, text_style};
-use crate::VectorcraftApp;
+use crate::SplinewrightApp;
 use crate::widgets::{self, menu_item};
 
 /// A checkbox row: label and the feature flag it toggles.
@@ -15,7 +15,7 @@ type Toggle = (&'static str, fn(&mut OtFeatures) -> &mut bool);
 const FIGURES: [&str; 4] = ["Default Figure", "Tabular Lining", "Proportional Oldstyle", "Tabular Oldstyle"];
 
 /// Apply `f` to the selection's features (the Type tool range, or whole objects).
-fn set(app: &mut VectorcraftApp, f: OtFeatures) {
+fn set(app: &mut SplinewrightApp, f: OtFeatures) {
     let tags = f.to_tags();
     let r = match text_editing(app) {
         Some((id, a, b)) if b > a => app.run("text.setRangeStyle", json!({ "id": id.0, "start": a, "end": b, "features": tags })),
@@ -27,7 +27,7 @@ fn set(app: &mut VectorcraftApp, f: OtFeatures) {
     }
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut SplinewrightApp, ui: &mut Ui) {
     let Some((st, _)) = text_style(app) else {
         widgets::dim_label(ui, tl!("Select text to set its OpenType features."));
         return;
@@ -71,7 +71,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     }
 }
 
-pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(app: &mut SplinewrightApp, ui: &mut Ui) {
     if menu_item(ui, tl!("Reset OpenType Features"), text_style(app).is_some(), false) {
         set(app, OtFeatures::default());
     }
@@ -83,7 +83,7 @@ mod tests {
 
     #[test]
     fn toggles_reach_the_text() {
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(splinewright_engine::Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
         let id = app.session.execute("text.create", &json!({"x": 10, "y": 40, "text": "fi 1/2"})).unwrap()["id"].clone();
         app.session.execute("select.set", &json!({"ids": [id]})).unwrap();

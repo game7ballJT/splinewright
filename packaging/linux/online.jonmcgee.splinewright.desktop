@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Splinewright
+GenericName=Vector Graphics Editor
+Comment=Draw and edit vector illustrations, SVG and PDF
+Exec=splinewright %F
+TryExec=splinewright
+Icon=online.jonmcgee.splinewright
+Terminal=false
+StartupNotify=true
+StartupWMClass=online.jonmcgee.splinewright
+Categories=Graphics;2DGraphics;VectorGraphics;
+Keywords=vector;illustration;svg;pdf;drawing;bezier;
+MimeType=image/svg+xml;application/pdf;

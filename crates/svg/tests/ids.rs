@@ -5,10 +5,10 @@
 
 use std::collections::HashSet;
 
-use vectorcraft_color::{Color, Gradient, GradientPaint, Paint};
-use vectorcraft_doc::{Appearance, Document, Node};
-use vectorcraft_geom::{Rect, shapes};
-use vectorcraft_svg::{ExportOptions, ObjectIds, Styling, export, import};
+use splinewright_color::{Color, Gradient, GradientPaint, Paint};
+use splinewright_doc::{Appearance, Document, Node};
+use splinewright_geom::{Rect, shapes};
+use splinewright_svg::{ExportOptions, ObjectIds, Styling, export, import};
 
 /// A document with a named rectangle, an unnamed gradient-filled one and a second layer.
 fn doc(title: &str, shift: f64) -> Document {

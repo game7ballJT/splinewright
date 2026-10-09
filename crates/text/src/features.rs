@@ -1,7 +1,7 @@
 //! OpenType feature selection (the OpenType panel), resolved per character style.
 
 use harfrust::{Feature, Tag};
-use vectorcraft_doc::CharStyle;
+use splinewright_doc::CharStyle;
 
 /// OpenType features applied during shaping. Kerning, `case` and ligature suppression are driven
 /// by the character style (`kerning`, `all_caps`, `tracking`); the rest are layout-wide options.
@@ -154,8 +154,8 @@ impl OtFeatures {
 mod tests {
     use super::*;
     use crate::{FontDb, layout};
-    use vectorcraft_doc::TextObject;
-    use vectorcraft_geom::Point;
+    use splinewright_doc::TextObject;
+    use splinewright_geom::Point;
 
     fn glyphs(features: &[&str]) -> usize {
         let st = CharStyle { font_family: "Source Serif 4".into(), features: features.iter().map(|s| s.to_string()).collect(), ..Default::default() };

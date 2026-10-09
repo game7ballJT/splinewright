@@ -4,8 +4,8 @@
 //!
 //! Pure and platform-free, so it is tested everywhere and builds for the web; only the backend
 //! touches AppKit. What the layout does ([`mac_layout`], Illustrator on the Mac as the reference):
-//! - an **app menu** named VectorCraft: About; Settings, a submenu with one item per Preferences
-//!   page (General… ⌘K first); Language; Appearance (the UI brightness); Services; Hide VectorCraft
+//! - an **app menu** named Splinewright: About; Settings, a submenu with one item per Preferences
+//!   page (General… ⌘K first); Language; Appearance (the UI brightness); Services; Hide Splinewright
 //!   ⌃⌘H (⌘H stays View › Hide Edges), Hide Others ⌥⌘H, Show All; and Quit ⌘Q, still the app's own
 //!   `app.quit`, so documents with unsaved changes are asked about. These leave the other menus
 //!   (Edit › Preferences…, Help › About), and Join Our Discord stays under Help only;
@@ -14,7 +14,7 @@
 //! - a system key already bound to a command keeps the command's: the system item goes without.
 //!
 //! **Keys stay with egui.** AppKit runs a menu's key equivalents before the window sees the key,
-//! which would skip VectorCraft's key rules (a focused text field takes ⌘A, ⌘C, ⌘V and ⌘Z; dialogs
+//! which would skip Splinewright's key rules (a focused text field takes ⌘A, ⌘C, ⌘V and ⌘Z; dialogs
 //! and the Type tool's input method have the keyboard). So the backend reports a key equivalent as
 //! [`Event::Key`], and [`key_events`] feeds it to egui as the key press it was (the clipboard
 //! events egui's window integration makes of ⌘X, ⌘C and ⌘V): the shortcut runs through
@@ -31,12 +31,12 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 use egui::{Key, KeyboardShortcut};
 use serde_json::{Value, json};
 
-use crate::VectorcraftApp;
+use crate::SplinewrightApp;
 use crate::i18n::{Lang, tr, tr_ctx};
 use crate::menus::{self, Entry};
 
-pub const APP_NAME: &str = "VectorCraft";
-/// Hide VectorCraft: an item of ours (AppKit's always takes ⌘H, which is View › Hide Edges).
+pub const APP_NAME: &str = "Splinewright";
+/// Hide Splinewright: an item of ours (AppKit's always takes ⌘H, which is View › Hide Edges).
 pub const HIDE: &str = "app.hide";
 /// Hide Others: an item of ours, so a command bound to ⌥⌘H keeps it.
 pub const HIDE_OTHERS: &str = "app.hideOthers";
@@ -46,7 +46,7 @@ pub const MINIMIZE: &str = "window.minimize";
 /// The labels the Mac layout adds to the menus (translated like every menu string:
 /// [`crate::menus::menu_strings`]).
 pub const MAC_LABELS: &[&str] =
-    &["Settings", "Appearance", "Services", "Hide VectorCraft", "Hide Others", "Show All", "Minimize", "Zoom", "Bring All to Front"];
+    &["Settings", "Appearance", "Services", "Hide Splinewright", "Hide Others", "Show All", "Minimize", "Zoom", "Bring All to Front"];
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct MenuBar {
@@ -157,8 +157,8 @@ impl MenuBar {
 
 /// The menus as the in-window bar shows them now, as a tree: `tree`'s items through
 /// [`crate::menus::entry`] (labels in the UI language, live state, empty slots left out).
-pub fn from_tree(app: &VectorcraftApp, tree: &[(&'static str, Vec<menus::Item>)]) -> MenuBar {
-    fn level(app: &VectorcraftApp, items: &[menus::Item]) -> Vec<Node> {
+pub fn from_tree(app: &SplinewrightApp, tree: &[(&'static str, Vec<menus::Item>)]) -> MenuBar {
+    fn level(app: &SplinewrightApp, items: &[menus::Item]) -> Vec<Node> {
         let nodes = items
             .iter()
             .filter_map(|it| menus::entry(app, it))
@@ -275,7 +275,7 @@ pub fn key_events(sc: KeyboardShortcut, paste_text: impl FnOnce() -> Option<Stri
 
 // ----------------------------------------------------------------------------- macOS layout
 
-/// A system key equivalent VectorCraft already uses for a command.
+/// A system key equivalent Splinewright already uses for a command.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Clash {
     pub shortcut: &'static str,
@@ -307,7 +307,7 @@ pub fn mac_layout(bar: &MenuBar, lang: Lang) -> Layout {
             None => Some(sc),
         }
     };
-    let hide = Item::system(HIDE, "Hide VectorCraft", key("Ctrl+Cmd+H", "Hide"), lang);
+    let hide = Item::system(HIDE, "Hide Splinewright", key("Ctrl+Cmd+H", "Hide"), lang);
     let hide_others = Item::system(HIDE_OTHERS, "Hide Others", key("Cmd+Alt+H", "Hide Others"), lang);
     let minimize = Item::system(MINIMIZE, "Minimize", key("Ctrl+Cmd+M", "Minimize"), lang);
 
@@ -353,7 +353,7 @@ pub fn mac_layout(bar: &MenuBar, lang: Lang) -> Layout {
 /// Settings ▸: one item per page of the Preferences dialog (its own list), each opening it there;
 /// the first (General…) has Preferences' shortcut (⌘K), as in Illustrator.
 fn settings_pages(preferences: &Item, lang: Lang) -> Vec<Node> {
-    vectorcraft_engine::cmd::prefscmds::PREF_CATEGORIES
+    splinewright_engine::cmd::prefscmds::PREF_CATEGORIES
         .iter()
         .enumerate()
         .map(|(i, page)| {
@@ -411,8 +411,8 @@ fn take_submenu(bar: &mut MenuBar, command: &str) -> Option<Node> {
     sub
 }
 
-/// VectorCraft's menus as a Mac menu bar, as they show now.
-pub fn layout(app: &VectorcraftApp) -> Layout {
+/// Splinewright's menus as a Mac menu bar, as they show now.
+pub fn layout(app: &SplinewrightApp) -> Layout {
     mac_layout(&from_tree(app, &menus::menu_tree()), crate::i18n::current())
 }
 
@@ -438,7 +438,7 @@ pub trait Backend {
     fn drain(&mut self) -> Vec<Event>;
 }
 
-/// The native menu bar, while VectorCraft uses one (the in-window menus are hidden then).
+/// The native menu bar, while Splinewright uses one (the in-window menus are hidden then).
 pub struct NativeMenu {
     backend: Box<dyn Backend>,
     /// Hash of the state the menus were last read in ([`state_hash`]).
@@ -470,7 +470,7 @@ impl NativeMenu {
 }
 
 /// Run the items clicked in the native menu since the last frame, like in-window menu clicks.
-pub fn run(app: &mut VectorcraftApp, ctx: &egui::Context) {
+pub fn run(app: &mut SplinewrightApp, ctx: &egui::Context) {
     let Some(menu) = app.services.native_menu.as_mut() else { return };
     for it in std::mem::take(&mut menu.clicks) {
         match it.command {
@@ -487,7 +487,7 @@ pub fn run(app: &mut VectorcraftApp, ctx: &egui::Context) {
 /// Bring the native menu up to date when anything it shows may have changed: a command ran, the
 /// document, its history or selection changed, the user clicked or pressed a key. Reading the rows
 /// asks every command whether it is enabled, so frames that only animate or scroll skip it.
-pub fn sync(app: &mut VectorcraftApp, ctx: &egui::Context) {
+pub fn sync(app: &mut SplinewrightApp, ctx: &egui::Context) {
     let Some(menu) = app.services.native_menu.as_ref() else { return };
     let input = ctx
         .input(|i| i.events.iter().any(|e| matches!(e, egui::Event::Key { pressed: true, .. } | egui::Event::PointerButton { pressed: false, .. })));
@@ -499,7 +499,7 @@ pub fn sync(app: &mut VectorcraftApp, ctx: &egui::Context) {
     let Some(menu) = app.services.native_menu.as_mut() else { return };
     if !menu.logged {
         for c in &layout.clashes {
-            log::info!("menu: {} is {} on macOS and {} in VectorCraft, which keeps it", c.shortcut, c.system, c.command);
+            log::info!("menu: {} is {} on macOS and {} in Splinewright, which keeps it", c.shortcut, c.system, c.command);
         }
         menu.logged = true;
     }
@@ -512,7 +512,7 @@ pub fn sync(app: &mut VectorcraftApp, ctx: &egui::Context) {
 /// its revision (edits, selection and view changes), history and clipboard, the language,
 /// shortcuts and plug-ins. `input` forces a change on frames with a click or a key press, which
 /// covers what the hash doesn't list (panels shown, a tool picked).
-fn state_hash(app: &VectorcraftApp, input: Option<u64>) -> u64 {
+fn state_hash(app: &SplinewrightApp, input: Option<u64>) -> u64 {
     let mut h = DefaultHasher::new();
     input.hash(&mut h);
     app.run_count.hash(&mut h);

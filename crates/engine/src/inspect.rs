@@ -1,11 +1,11 @@
 //! Agent-friendly document summaries and view-models for panels.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{ArrowAlign, Document, LineCap, LineJoin, Node, NodeKind, StrokeAlign, StrokeLayer, WidthProfile};
+use splinewright_doc::{ArrowAlign, Document, LineCap, LineJoin, Node, NodeKind, StrokeAlign, StrokeLayer, WidthProfile};
 
 use crate::Session;
 
-fn rect_json(r: Option<vectorcraft_geom::Rect>) -> Value {
+fn rect_json(r: Option<splinewright_geom::Rect>) -> Value {
     match r {
         Some(r) => json!({ "x": r.x0, "y": r.y0, "width": r.width(), "height": r.height() }),
         None => Value::Null,
@@ -48,7 +48,7 @@ pub fn node_summary_opts(n: &Node, opts: SummaryOpts) -> Value {
         // Type shows its characters' paint: the first run's, as paint.proxies and the Stroke
         // options read it. Fills and strokes of the type object itself, above or below its
         // characters, come separately so the two stay apart.
-        let default = vectorcraft_doc::CharStyle::default();
+        let default = splinewright_doc::CharStyle::default();
         let style = t.runs.first().map_or(&default, |r| &r.style);
         v["fill"] = json!(style.fill.label());
         v["stroke"] = json!(style.stroke.label());
@@ -213,7 +213,7 @@ fn name_of<T: PartialEq>(table: &[(T, &'static str)], v: T) -> &'static str {
 /// else the topmost stroke of its own (groups and layers too). None without a stroke.
 pub fn node_stroke(n: &Node) -> Option<StrokeLayer> {
     match &n.kind {
-        NodeKind::Text(t) => Some(t.runs.first().map_or_else(|| vectorcraft_doc::CharStyle::default().stroke_layer(), |r| r.style.stroke_layer())),
+        NodeKind::Text(t) => Some(t.runs.first().map_or_else(|| splinewright_doc::CharStyle::default().stroke_layer(), |r| r.style.stroke_layer())),
         _ => n.appearance.stroke().cloned(),
     }
 }

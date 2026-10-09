@@ -1,7 +1,7 @@
 //! Graphs (Illustrator's graph tools): a group whose art is generated from a [`GraphSpec`].
 
 use serde::{Deserialize, Serialize};
-use vectorcraft_geom::Rect;
+use splinewright_geom::Rect;
 
 /// The nine graph types, in the Graph tool group's order.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

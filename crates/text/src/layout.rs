@@ -3,11 +3,11 @@
 use std::ops::Range;
 
 use kurbo::{Affine, BezPath, PathEl, Point, Rect, Shape, Vec2};
-use unicode_bidi::{BidiInfo, Level};
-use vectorcraft_doc::{
+use splinewright_doc::{
     Burasagari, CharStyle, Justify, LeadingModel, Mojikumi, ParaDirection, ParaStyle, PathAlign, PathEffect, TextKind, TextObject,
 };
-use vectorcraft_geom::{ArcPath, PathData};
+use splinewright_geom::{ArcPath, PathData};
+use unicode_bidi::{BidiInfo, Level};
 
 use crate::composer::{Breakpoint, compose};
 use crate::fontdb::FontDb;
@@ -178,8 +178,8 @@ pub fn layout_with(db: &FontDb, t: &TextObject, opts: &LayoutOptions) -> TextLay
         TextKind::Point => flow(&mut cx, &paras, &t.para, None),
         TextKind::Area { frame } => {
             let to_lines = line_xf.inverse();
-            let wrap: Vec<vectorcraft_doc::WrapShape> = if vertical {
-                t.wrap.iter().map(|w| vectorcraft_doc::WrapShape { path: w.path.transformed(to_lines), ..w.clone() }).collect()
+            let wrap: Vec<splinewright_doc::WrapShape> = if vertical {
+                t.wrap.iter().map(|w| splinewright_doc::WrapShape { path: w.path.transformed(to_lines), ..w.clone() }).collect()
             } else {
                 t.wrap.clone()
             };
@@ -336,8 +336,8 @@ fn glyph_em(g: &SGlyph) -> f64 {
 /// `line_em`: the glyph's em box top, centre or bottom onto the line's (the em box running from
 /// its centre less half an em to its centre plus half an em above the baseline). Nothing on the
 /// Roman baseline, or for the line's largest characters.
-fn align_shift(g: &SGlyph, a: vectorcraft_doc::CharAlign, line_em: f64) -> f64 {
-    use vectorcraft_doc::CharAlign;
+fn align_shift(g: &SGlyph, a: splinewright_doc::CharAlign, line_em: f64) -> f64 {
+    use splinewright_doc::CharAlign;
     let k = match a {
         CharAlign::RomanBaseline => return 0.0,
         CharAlign::EmBoxTop => 0.5,
@@ -509,7 +509,7 @@ fn intersect_intervals(a: &[(f64, f64)], b: &[(f64, f64)]) -> Vec<(f64, f64)> {
 }
 
 impl Region {
-    fn cells(path: &BezPath, opts: &LayoutOptions, wrap: &[vectorcraft_doc::WrapShape]) -> Vec<Region> {
+    fn cells(path: &BezPath, opts: &LayoutOptions, wrap: &[splinewright_doc::WrapShape]) -> Vec<Region> {
         let polys = polygons(path);
         let wraps: Vec<(Vec<Vec<Point>>, f64, bool)> =
             wrap.iter().map(|w| (polygons(&w.path.to_bezpath()), w.wrap.offset.max(0.0), w.wrap.invert)).filter(|w| !w.0.is_empty()).collect();
@@ -727,8 +727,8 @@ impl Pen<'_> {
 /// Advance of a tab at pen position `x`: up to the next stop after it (explicit stops first, then
 /// every ½ inch). Right, centre and decimal stops align the text that follows (`rest`, up to the
 /// next tab) on the stop.
-fn tab_advance(tabs: &[vectorcraft_doc::TabStop], origin: f64, x: f64, rest: &[SGlyph]) -> f64 {
-    use vectorcraft_doc::TabAlign;
+fn tab_advance(tabs: &[splinewright_doc::TabStop], origin: f64, x: f64, rest: &[SGlyph]) -> f64 {
+    use splinewright_doc::TabAlign;
     let rel = x - origin;
     let seg: Vec<&SGlyph> = rest.iter().take_while(|g| g.ch != '\t').collect();
     let width: f64 = seg.iter().map(|g| g.adv).sum();
@@ -745,7 +745,7 @@ fn tab_advance(tabs: &[vectorcraft_doc::TabStop], origin: f64, x: f64, rest: &[S
     let at = explicit.unwrap_or_else(|| {
         let last = tabs.iter().map(|t| t.position).fold(0.0, f64::max).max(0.0);
         let base = rel.max(last);
-        ((base / vectorcraft_doc::text::DEFAULT_TAB_INTERVAL).floor() + 1.0) * vectorcraft_doc::text::DEFAULT_TAB_INTERVAL
+        ((base / splinewright_doc::text::DEFAULT_TAB_INTERVAL).floor() + 1.0) * splinewright_doc::text::DEFAULT_TAB_INTERVAL
     });
     (at - rel).max(0.0)
 }

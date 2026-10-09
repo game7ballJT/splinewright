@@ -4,15 +4,15 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt::Write as _;
 use std::sync::Arc;
 
-use vectorcraft_color::{BlendMode, GradientKind, GradientPaint, Paint};
-use vectorcraft_doc::{
+use splinewright_color::{BlendMode, GradientKind, GradientPaint, Paint};
+use splinewright_doc::{
     AppearanceItem, Document, FillLayer, LineCap, LineJoin, Node, NodeId, NodeKind, StrokeAlign, StrokeLayer, TextKind, TextObject,
 };
-use vectorcraft_doc::{CharStyle, ImageBlob, Justify};
-use vectorcraft_effects::stroke::{self, Written, WrittenShape};
-use vectorcraft_geom::{Affine, BezPath, FillRule, PathData, Point, Rect};
+use splinewright_doc::{CharStyle, ImageBlob, Justify};
+use splinewright_effects::stroke::{self, Written, WrittenShape};
+use splinewright_geom::{Affine, BezPath, FillRule, PathData, Point, Rect};
 
-use vectorcraft_text::{FontDb, FontFace};
+use splinewright_text::{FontDb, FontFace};
 
 use crate::{
     EDITING_NS, Encoding, ExportOptions, ImageMode, LinkedImage, ObjectIds, Output, Profile, Styling, base64_encode, body_hash, fmt_num, fnv1a,
@@ -23,7 +23,7 @@ use crate::css::{self, Props, blend_css, css_string, font_descriptor};
 
 pub(crate) fn export(doc: &Document, opts: &ExportOptions, native: Option<&[u8]>) -> Output {
     // Live geometry effects (Roughen, Warp, Offset Path, Effect → Pathfinder…) export as their result.
-    let baked = vectorcraft_effects::bake_document(doc);
+    let baked = splinewright_effects::bake_document(doc);
     let doc = baked.as_ref().unwrap_or(doc);
     if opts.object_ids != ObjectIds::Unique {
         return write(doc, opts, native, "");
@@ -246,7 +246,7 @@ struct Writer<'a> {
     /// The filter that paints art black keeping its alpha (knockout masks), once defined.
     knockout_filter: Option<String>,
     /// The brush library, parsed when the first brushed stroke is written.
-    brushes: Option<Vec<vectorcraft_brush::Brush>>,
+    brushes: Option<Vec<splinewright_brush::Brush>>,
     /// Features written approximately (once each).
     warnings: Vec<String>,
     /// Prepended to every id and class name ([`ObjectIds::Unique`]).
@@ -323,11 +323,11 @@ impl Reuse {
         let pattern = |p: &Paint| matches!(p, Paint::Pattern { .. });
         let text_patterns = matches!(&n.kind, NodeKind::Text(t) if t.runs.iter().any(|r| pattern(&r.style.fill) || pattern(&r.style.stroke)));
         let unlinked_mask = n.mask.as_ref().is_some_and(|m| !m.linked);
-        if depth > MAX_SYMBOL_NEST || text_patterns || unlinked_mask || vectorcraft_doc::pattern::uses_pattern(n, None) {
+        if depth > MAX_SYMBOL_NEST || text_patterns || unlinked_mask || splinewright_doc::pattern::uses_pattern(n, None) {
             *self = Self::NONE;
             return;
         }
-        let effects = |fx: &[vectorcraft_doc::Effect]| fx.iter().any(|e| e.visible);
+        let effects = |fx: &[splinewright_doc::Effect]| fx.iter().any(|e| e.visible);
         if effects(&n.appearance.effects) || n.appearance.items.iter().any(|i| effects(i.effects())) {
             (self.turns, self.scales) = (false, false);
         }
@@ -377,7 +377,7 @@ impl Reuse {
 /// leaves on the page by `m` first, so it stays there. That is every pattern paint's placement
 /// and the art of unlinked opacity masks.
 fn pin_to_page(n: &mut Node, m: Affine) {
-    vectorcraft_doc::pattern::transform_pattern_paints(n, m);
+    splinewright_doc::pattern::transform_pattern_paints(n, m);
     if let Some(mask) = n.mask.as_deref_mut() {
         let linked = mask.linked;
         let art = std::sync::Arc::make_mut(&mut mask.art);
@@ -397,7 +397,7 @@ fn pin_to_page(n: &mut Node, m: Affine) {
 fn dublin_core(doc: &Document) -> Vec<(&'static str, String)> {
     let info = &doc.metadata;
     let mut terms = vec![("format", "image/svg+xml".to_string())];
-    let created = info.created.map(vectorcraft_doc::metadata::iso8601).unwrap_or_default();
+    let created = info.created.map(splinewright_doc::metadata::iso8601).unwrap_or_default();
     let fields = [("title", doc.title.as_str()), ("creator", info.author.as_str()), ("description", info.description.as_str())];
     let rights = [("rights", info.copyright_notice.as_str()), ("rights", info.copyright_url.as_str()), ("date", created.as_str())];
     let keywords = info.keywords.iter().map(|k| ("subject", k.as_str()));
@@ -414,7 +414,7 @@ const BIG: &str = "x=\"-100000\" y=\"-100000\" width=\"200000\" height=\"200000\
 const MASK: &str = "maskUnits=\"userSpaceOnUse\" color-interpolation=\"sRGB\"";
 /// Attribute of an exported opacity mask listing its options that differ from the defaults
 /// (clipping, not inverted): `noclip`, `invert`.
-pub(crate) const MASK_FLAGS: &str = "data-vectorcraft-mask";
+pub(crate) const MASK_FLAGS: &str = "data-splinewright-mask";
 
 /// Turn an object name into a valid, readable XML id.
 pub(crate) fn sanitize_id(name: &str) -> String {
@@ -454,7 +454,7 @@ impl Writer<'_> {
     }
     /// The `href` of image `im`: its file with [`ImageMode::Link`] (or when its pixels are
     /// missing), else its bytes. `None` when it has neither.
-    fn image_href(&mut self, im: &vectorcraft_doc::ImageObject) -> Option<String> {
+    fn image_href(&mut self, im: &splinewright_doc::ImageObject) -> Option<String> {
         let (doc, link) = (self.doc, self.opts.images == ImageMode::Link);
         match (im.link.as_ref().filter(|_| link), doc.images.get(&im.key)) {
             (Some(l), _) => Some(l.path.clone()),
@@ -476,7 +476,7 @@ impl Writer<'_> {
         repeated.sort();
         for (key, width, height) in repeated {
             let link = self.linked_of(art, &key);
-            let im = vectorcraft_doc::ImageObject { key: key.clone(), width, height, xf: Affine::IDENTITY, link, placement: Default::default() };
+            let im = splinewright_doc::ImageObject { key: key.clone(), width, height, xf: Affine::IDENTITY, link, placement: Default::default() };
             let Some(href) = self.image_href(&im) else { continue };
             let id = self.fresh_id("image");
             self.def(
@@ -491,7 +491,7 @@ impl Writer<'_> {
     }
 
     /// The link of the first image with blob `key` in `art`.
-    fn linked_of(&self, art: &Node, key: &str) -> Option<vectorcraft_doc::LinkInfo> {
+    fn linked_of(&self, art: &Node, key: &str) -> Option<splinewright_doc::LinkInfo> {
         let mut link = None;
         art.walk(&mut |c| {
             if let NodeKind::Image(im) = &c.kind
@@ -629,7 +629,7 @@ impl Writer<'_> {
             line(
                 2,
                 &format!(
-                    "<vectorcraft:document xmlns:vectorcraft=\"{EDITING_NS}\" hash=\"{hash}\"><![CDATA[{}]]></vectorcraft:document>",
+                    "<splinewright:document xmlns:splinewright=\"{EDITING_NS}\" hash=\"{hash}\"><![CDATA[{}]]></splinewright:document>",
                     base64_encode(bytes)
                 ),
             );
@@ -838,9 +838,9 @@ impl Writer<'_> {
         }
         let bp = bp.get_or_insert_with(|| doc_path(paths));
         let doc = self.doc;
-        let brushes = self.brushes.get_or_insert_with(|| vectorcraft_brush::library(doc));
+        let brushes = self.brushes.get_or_insert_with(|| splinewright_brush::library(doc));
         match st.brush.as_deref().and_then(|name| brushes.iter().find(|b| b.name == name)) {
-            Some(b) => StrokePlan::Brush(vectorcraft_brush::stroke_pieces(b, bp, st)),
+            Some(b) => StrokePlan::Brush(splinewright_brush::stroke_pieces(b, bp, st)),
             None => StrokePlan::Written(stroke::for_writer(bp, st)),
         }
     }
@@ -1077,7 +1077,7 @@ impl Writer<'_> {
 
     /// An object with an opacity mask: `<g mask="url(#…)">` around the unmasked object. The mask
     /// art goes in `<defs>`; no-clip adds a white backdrop and invert a colour-inverting filter.
-    fn masked(&mut self, n: &Node, m: &vectorcraft_doc::OpacityMask) {
+    fn masked(&mut self, n: &Node, m: &splinewright_doc::OpacityMask) {
         if self.tiny() {
             self.warn(TINY_MASKS);
             let mut bare = n.clone();
@@ -1251,7 +1251,7 @@ impl Writer<'_> {
                 self.def(1, &format!("<clipPath id=\"{cid}\">"));
                 // The region every output clips to; with nothing to clip by, an empty clip path
                 // hides the clipped art.
-                if let Some((bp, rule)) = vectorcraft_effects::clip_outline(clip) {
+                if let Some((bp, rule)) = splinewright_effects::clip_outline(clip) {
                     let d = self.path_d(&PathData::from_bezpath(&bp), self.xf);
                     let r = if rule == FillRule::EvenOdd { " clip-rule=\"evenodd\"" } else { "" };
                     self.def(2, &format!("<path d=\"{d}\"{r}/>"));
@@ -1336,7 +1336,7 @@ impl Writer<'_> {
                 }
                 // An instance of its own: the (stained) art moved by the instance, its pattern
                 // paints and unlinked masks left in place as on the canvas.
-                let mut art = vectorcraft_brush::instance_art(&sym.art, n);
+                let mut art = splinewright_brush::instance_art(&sym.art, n);
                 let moved = self.instance_xf * *xf;
                 if moved.determinant().abs() > 1e-12 {
                     pin_to_page(&mut art, moved.inverse());
@@ -1358,7 +1358,7 @@ impl Writer<'_> {
             }
             // Live blends/envelopes/meshes export their evaluated (expanded) form.
             NodeKind::Blend { .. } | NodeKind::Envelope { .. } | NodeKind::Mesh(_) | NodeKind::Repeat(_) => {
-                let g = vectorcraft_effects::expand_live_deep(Some(self.doc), n);
+                let g = splinewright_effects::expand_live_deep(Some(self.doc), n);
                 self.share_images(&g);
                 self.node_body(&g);
             }
@@ -1385,7 +1385,7 @@ impl Writer<'_> {
     /// `clip` (outlines in user space filled by `rule`), in a group with `props` and the `side`
     /// attribute. Nothing is written for an empty box.
     fn raster_paint(&mut self, g: &GradientPaint, bounds: Rect, clip: &[String], rule: FillRule, props: &Props, side: &str) {
-        use vectorcraft_color::freeform::{grid_size, painted_box, spread_scale};
+        use splinewright_color::freeform::{grid_size, painted_box, spread_scale};
         let Some(b) = painted_box(bounds) else { return };
         let (cols, rows) = grid_size(b, 2.0 * b.width().max(b.height()));
         let field = g.freeform_on(b).field(spread_scale(b));
@@ -1432,9 +1432,9 @@ impl Writer<'_> {
     /// The id of the `<symbol>` def instance `inst` (transform `xf`) can `<use>`, written on first
     /// use. `None` when the instance needs its own copy of the art: stained by its fill, or moved
     /// by a transform under which the def would not look as the canvas paints it ([`Reuse`]).
-    fn symbol_use(&mut self, sym: &vectorcraft_doc::Symbol, inst: &Node, xf: Affine) -> Option<String> {
+    fn symbol_use(&mut self, sym: &splinewright_doc::Symbol, inst: &Node, xf: Affine) -> Option<String> {
         // SVG Tiny has no `<symbol>`.
-        if self.tiny() || vectorcraft_brush::stain(inst).is_some() {
+        if self.tiny() || splinewright_brush::stain(inst).is_some() {
             return None;
         }
         if !self.symbols.contains_key(&sym.name) {
@@ -1472,7 +1472,7 @@ impl Writer<'_> {
     /// per effect, the first effect innermost (the reference app's stacking order).
     fn filtered(&mut self, n: &Node) {
         let mut inner = n.clone();
-        inner.appearance.effects.retain(|e| !vectorcraft_effects::is_raster(&e.id));
+        inner.appearance.effects.retain(|e| !splinewright_effects::is_raster(&e.id));
         let opened = self.open_filters(n, &n.appearance.effects);
         self.node_body(&inner);
         self.close_filters(opened);
@@ -1480,9 +1480,9 @@ impl Writer<'_> {
 
     /// Open one `<g filter>` per visible raster effect of `effects` (an object's, or one fill or
     /// stroke's) on `n`, outermost last effect; returns how many to close.
-    fn open_filters(&mut self, n: &Node, effects: &[vectorcraft_doc::Effect]) -> usize {
-        use vectorcraft_effects::RasterFx;
-        let fx = vectorcraft_effects::raster_effects(effects);
+    fn open_filters(&mut self, n: &Node, effects: &[splinewright_doc::Effect]) -> usize {
+        use splinewright_effects::RasterFx;
+        let fx = splinewright_effects::raster_effects(effects);
         if self.tiny() {
             if !fx.is_empty() {
                 self.warn("SVG Tiny 1.2 has no filters: shadows, glows, blurs and feathers are left out");
@@ -1504,7 +1504,7 @@ impl Writer<'_> {
                 None => String::new(),
             };
             let sd = |blur: f64| fmt_num((blur / 2.0).max(0.0), 3);
-            let flood = |c: &vectorcraft_color::Color, o: f32| {
+            let flood = |c: &splinewright_color::Color, o: f32| {
                 format!("<feFlood flood-color=\"{}\" flood-opacity=\"{}\"/>", c.to_hex(), fmt_num(o as f64, 3))
             };
             let body = match f {
@@ -1599,14 +1599,14 @@ impl Writer<'_> {
         let a = self.attrs(&css::transparency(n));
         self.line(&format!("<g{id}{a}>"));
         self.depth += 1;
-        let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+        let lay = splinewright_text::layout(splinewright_text::FontDb::global(), t);
         let pd = PathData::from_bezpath(&lay.to_bezpath()).transformed(t.xf);
         let d = self.path_d(&pd, self.xf);
         let tb = Some(t.xf.transform_rect_bbox(lay.bounds));
         let (below, above) = n.appearance.split_contents();
         let glyphs = |w: &mut Self, items: &[AppearanceItem]| {
             if !items.is_empty() {
-                let ap = vectorcraft_doc::Appearance { items: items.to_vec(), ..Default::default() };
+                let ap = splinewright_doc::Appearance { items: items.to_vec(), ..Default::default() };
                 w.shape(&Node::path(NodeId(u64::MAX), pd.clone(), ap), &d, &[&pd], FillRule::NonZero, tb);
             }
         };
@@ -1624,7 +1624,7 @@ impl Writer<'_> {
     /// Text as glyph outlines: one compound path per run, painted like the run (gradients span
     /// the whole text, as on the canvas).
     fn text_outlines(&mut self, n: &Node, t: &TextObject) {
-        let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+        let lay = splinewright_text::layout(splinewright_text::FontDb::global(), t);
         let mut runs: Vec<(usize, kurbo::BezPath)> = vec![];
         for g in &lay.glyphs {
             match runs.last_mut() {
@@ -1660,7 +1660,7 @@ impl Writer<'_> {
         // Live SVG text is written in logical order from left-aligned pieces: bidirectional text
         // (and right-to-left paragraphs) keep their look as outlines until it is written with
         // `direction`/`unicode-bidi`.
-        let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+        let lay = splinewright_text::layout(splinewright_text::FontDb::global(), t);
         if lay.glyphs.iter().any(|g| g.rtl) || lay.lines.iter().any(|l| l.rtl) {
             self.warn("bidirectional text is outlined to preserve shaping and visual order");
             return self.text_outlines(n, t);
@@ -1668,7 +1668,7 @@ impl Writer<'_> {
         if let TextKind::OnPath { path, start, end } = &t.kind {
             // `<textPath>` has a start offset only: an end bracket, Align to Path and Spacing
             // keep their look as outlines.
-            if end.is_some() || t.path_align != vectorcraft_doc::PathAlign::Baseline || t.path_spacing != 0.0 {
+            if end.is_some() || t.path_align != splinewright_doc::PathAlign::Baseline || t.path_spacing != 0.0 {
                 self.warn("type on a path with an end bracket, Align to Path or Spacing is outlined to keep its look");
                 return self.text_outlines(n, t);
             }
@@ -1762,7 +1762,7 @@ impl Writer<'_> {
 
     /// Record the characters of laid-out type `t` under the faces that supply them, for
     /// [`Self::font_faces`] (when fonts are embedded).
-    fn note_fonts(&mut self, t: &TextObject, lay: &vectorcraft_text::TextLayout) {
+    fn note_fonts(&mut self, t: &TextObject, lay: &splinewright_text::TextLayout) {
         if !self.opts.embed_fonts || self.opts.outline_text {
             return;
         }
@@ -1836,7 +1836,7 @@ impl Writer<'_> {
         let d = self.path_d(path, self.xf * t.xf);
         self.def(1, &format!("<path id=\"{pid}\" d=\"{d}\"/>"));
         // The <text> element's user space is the document's; gradients span the laid-out text.
-        let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+        let lay = splinewright_text::layout(splinewright_text::FontDb::global(), t);
         self.note_fonts(t, &lay);
         let space = (lay.bounds, self.xf * t.xf);
         let base = self.char_props(&t.first_style(), space);
@@ -1905,8 +1905,8 @@ fn freeform(p: &Paint) -> Option<&GradientPaint> {
 }
 
 /// Any visible raster effect (shadow, glow, blur, feather) in `effects`?
-fn has_raster(effects: &[vectorcraft_doc::Effect]) -> bool {
-    effects.iter().any(|e| e.visible && vectorcraft_effects::is_raster(&e.id))
+fn has_raster(effects: &[splinewright_doc::Effect]) -> bool {
+    effects.iter().any(|e| e.visible && splinewright_effects::is_raster(&e.id))
 }
 
 /// What the lines of one `<text>` share.
@@ -1937,14 +1937,14 @@ struct Segment {
 /// on justified lines, after each word space (unless `fewer`). The text comes from the clusters
 /// the layout placed: soft hyphens draw nothing, a line broken by hyphenation ends in `-`, all
 /// caps are upper case.
-fn text_lines(t: &TextObject, lay: &vectorcraft_text::TextLayout, fewer: bool) -> Vec<Vec<Segment>> {
+fn text_lines(t: &TextObject, lay: &splinewright_text::TextLayout, fewer: bool) -> Vec<Vec<Segment>> {
     let plain = t.plain_text();
     let split_words = !fewer && !matches!(t.para.justify, Justify::Auto | Justify::Left | Justify::Center | Justify::Right);
     let mut lines = Vec::with_capacity(lay.lines.len());
     for line in &lay.lines {
         let mut segs: Vec<Segment> = Vec::new();
         let mut cluster = None;
-        let source = |g: &vectorcraft_text::PositionedGlyph| if g.len == 0 { "-" } else { plain.get(g.byte..g.byte + g.len).unwrap_or("") };
+        let source = |g: &splinewright_text::PositionedGlyph| if g.len == 0 { "-" } else { plain.get(g.byte..g.byte + g.len).unwrap_or("") };
         let mut glyphs = lay.glyphs.get(line.glyph_start..line.glyph_end).unwrap_or_default();
         // Spaces where the line wrapped (it doesn't end its paragraph) don't belong to the line.
         if plain.get(line.end..).is_some_and(|rest| !rest.is_empty() && !rest.starts_with('\n')) {

@@ -15,8 +15,8 @@ pub mod tga;
 pub mod tiff;
 pub mod web;
 
-use vectorcraft_doc::{Document, Node, NodeKind};
-use vectorcraft_geom::Rect;
+use splinewright_doc::{Document, Node, NodeKind};
+use splinewright_geom::Rect;
 
 use crate::{AntiAlias, RenderOptions, Rendered, Renderer, fx};
 
@@ -184,7 +184,7 @@ pub(crate) fn webp(img: &Rendered) -> Result<Vec<u8>, String> {
 /// Bounds of the art an export draws: visible objects off template layers (guides left out),
 /// with their strokes and live effects. `None` when nothing would be drawn.
 pub fn art_bounds(doc: &Document) -> Option<Rect> {
-    doc.layers.iter().fold(None, |acc, l| vectorcraft_geom::union_opt(acc, drawn_bounds(l)))
+    doc.layers.iter().fold(None, |acc, l| splinewright_geom::union_opt(acc, drawn_bounds(l)))
 }
 
 fn drawn_bounds(n: &Node) -> Option<Rect> {
@@ -194,7 +194,7 @@ fn drawn_bounds(n: &Node) -> Option<Rect> {
     match &n.kind {
         NodeKind::Layer { template: true, .. } | NodeKind::Path { guide: true, .. } => None,
         NodeKind::Layer { children, .. } | NodeKind::Group { children, clip: false } => {
-            children.iter().fold(None, |acc, c| vectorcraft_geom::union_opt(acc, drawn_bounds(c)))
+            children.iter().fold(None, |acc, c| splinewright_geom::union_opt(acc, drawn_bounds(c)))
         }
         _ if fx::has_fx(n) => fx::visual_bounds(n),
         _ => n.visual_bounds(),

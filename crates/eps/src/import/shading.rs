@@ -5,10 +5,10 @@
 
 use std::sync::Arc;
 
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::live::GradientMesh;
-use vectorcraft_doc::{Node, NodeId, NodeKind};
-use vectorcraft_geom::{Affine, Point};
+use splinewright_color::{Color, Paint};
+use splinewright_doc::live::GradientMesh;
+use splinewright_doc::{Node, NodeId, NodeKind};
+use splinewright_geom::{Affine, Point};
 
 use super::graphics::Space;
 use super::interp::{Interp, matrix_of};

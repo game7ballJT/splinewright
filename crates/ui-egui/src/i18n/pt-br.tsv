@@ -14,8 +14,8 @@
 # Brazilian Portuguese computing vocabulary (arquivo, camada, caminho, preenchimento, traçado,
 # pincel, amostra, mesa de trabalho ...), following common desktop-software conventions (commands
 # in the infinitive, menus as nouns); no proprietary localisation resource, string table or product
-# UI was consulted or copied; add entries the same way. Product and technology names (VectorCraft,
-# ArtCraft, SVG, OpenType, CMYK, Lab ...) stay in Latin letters; the trailing "…" of dialog
+# UI was consulted or copied; add entries the same way. Product and technology names (Splinewright,
+# SVG, OpenType, CMYK, Lab ...) stay in Latin letters; the trailing "…" of dialog
 # commands is kept.
 #
 # Coverage: every `tl!` literal and menu string of the shell (tested:
@@ -102,7 +102,7 @@
 	A lower value follows the stroke closely; a higher one gives fewer points and smoother curves.	Um valor menor segue o traço de perto; um valor maior gera menos pontos e curvas mais suaves.
 	A new preset starting from the selected one	Um novo predefinido a partir do selecionado
 	A saved copy of the selected preset	Uma cópia salva do predefinido selecionado
-	About VectorCraft	Sobre o VectorCraft
+	About Splinewright	Sobre o Splinewright
 	Absolute Position	Posição Absoluta
 	Accurate	Preciso
 	Abutting	Contíguo
@@ -191,7 +191,7 @@
 	Appearance Panel	Painel Aparência
 	Appearance of Black	Aparência do Preto
 	Appearance panel	Painel de Aparência
-	Applies the next time VectorCraft starts.	Aplica na próxima inicialização do VectorCraft.
+	Applies the next time Splinewright starts.	Aplica na próxima inicialização do Splinewright.
 	Applies when the linked file is relinked or updated.	Aplica quando o arquivo vinculado é revinculado ou atualizado.
 	Apply Brush	Aplicar Pincel
 	Apply Character Style	Aplicar Estilo de Caractere
@@ -220,8 +220,6 @@
 	Arrange: Bring to Front	Organizar: Trazer para Frente
 	Arrowheads:	Pontas de Seta:
 	Art using a deleted global swatch keeps its colour.	A arte que usa uma amostra global excluída mantém sua cor.
-	ArtCraft Website	Site do ArtCraft
-	ArtCraft website	Site do ArtCraft
 	Artboard Options	Opções de Mesa de Trabalho
 	Artboard Options: edit with the Artboard tool	Opções de Mesa de Trabalho: edite com a ferramenta Mesa de Trabalho
 	Artboard Options…	Opções de Mesa de Trabalho…
@@ -1113,10 +1111,7 @@
 	Isolate Selected Group	Isolar Grupo Selecionado
 	Italian	Italiano
 	Join	Unir
-	Join Our Discord	Junte-se ao nosso Discord
 	Join Tool	Ferramenta Unir
-	Join our Discord	Junte-se ao nosso Discord
-	Join the ArtCraft community on Discord (discord.gg/artcraft)	Junte-se à comunidade do ArtCraft no Discord (discord.gg/artcraft)
 	Join the lines of each paragraph	Junte as linhas de cada parágrafo
 	Justification…	Justificação…
 	Keep Formatting	Manter Formatação
@@ -1716,7 +1711,7 @@
 	Quarter Space	Espaço de Quarto
 	Quick Actions	Ações Rápidas
 	Quickly start a new file	Começar rapidamente um novo arquivo
-	Quit VectorCraft	Sair do VectorCraft
+	Quit Splinewright	Sair do Splinewright
 	RECENT	RECENTES
 	RGB Color	Cor RGB
 	Radar Graph Tool	Ferramenta Gráfico de Radar
@@ -2201,7 +2196,6 @@
 	Solid	Sólido
 	Sort by Kind	Ordenar por Tipo
 	Sort by Name	Ordenar por Nome
-	Source code on GitHub	Código-fonte no GitHub
 	Space After Paragraph	Espaço Após o Parágrafo
 	Space Before Paragraph	Espaço Antes do Parágrafo
 	Spaces	Espaços
@@ -2483,10 +2477,9 @@
 	Vector Halftone	Meio-tom Vetorial
 	Vector Halftone…	Meio-tom Vetorial…
 	Vector illustration — fast, open, scriptable.	Ilustração vetorial — rápida, aberta, scriptável.
-	VectorCraft Help…	Ajuda do VectorCraft…
-	VectorCraft didn't quit normally last time. These documents had unsaved changes:	O VectorCraft não fechou normalmente da última vez. Estes documentos tinham alterações não salvas:
-	VectorCraft on GitHub	VectorCraft no GitHub
-	VectorCraft on getartcraft.com	VectorCraft em getartcraft.com
+	Splinewright Help…	Ajuda do Splinewright…
+	Splinewright didn't quit normally last time. These documents had unsaved changes:	O Splinewright não fechou normalmente da última vez. Estes documentos tinham alterações não salvas:
+	Splinewright on GitHub	Splinewright no GitHub
 	Vectors	Vetores
 	Version {version} — open-source vector illustration in pure Rust.	Versão {version} — ilustração vetorial de código aberto em Rust puro.
 	Version:	Versão:
@@ -2516,7 +2509,7 @@
 	Web Shift	Web Shift
 	Web Snap:	Web Snap:
 	Weight:	Peso:
-	Welcome to VectorCraft	Bem-vindo ao VectorCraft
+	Welcome to Splinewright	Bem-vindo ao Splinewright
 	When pasting text	Ao colar texto
 	White	Branco
 	Widget Position:	Posição do Widget:
@@ -2638,8 +2631,27 @@
 
 # The macOS menu bar (native_menu): the app and Window menus' system items, Settings pages.
 	Services	Serviços
-	Hide VectorCraft	Ocultar o VectorCraft
+	Hide Splinewright	Ocultar o Splinewright
 	Hide Others	Ocultar Outros
 	Zoom	Zoom
 	Bring All to Front	Trazer Todas para a Frente
 	Settings	Configurações
+	Splinewright Website	Site do Splinewright
+	Report an Issue…	Relatar um problema…
+	Based on VectorCraft…	Baseado no VectorCraft…
+	Add to the custom dictionary	Adicionar ao dicionário personalizado
+	Add to Custom Dictionary	Adicionar ao dicionário personalizado
+	Change To	Alterar para
+	Check Spelling	Verificar ortografia
+	Contrast {fg} on {bg}: {summary}	Contraste de {fg} sobre {bg}: {summary}
+	Ignore All	Ignorar tudo
+	No suggestions.	Nenhuma sugestão.
+	Not in Dictionary	Não está no dicionário
+	The spelling check is complete.	A verificação ortográfica foi concluída.
+	There is no type to check.	Não há texto para verificar.
+	{n} of {total}	{n} de {total}
+	{n} words changed.	{n} palavras alteradas.
+	Change Misspellings	Corrigir erros ortográficos
+	Check Contrast	Verificar contraste
+	Custom Dictionary	Dicionário personalizado
+	Spelling Suggestions	Sugestões ortográficas

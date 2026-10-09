@@ -4,8 +4,8 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{Document, Node, NodeId, Unit};
-use vectorcraft_geom::{Affine, Vec2};
+use splinewright_doc::{Document, Node, NodeId, Unit};
+use splinewright_geom::{Affine, Vec2};
 
 use super::clipboard::SwatchChoices;
 use super::*;
@@ -221,7 +221,7 @@ pub(crate) fn roots_of(doc: &Document, ids: Vec<NodeId>) -> Vec<NodeId> {
     let mut sel: Vec<NodeId> = ids
         .into_iter()
         .map(|id| match doc.parent_of(id).and_then(|p| doc.node(p).map(|n| (p, n))) {
-            Some((p, n)) if matches!(n.kind, vectorcraft_doc::NodeKind::Compound { .. }) => p,
+            Some((p, n)) if matches!(n.kind, splinewright_doc::NodeKind::Compound { .. }) => p,
             _ => id,
         })
         .collect();
@@ -418,7 +418,7 @@ fn duplicate(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 /// Duplicate `roots` directly above each original, transform the copies, select them.
-pub(crate) fn duplicate_in(d: &mut Document, sel: &mut vectorcraft_doc::Selection, roots: &[NodeId], xf: Affine) -> Result<Vec<NodeId>> {
+pub(crate) fn duplicate_in(d: &mut Document, sel: &mut splinewright_doc::Selection, roots: &[NodeId], xf: Affine) -> Result<Vec<NodeId>> {
     let mut out = vec![];
     for id in roots {
         let Some((par, idx, _)) = d.position(*id) else { continue };

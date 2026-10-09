@@ -5,11 +5,11 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_color::{BlendMode, Paint};
-use vectorcraft_doc::corners::set_corners;
-use vectorcraft_doc::{Appearance, Document, Knockout, LiveCorners, LiveShape, Node, NodeId, NodeKind, OrientedBox, Scaling};
-use vectorcraft_geom::shapes::CornerKind;
-use vectorcraft_geom::{Affine, FillRule, Point, Rect, Vec2};
+use splinewright_color::{BlendMode, Paint};
+use splinewright_doc::corners::set_corners;
+use splinewright_doc::{Appearance, Document, Knockout, LiveCorners, LiveShape, Node, NodeId, NodeKind, OrientedBox, Scaling};
+use splinewright_geom::shapes::CornerKind;
+use splinewright_geom::{Affine, FillRule, Point, Rect, Vec2};
 
 use super::edit::{duplicate_in, selected_roots};
 use super::opacitymask::percent;
@@ -220,7 +220,7 @@ pub(crate) fn scaling(s: &mut Session, p: &Value) -> Scaling {
     s.note_journal("corners", json!(corners));
     Scaling {
         strokes,
-        effects: strokes.then_some(vectorcraft_render::effects::scale_effect),
+        effects: strokes.then_some(splinewright_render::effects::scale_effect),
         keep_type_strokes: !strokes,
         keep_corners: !corners,
         ..Scaling::default()
@@ -235,7 +235,7 @@ pub(crate) fn transform_patterns(s: &mut Session, p: &Value, ids: &[NodeId]) -> 
     let d = &s.doc()?.doc;
     let mut uses = false;
     for n in ids.iter().filter_map(|id| d.node(*id)) {
-        n.walk(&mut |c| uses |= vectorcraft_doc::pattern::uses_pattern(c, None));
+        n.walk(&mut |c| uses |= splinewright_doc::pattern::uses_pattern(c, None));
     }
     if uses {
         s.note_journal("patterns", json!(on));
@@ -318,7 +318,7 @@ fn rotate(s: &mut Session, p: &Value) -> Result<Value> {
     let o = origin_of(s, p, &ids)?;
     let mut angle = f64_or(p, "angle", 0.0);
     if bool_or(p, "absolute", false) {
-        angle = vectorcraft_geom::normalize_deg(angle - s.doc()?.doc.bbox_angle(&ids));
+        angle = splinewright_geom::normalize_deg(angle - s.doc()?.doc.bbox_angle(&ids));
     }
     // Angles are counter-clockwise; y is down, so negate.
     let a = about(o, Affine::rotate(-angle.to_radians()));
@@ -388,7 +388,7 @@ fn arrange(s: &mut Session, how: Arrange) -> Result<Value> {
     };
     s.edit(label, |d, _| {
         // Arrange within each parent independently (selections may span layers/groups).
-        let mut by_parent: Vec<(Option<vectorcraft_doc::NodeId>, Vec<vectorcraft_doc::NodeId>)> = vec![];
+        let mut by_parent: Vec<(Option<splinewright_doc::NodeId>, Vec<splinewright_doc::NodeId>)> = vec![];
         for id in &ids {
             let par = d.parent_of(*id);
             match by_parent.iter_mut().find(|(p, _)| *p == par) {
@@ -965,7 +965,7 @@ fn set_bounds(s: &mut Session, p: &Value) -> Result<Value> {
     let v = if s.prefs.use_preview_bounds { d.oriented_bounds(&ids, true).map_or(g, |b| b.rect) } else { g };
     let m = [g.x0 - v.x0, g.y0 - v.y0, v.x1 - g.x1, v.y1 - g.y1];
     let refi = p.get("reference").and_then(Value::as_u64).unwrap_or(4) as usize;
-    let rp = vectorcraft_geom::reference_point(v, refi);
+    let rp = splinewright_geom::reference_point(v, refi);
     let mut w = f64_or(p, "width", v.width());
     let mut h = f64_or(p, "height", v.height());
     if bool_or(p, "proportional", false) {
@@ -987,7 +987,7 @@ fn set_bounds(s: &mut Session, p: &Value) -> Result<Value> {
     let scale = about(rp, Affine::scale_non_uniform(sx, sy));
     // Move the new visual box's reference point to x, y (default: where it was): the geometric
     // box's reference point moves with the art, the margin from it to the visual one by `f`.
-    let gp = vectorcraft_geom::reference_point(g, refi);
+    let gp = splinewright_geom::reference_point(g, refi);
     let new_rp = scale * gp + (rp - gp) * f(sx, sy);
     // x, y place the reference point on the page.
     let page = frame.to_doc() * rp;

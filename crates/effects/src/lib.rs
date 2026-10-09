@@ -1,4 +1,4 @@
-//! VectorCraft live effects (Illustrator's Effect menu).
+//! Splinewright live effects (Illustrator's Effect menu).
 //!
 //! Effects live in appearance stacks as [`Effect`] `{id, params, visible}` records. This crate
 //! interprets them:
@@ -19,7 +19,7 @@
 //! - [`clip_outline`] is the region a clip group clips to, shared by the renderer and the SVG and
 //!   PDF writers.
 //! - **Plug-in effects** (`plugin.<plug-in id>`, Effect › Plug-ins) are geometry effects run by an
-//!   installed WebAssembly plug-in (`vectorcraft-plugins`); [`effect_info`] describes them like
+//!   installed WebAssembly plug-in (`splinewright-plugins`); [`effect_info`] describes them like
 //!   built-in ones, and an effect whose plug-in isn't installed leaves the geometry as it is.
 //! - **Colour adjustments** (Brightness/Contrast, Curves, Levels, Hue/Saturation, Shift to Color,
 //!   Temperature/Tint) recolour what an object paints with: [`adjust`] evaluates them for the
@@ -49,8 +49,8 @@ mod tests;
 mod tests_scale;
 
 use serde_json::{Map, Value, json};
-use vectorcraft_doc::{AppearanceItem, Effect, Node, NodeKind, StrokeLayer};
-use vectorcraft_geom::{BezPath, FillRule, PathData, Rect};
+use splinewright_doc::{AppearanceItem, Effect, Node, NodeKind, StrokeLayer};
+use splinewright_geom::{BezPath, FillRule, PathData, Rect};
 
 pub use adjust::{ADJUSTMENTS, ColorMap, ImageHook, adjust, adjust_in_document, color_map, curve_at, curve_points, has_adjustment, is_adjustment};
 pub use bake::{StrokeArt, bake_appearance, bake_document, expand_art, expand_leaf, fresh_ids, needs_bake};
@@ -356,8 +356,8 @@ pub fn effect_info(id: &str) -> Option<EffectInfo> {
 
 /// The catalogue entry of the installed effect plug-in with effect id `id` (`plugin.<id>`).
 fn plugin_info(id: &str) -> Option<EffectInfo> {
-    use vectorcraft_plugins::registry::intern;
-    let p = vectorcraft_plugins::effect::installed(id)?;
+    use splinewright_plugins::registry::intern;
+    let p = splinewright_plugins::effect::installed(id)?;
     let m = p.manifest();
     let dots = if m.params.is_empty() || m.name.ends_with('…') { "" } else { "…" };
     Some(EffectInfo {
@@ -373,7 +373,7 @@ fn plugin_info(id: &str) -> Option<EffectInfo> {
 
 /// The installed effect plug-ins as catalogue entries (Effect › Plug-ins), by plug-in id.
 pub fn plugin_effects() -> Vec<EffectInfo> {
-    vectorcraft_plugins::registry::list().iter().filter_map(|p| plugin_info(&vectorcraft_plugins::effect::effect_id(p.id()))).collect()
+    splinewright_plugins::registry::list().iter().filter_map(|p| plugin_info(&splinewright_plugins::effect::effect_id(p.id()))).collect()
 }
 
 /// Dialog defaults for `id` (`None` for unknown effects).
@@ -389,7 +389,7 @@ pub fn merged_params(id: &str, params: &Value) -> Value {
     let mut out = match catalog_index().get(id).map(|e| &e.defaults) {
         Some(Value::Object(m)) => m.clone(),
         Some(_) => Map::new(),
-        None => vectorcraft_plugins::effect::installed(id).map(|p| p.manifest().defaults()).unwrap_or_default(),
+        None => splinewright_plugins::effect::installed(id).map(|p| p.manifest().defaults()).unwrap_or_default(),
     };
     if let Value::Object(p) = params {
         for (k, v) in p {
@@ -402,7 +402,7 @@ pub fn merged_params(id: &str, params: &Value) -> Value {
 /// A new effect record with default parameters (overridden by `params`).
 pub fn new_effect(id: &str, params: &Value) -> Option<Effect> {
     if !catalog_index().contains_key(id) {
-        vectorcraft_plugins::effect::installed(id)?;
+        splinewright_plugins::effect::installed(id)?;
     }
     Some(Effect { id: id.to_string(), params: merged_params(id, params), visible: true })
 }
@@ -438,7 +438,7 @@ pub fn is_geometry(id: &str) -> bool {
         && !is_pathfinder(id)
         && !is_adjustment(id)
         && id != CROP_MARKS
-        && (catalog_index().contains_key(id) || vectorcraft_plugins::effect::plugin_id(id).is_some())
+        && (catalog_index().contains_key(id) || splinewright_plugins::effect::plugin_id(id).is_some())
 }
 
 /// Any visible geometry effect in the list?
@@ -510,8 +510,8 @@ pub fn apply_geometry_bez(effects: &[Effect], path: &BezPath, bounds: Rect, ctx:
 
 pub(crate) fn apply_one(id: &str, p: &Value, path: &PathData, b: Rect, ctx: &GeomContext) -> PathData {
     use util::*;
-    if let Some(plugin) = vectorcraft_plugins::effect::plugin_id(id) {
-        return vectorcraft_plugins::effect::apply(plugin, p, path, b, ctx.rule).unwrap_or_else(|| path.clone());
+    if let Some(plugin) = splinewright_plugins::effect::plugin_id(id) {
+        return splinewright_plugins::effect::apply(plugin, p, path, b, ctx.rule).unwrap_or_else(|| path.clone());
     }
     match id {
         "distort.freeDistort" => distort::free_distort(path, b, p),
@@ -526,14 +526,14 @@ pub(crate) fn apply_one(id: &str, p: &Value, path: &PathData, b: Rect, ctx: &Geo
             if off.abs() < 1e-9 {
                 return path.clone();
             }
-            vectorcraft_pathops::offset_path(path, off, join(p, "joins"), num(p, "miterLimit", 4.0).clamp(1.0, 500.0))
+            splinewright_pathops::offset_path(path, off, join(p, "joins"), num(p, "miterLimit", 4.0).clamp(1.0, 500.0))
         }
         "path.outlineStroke" => {
             let fallback;
             let base = match ctx.stroke {
                 Some(s) => s,
                 None => {
-                    fallback = StrokeLayer::new(vectorcraft_doc::color::Paint::None, 1.0);
+                    fallback = StrokeLayer::new(splinewright_doc::color::Paint::None, 1.0);
                     &fallback
                 }
             };

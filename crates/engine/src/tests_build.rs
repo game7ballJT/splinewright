@@ -3,10 +3,10 @@
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{ImageBlob, ImageObject, Node, NodeKind};
-use vectorcraft_geom::{Affine, FillRule, PathData, Rect};
-use vectorcraft_tools::{Mods, PointerEvent, PointerKind};
+use splinewright_color::{Color, Paint};
+use splinewright_doc::{ImageBlob, ImageObject, Node, NodeKind};
+use splinewright_geom::{Affine, FillRule, PathData, Rect};
+use splinewright_tools::{Mods, PointerEvent, PointerKind};
 
 use super::*;
 
@@ -38,12 +38,12 @@ fn node(s: &Session, id: NodeId) -> Node {
 }
 
 fn outline(n: &Node) -> (PathData, FillRule) {
-    vectorcraft_tools::builder::node_outline(n).expect("path")
+    splinewright_tools::builder::node_outline(n).expect("path")
 }
 
 fn area(s: &Session, id: NodeId) -> f64 {
     let (p, r) = outline(&node(s, id));
-    vectorcraft_pathops::area(&p, r)
+    splinewright_pathops::area(&p, r)
 }
 
 /// Rect A (0..100) and rect B (50..150), both 100 tall, selected. A red, B blue.
@@ -398,8 +398,8 @@ fn live_paint_make_builds_group_with_hidden_sources() {
     let mut s = session();
     let g = live(&mut s);
     let n = node(&s, g);
-    assert!(vectorcraft_tools::builder::is_live_paint(&n));
-    let src = vectorcraft_tools::builder::sources(&n).unwrap();
+    assert!(splinewright_tools::builder::is_live_paint(&n));
+    let src = splinewright_tools::builder::sources(&n).unwrap();
     assert!(!src.visible);
     assert_eq!(src.children().unwrap().len(), 2);
     assert_eq!(layer_children(&s), 1);
@@ -421,7 +421,7 @@ fn live_paint_fill_assigns_the_face_under_the_point() {
     assert_eq!(face.appearance.fill_paint(), Paint::solid(Color::from_hex("#00ff00").unwrap()));
     // The other faces are untouched.
     let gn = node(&s, g);
-    let green = vectorcraft_tools::builder::faces(&gn).iter().filter(|f| f.appearance.fill_paint() == face.appearance.fill_paint()).count();
+    let green = splinewright_tools::builder::faces(&gn).iter().filter(|f| f.appearance.fill_paint() == face.appearance.fill_paint()).count();
     assert_eq!(green, 1);
     // Default paint = current fill; a miss is an error.
     s.paint.fill = Paint::solid(Color::rgb(1.0, 1.0, 0.0));
@@ -436,7 +436,7 @@ fn live_paint_fill_on_plain_paths_makes_the_group() {
     let (a, b) = two(&mut s);
     let r = s.execute("livePaint.fill", &json!({"ids": [a.0, b.0], "point": [125, 50], "color": "#123456"})).unwrap();
     let g = NodeId(r["group"].as_u64().unwrap());
-    assert!(vectorcraft_tools::builder::is_live_paint(&node(&s, g)));
+    assert!(splinewright_tools::builder::is_live_paint(&node(&s, g)));
     assert_eq!(layer_children(&s), 1);
     // One undo step removes both the make and the fill.
     s.execute("edit.undo", &json!({})).unwrap();
@@ -464,7 +464,7 @@ fn live_paint_release_and_expand() {
     let r = s.execute("livePaint.expand", &json!({})).unwrap();
     assert_eq!(ids(&r), vec![g]);
     let n = node(&s, g);
-    assert!(!vectorcraft_tools::builder::is_live_paint(&n));
+    assert!(!splinewright_tools::builder::is_live_paint(&n));
     // Unpainted face and the hidden sources are gone: 2 faces + stroked edges.
     let ch = n.children().unwrap();
     assert!(ch.iter().all(|c| c.visible));
@@ -494,9 +494,9 @@ fn live_paint_merge_keeps_paint_and_adds_faces() {
     assert_eq!(NodeId(r["id"].as_u64().unwrap()), g);
     assert!(r["faces"].as_u64().unwrap() > 3);
     let gn = node(&s, g);
-    let f = vectorcraft_tools::builder::face_at(&gn, vectorcraft_geom::Point::new(25.0, 50.0)).unwrap();
+    let f = splinewright_tools::builder::face_at(&gn, splinewright_geom::Point::new(25.0, 50.0)).unwrap();
     assert_eq!(f.appearance.fill_paint(), Paint::solid(Color::from_hex("#00ff00").unwrap()));
-    let src = vectorcraft_tools::builder::sources(&gn).unwrap();
+    let src = splinewright_tools::builder::sources(&gn).unwrap();
     assert_eq!(src.children().unwrap().len(), 3, "the rectangle joined the sources");
     assert_eq!(s.doc().unwrap().doc.parent_of(c), Some(src.id));
     assert_eq!(layer_children(&s), 1);
@@ -513,7 +513,7 @@ fn live_paint_bucket_tool_fills_face() {
     assert!(!s.overlays(v).is_empty(), "red face highlight");
     s.pointer(&PointerEvent::new(PointerKind::Down, 125.0, 50.0), v).unwrap();
     let gn = node(&s, g);
-    let f = vectorcraft_tools::builder::face_at(&gn, vectorcraft_geom::Point::new(125.0, 50.0)).unwrap();
+    let f = splinewright_tools::builder::face_at(&gn, splinewright_geom::Point::new(125.0, 50.0)).unwrap();
     assert_eq!(f.appearance.fill_paint(), s.paint.fill);
     // Live Paint Selection selects the face.
     s.select_tool("livePaintSelection", v).unwrap();
@@ -541,13 +541,13 @@ fn live_paint_bucket_fills_an_area_enclosed_by_lines() {
     s.pointer(&PointerEvent::new(PointerKind::Down, 50.0, 70.0), v).unwrap();
     let g = s.doc().unwrap().selection.objects[0];
     let gn = node(&s, g);
-    assert!(vectorcraft_tools::builder::is_live_paint(&gn));
-    assert_eq!(vectorcraft_tools::builder::faces(&gn).len(), 1);
-    let f = vectorcraft_tools::builder::face_at(&gn, vectorcraft_geom::Point::new(50.0, 70.0)).unwrap();
+    assert!(splinewright_tools::builder::is_live_paint(&gn));
+    assert_eq!(splinewright_tools::builder::faces(&gn).len(), 1);
+    let f = splinewright_tools::builder::face_at(&gn, splinewright_geom::Point::new(50.0, 70.0)).unwrap();
     assert_eq!(f.appearance.fill_paint(), s.paint.fill);
-    assert!((vectorcraft_pathops::area(f.path_data().unwrap(), FillRule::NonZero).abs() - 900.0).abs() < 1e-6);
+    assert!((splinewright_pathops::area(f.path_data().unwrap(), FillRule::NonZero).abs() - 900.0).abs() < 1e-6);
     // The lines are edges, cut where they cross, and keep their stroke.
-    let edges = vectorcraft_tools::builder::edges(&gn);
+    let edges = splinewright_tools::builder::edges(&gn);
     assert_eq!(edges.len(), 9);
     assert!(edges.iter().all(|e| !e.appearance.stroke_paint().is_none()));
     // Outside the triangle there's nothing to fill.
@@ -566,7 +566,7 @@ fn a_line_across_a_live_paint_shape_splits_its_face() {
     let g = NodeId(made["id"].as_u64().unwrap());
     s.execute("livePaint.fill", &json!({"group": g.0, "point": [80, 25], "color": "#0000ff"})).unwrap();
     let gn = node(&s, g);
-    let face = |x: f64| vectorcraft_tools::builder::face_at(&gn, vectorcraft_geom::Point::new(x, 25.0)).unwrap().appearance.fill_paint();
+    let face = |x: f64| splinewright_tools::builder::face_at(&gn, splinewright_geom::Point::new(x, 25.0)).unwrap().appearance.fill_paint();
     assert_eq!(face(10.0), Paint::solid(Color::rgb(1.0, 0.0, 0.0)), "the left half keeps the rectangle's fill");
     assert_eq!(face(80.0), Paint::solid(Color::from_hex("#0000ff").unwrap()));
 }
@@ -575,14 +575,14 @@ fn a_line_across_a_live_paint_shape_splits_its_face() {
 
 /// A 100×100 image with a black disc (r = 30 px), placed at (50, 50) scaled ×2.
 fn image_doc(s: &mut Session) -> NodeId {
-    let r = vectorcraft_trace::Raster::from_fn(100, 100, |x, y| {
+    let r = splinewright_trace::Raster::from_fn(100, 100, |x, y| {
         let (dx, dy) = (x as f64 + 0.5 - 50.0, y as f64 + 0.5 - 50.0);
         if dx * dx + dy * dy <= 900.0 { [0, 0, 0, 255] } else { [255, 255, 255, 255] }
     });
     add_image(s, &r, Affine::translate((50.0, 50.0)) * Affine::scale(2.0))
 }
 
-fn add_image(s: &mut Session, r: &vectorcraft_trace::Raster, xf: Affine) -> NodeId {
+fn add_image(s: &mut Session, r: &splinewright_trace::Raster, xf: Affine) -> NodeId {
     let png = r.encode_png();
     let (w, h) = (r.width, r.height);
     s.edit("img", |d, sel| {
@@ -619,7 +619,7 @@ fn image_trace_make_places_paths_over_the_image() {
     assert_eq!(paths.len(), 1);
     let (p, rule) = outline(&paths[0]);
     let want = std::f64::consts::PI * 60.0 * 60.0; // r = 30 px × 2
-    let got = vectorcraft_pathops::area(&p, rule);
+    let got = splinewright_pathops::area(&p, rule);
     assert!((got - want).abs() / want < 0.03, "{got} vs {want}");
     let bb = p.bounds().unwrap();
     assert!((bb.center().x - 150.0).abs() < 1.5 && (bb.center().y - 150.0).abs() < 1.5, "{bb:?}");
@@ -652,7 +652,7 @@ fn image_trace_release_and_expand() {
 #[test]
 fn image_trace_make_and_expand_and_color_presets() {
     let mut s = session();
-    let r = vectorcraft_trace::Raster::from_fn(60, 60, |x, y| match (x < 30, y < 30) {
+    let r = splinewright_trace::Raster::from_fn(60, 60, |x, y| match (x < 30, y < 30) {
         (true, true) => [230, 20, 20, 255],
         (false, true) => [20, 200, 30, 255],
         (true, false) => [20, 30, 220, 255],
@@ -695,7 +695,7 @@ fn image_trace_object_remembers_its_settings() {
     let r = s.execute("imageTrace.make", &json!({"id": g.0, "preset": "6 Colors", "params": {"colors": 9}})).unwrap();
     let g = NodeId(r["id"].as_u64().unwrap());
     let d = s.doc().unwrap().doc.clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&d, false)).unwrap();
+    let back = splinewright_format::load(&splinewright_format::save(&d, false)).unwrap();
     let t = back.node(g).unwrap().trace.clone().unwrap();
     assert_eq!((t["preset"].as_str(), t["params"]["colors"].as_u64()), (Some("Custom"), Some(9)));
     // Expanded traces are plain groups.

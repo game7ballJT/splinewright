@@ -2,18 +2,18 @@
 //! in the menus.
 
 use serde_json::json;
-use vectorcraft_engine::Session;
+use splinewright_engine::Session;
 
-use crate::{VectorcraftApp, dialogs, menus, tests_labels::painted_text};
+use crate::{SplinewrightApp, dialogs, menus, tests_labels::painted_text};
 
-fn app() -> VectorcraftApp {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn app() -> SplinewrightApp {
+    let mut app = SplinewrightApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
     app.run("shape.rectangle", json!({"x": 10, "y": 10, "width": 50, "height": 50})).unwrap();
     app
 }
 
-fn dialog_text(app: &mut VectorcraftApp) -> String {
+fn dialog_text(app: &mut SplinewrightApp) -> String {
     painted_text(app, |app, ui| dialogs::show(app, ui.ctx()))
 }
 
@@ -74,7 +74,7 @@ fn dragging_on_the_curves_graph_adds_and_moves_a_point() {
     let ctx = egui::Context::default();
     crate::theme::install_fonts(&ctx);
     let screen_rect = Some(Rect::from_min_size(Pos2::ZERO, vec2(1400.0, 1000.0)));
-    let frame = |app: &mut VectorcraftApp, events: Vec<Event>| {
+    let frame = |app: &mut SplinewrightApp, events: Vec<Event>| {
         let input = egui::RawInput { events, screen_rect, ..Default::default() };
         ctx.run_ui(input, |ui| dialogs::show(app, ui.ctx())).textures_delta.clear();
     };
@@ -94,7 +94,7 @@ fn dragging_on_the_curves_graph_adds_and_moves_a_point() {
     }
     frame(&mut app, vec![button(to, false)]);
     let points = app.ui.dialog.as_ref().unwrap().str("points");
-    let pts: Vec<(f32, f32)> = vectorcraft_effects::curve_points(Some(&json!(points)));
+    let pts: Vec<(f32, f32)> = splinewright_effects::curve_points(Some(&json!(points)));
     assert_eq!(pts.len(), 4, "{points}");
     let (x, y) = pts[1];
     assert!((x - 0.25).abs() < 0.01 && (y - 0.6).abs() < 0.01, "{points}");

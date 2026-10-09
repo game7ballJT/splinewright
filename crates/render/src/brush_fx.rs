@@ -1,6 +1,6 @@
 //! Brushed strokes and symbol-instance staining in the renderer.
 //!
-//! A stroke with `brush: Some(name)` is painted as the filled art `vectorcraft_brush::stroke_pieces`
+//! A stroke with `brush: Some(name)` is painted as the filled art `splinewright_brush::stroke_pieces`
 //! generates. Pieces are cached per (node, stroke item) and validated by the node's path, the
 //! stroke layer and the brush definition (an `Arc` from the per-frame parsed library), so edits to
 //! any of them regenerate the art and nothing else does.
@@ -8,9 +8,9 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use vectorcraft_brush::Brush;
-use vectorcraft_doc::{AppearanceItem, Document, Node, StrokeLayer};
-use vectorcraft_geom::{BezPath, Rect};
+use splinewright_brush::Brush;
+use splinewright_doc::{AppearanceItem, Document, Node, StrokeLayer};
+use splinewright_geom::{BezPath, Rect};
 use vello_cpu::RenderContext;
 
 use crate::{Frame, Renderer};
@@ -27,7 +27,7 @@ struct Entry {
 #[derive(Default)]
 pub(crate) struct BrushCache {
     /// The document value the library was parsed from (`None` = defaults).
-    src: Option<Option<vectorcraft_brush::serde_json::Value>>,
+    src: Option<Option<splinewright_brush::serde_json::Value>>,
     /// (frame stamp, document address) the library was last validated for.
     checked: (u64, usize),
     lib: HashMap<String, Arc<Brush>>,
@@ -41,19 +41,19 @@ impl BrushCache {
             return;
         }
         self.checked = key;
-        let cur = doc.unknown.get(vectorcraft_brush::DOC_KEY);
+        let cur = doc.unknown.get(splinewright_brush::DOC_KEY);
         if self.src.as_ref().is_some_and(|s| s.as_ref() == cur) {
             return;
         }
         self.src = Some(cur.cloned());
-        self.lib = vectorcraft_brush::library(doc).into_iter().map(|b| (b.name.clone(), Arc::new(b))).collect();
+        self.lib = splinewright_brush::library(doc).into_iter().map(|b| (b.name.clone(), Arc::new(b))).collect();
     }
 }
 
 /// Cull bounds that allow for brush art reaching past the stroke (scatter, wide nibs).
 pub(crate) fn cull_bounds(n: &Node) -> Option<Rect> {
     let b = crate::fx::cull_bounds(n)?;
-    if !vectorcraft_brush::has_brush(n) {
+    if !splinewright_brush::has_brush(n) {
         return Some(b);
     }
     let w = n.appearance.items.iter().filter_map(|i| if let AppearanceItem::Stroke(s) = i { Some(s.width) } else { None }).fold(1.0, f64::max);
@@ -61,7 +61,7 @@ pub(crate) fn cull_bounds(n: &Node) -> Option<Rect> {
     Some(b.inflate(pad, pad))
 }
 
-pub use vectorcraft_brush::instance_art;
+pub use splinewright_brush::instance_art;
 
 impl Renderer {
     /// Paint stroke `st` of `n` (outline `bp`) with its brush. Returns false when the brush is
@@ -79,7 +79,7 @@ impl Renderer {
                 e.pieces.clone()
             }
             _ => {
-                let pieces = Arc::new(vectorcraft_brush::stroke_pieces(&brush, bp, st));
+                let pieces = Arc::new(splinewright_brush::stroke_pieces(&brush, bp, st));
                 if self.brushes.entries.len() > 2048 {
                     self.brushes.entries.retain(|_, e| stamp.saturating_sub(e.stamp) <= 3);
                 }
@@ -92,7 +92,7 @@ impl Renderer {
                 r.draw_node(c, fr, p, true);
             }
         };
-        if st.opacity < 1.0 || st.blend != vectorcraft_color::BlendMode::Normal {
+        if st.opacity < 1.0 || st.blend != splinewright_color::BlendMode::Normal {
             self.group(ctx, f, crate::group::Composite { blend: st.blend, opacity: st.opacity, ..Default::default() }, &mut draw);
         } else {
             draw(self, ctx, f);
@@ -103,9 +103,9 @@ impl Renderer {
 
 #[cfg(test)]
 mod tests {
-    use vectorcraft_color::{Color, Paint};
-    use vectorcraft_doc::{Appearance, Document, Node};
-    use vectorcraft_geom::{Affine, Rect, shapes};
+    use splinewright_color::{Color, Paint};
+    use splinewright_doc::{Appearance, Document, Node};
+    use splinewright_geom::{Affine, Rect, shapes};
 
     use crate::{RenderOptions, Rendered, Renderer};
 
@@ -157,11 +157,11 @@ mod tests {
         let mut r = Renderer::new();
         let mut d = doc_with_line(Some("3 pt. Round"), 1.0);
         let a = render(&mut r, &d);
-        let mut lib = vectorcraft_brush::library(&d);
-        if let vectorcraft_brush::BrushKind::Calligraphic(c) = &mut lib[0].kind {
+        let mut lib = splinewright_brush::library(&d);
+        if let splinewright_brush::BrushKind::Calligraphic(c) = &mut lib[0].kind {
             c.size = 20.0;
         }
-        vectorcraft_brush::store(&mut d, &lib);
+        splinewright_brush::store(&mut d, &lib);
         let b = render(&mut r, &d);
         assert!(!dark(a.pixel(100, 58)) && dark(b.pixel(100, 58)));
     }
@@ -170,13 +170,13 @@ mod tests {
     fn stained_symbol_instance() {
         let mut d = Document::new(100.0, 100.0);
         let art = Node::path(
-            vectorcraft_doc::NodeId(0),
+            splinewright_doc::NodeId(0),
             shapes::rectangle(Rect::new(-10.0, -10.0, 10.0, 10.0)),
             Appearance::basic(Paint::solid(Color::BLACK), Paint::None, 0.0),
         );
-        d.symbols.push(vectorcraft_doc::Symbol { name: "S".into(), art: std::sync::Arc::new(art) });
+        d.symbols.push(splinewright_doc::Symbol { name: "S".into(), art: std::sync::Arc::new(art) });
         let id = d.alloc_id();
-        let mut inst = Node::new(id, vectorcraft_doc::NodeKind::SymbolInstance { symbol: "S".into(), xf: Affine::translate((50.0, 50.0)) });
+        let mut inst = Node::new(id, splinewright_doc::NodeKind::SymbolInstance { symbol: "S".into(), xf: Affine::translate((50.0, 50.0)) });
         inst.appearance.set_fill(Paint::solid(Color::rgb(1.0, 0.0, 0.0)));
         let l = d.layers[0].id;
         d.insert(Some(l), 0, inst).unwrap();

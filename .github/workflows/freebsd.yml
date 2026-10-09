@@ -90,11 +90,11 @@ jobs:
             # Build outside the checkout so only dist/ is copied back out of the VM.
             # The craft-fonts checkout is synced into the VM with the workspace.
             export CRAFT_FONTS_DIR="$PWD/craft-fonts" CRAFT_FONTS_REQUIRED=1
-            export CARGO_TARGET_DIR=/var/tmp/vectorcraft-target CARGO_BUILD_JOBS=4
+            export CARGO_TARGET_DIR=/var/tmp/splinewright-target CARGO_BUILD_JOBS=4
             bash packaging/freebsd/package.sh
             # Every part the package must have, the craft-fonts licences included.
-            tar -tzf dist/release/vectorcraft-*-freebsd-x86_64.tar.gz >/var/tmp/contents.txt
-            for want in '/bin/vectorcraft$' '/bin/vectorcraft-cli$' '/share/applications/.*\.desktop$' '/share/icons/hicolor/' '/share/doc/vectorcraft/NOTICE$' '/share/doc/vectorcraft/OFL-.*\.txt$'; do
+            tar -tzf dist/release/splinewright-*-freebsd-x86_64.tar.gz >/var/tmp/contents.txt
+            for want in '/bin/splinewright$' '/bin/splinewright-cli$' '/share/applications/.*\.desktop$' '/share/icons/hicolor/' '/share/doc/splinewright/NOTICE$' '/share/doc/splinewright/OFL-.*\.txt$'; do
               grep -Eq "$want" /var/tmp/contents.txt || { echo "missing from the package: $want"; exit 1; }
             done
       - uses: actions/upload-artifact@v4

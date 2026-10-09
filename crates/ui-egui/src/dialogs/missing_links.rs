@@ -13,7 +13,7 @@ use serde_json::{Value, json};
 use super::DialogSpec;
 use crate::state::Dialog;
 use crate::theme::{self, Tokens};
-use crate::{VectorcraftApp, widgets};
+use crate::{SplinewrightApp, widgets};
 
 /// The dialog kind of a missing linked file.
 pub const KIND: &str = "missingLinks";
@@ -37,7 +37,7 @@ fn ids(rows: &[Value]) -> Vec<Value> {
 /// After a document opened (`document.open`'s result `r`): ask about its missing linked files,
 /// then about its modified ones. The web reads no linked files, so missing ones just show their
 /// previews there.
-pub fn after_open(app: &mut VectorcraftApp, r: &Value) {
+pub fn after_open(app: &mut SplinewrightApp, r: &Value) {
     let rows = |k: &str| r[k].as_array().cloned().unwrap_or_default();
     let (missing, modified) = (rows("missingLinks"), ids(&rows("modifiedLinks")));
     if missing.is_empty() || cfg!(target_arch = "wasm32") {
@@ -49,12 +49,12 @@ pub fn after_open(app: &mut VectorcraftApp, r: &Value) {
     open(app, missing, modified);
 }
 
-fn open(app: &mut VectorcraftApp, missing: Vec<Value>, modified: Vec<Value>) {
+fn open(app: &mut SplinewrightApp, missing: Vec<Value>, modified: Vec<Value>) {
     app.ui.dialog = Some(Dialog::new(KIND, json!({ "missing": missing, "modified": modified, "applyToAll": false, "path": "" })));
 }
 
 /// With Update Links: Ask When Modified, offer to read the modified linked files `ids` again.
-fn ask_update(app: &mut VectorcraftApp, ids: Vec<Value>) {
+fn ask_update(app: &mut SplinewrightApp, ids: Vec<Value>) {
     if ids.is_empty() {
         return;
     }
@@ -69,7 +69,7 @@ fn ask_update(app: &mut VectorcraftApp, ids: Vec<Value>) {
     super::confirm::ask(app, tl!("Update Modified Links"), &detail, "links.update", json!({ "ids": ids }));
 }
 
-fn body(_: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
+fn body(_: &mut SplinewrightApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     let t = Tokens::get(ui.ctx());
     let missing = d.fields.get("missing").and_then(Value::as_array).map_or(&[][..], Vec::as_slice);
     let Some(current) = missing.first() else { return true };
@@ -103,7 +103,7 @@ fn body(_: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
 
 /// Replace (with `path`, else a picked file) or Ignore (`discard`) the first missing file, then
 /// ask about the next.
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut SplinewrightApp, d: &Dialog) -> Result<Value, String> {
     let missing = d.fields.get("missing").and_then(Value::as_array).cloned().unwrap_or_default();
     let modified = d.fields.get("modified").and_then(Value::as_array).cloned().unwrap_or_default();
     let all = d.bool("applyToAll");
@@ -121,7 +121,7 @@ fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
         let path = match d.str("path") {
             p if !p.is_empty() => p,
             _ => {
-                let pick = crate::FilePick { filters: vectorcraft_engine::cmd::fileio::place_filters().collect(), ..Default::default() };
+                let pick = crate::FilePick { filters: splinewright_engine::cmd::fileio::place_filters().collect(), ..Default::default() };
                 app.services.pick_open.as_mut().and_then(|f| f(&pick)).ok_or("cancelled")?
             }
         };
@@ -146,9 +146,9 @@ fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vectorcraft_engine::Session;
+    use splinewright_engine::Session;
 
-    fn frame(app: &mut VectorcraftApp) -> String {
+    fn frame(app: &mut SplinewrightApp) -> String {
         crate::tests_labels::painted_text(app, |app, ui| super::super::show(app, ui.ctx()))
     }
 
@@ -163,11 +163,11 @@ mod tests {
 
     /// A document with two placed linked files, saved to a fresh folder; the files are then
     /// deleted → (app, folder, document path).
-    fn opened_without_links(name: &str) -> (VectorcraftApp, std::path::PathBuf, String) {
-        let dir = std::env::temp_dir().join(format!("vectorcraft-missing-{name}-{}", std::process::id()));
+    fn opened_without_links(name: &str) -> (SplinewrightApp, std::path::PathBuf, String) {
+        let dir = std::env::temp_dir().join(format!("splinewright-missing-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.services.read = Some(Box::new(|p: &str| std::fs::read(p).map_err(|e| e.to_string())));
         app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
         for n in ["a.png", "b.png"] {
@@ -175,7 +175,7 @@ mod tests {
             std::fs::write(&p, png([200, 0, 0])).unwrap();
             app.run("file.place", json!({"path": p.to_string_lossy()})).unwrap();
         }
-        let doc = dir.join("doc.vectorcraft").to_string_lossy().into_owned();
+        let doc = dir.join("doc.splinewright").to_string_lossy().into_owned();
         app.run("document.save", json!({"path": doc})).unwrap();
         for n in ["a.png", "b.png"] {
             std::fs::remove_file(dir.join(n)).unwrap();
@@ -234,15 +234,15 @@ mod tests {
 
     #[test]
     fn modified_links_are_offered_for_update_when_the_preference_asks() {
-        let dir = std::env::temp_dir().join(format!("vectorcraft-modified-ui-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("splinewright-modified-ui-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.services.read = Some(Box::new(|p: &str| std::fs::read(p).map_err(|e| e.to_string())));
         app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
         let pic = dir.join("a.png");
         std::fs::write(&pic, png([200, 0, 0])).unwrap();
         app.run("file.place", json!({"path": pic.to_string_lossy()})).unwrap();
-        let doc = dir.join("doc.vectorcraft").to_string_lossy().into_owned();
+        let doc = dir.join("doc.splinewright").to_string_lossy().into_owned();
         app.run("document.save", json!({"path": doc})).unwrap();
         std::fs::write(&pic, png([0, 0, 200])).unwrap();
         crate::io::open_path(&mut app, &doc).unwrap();

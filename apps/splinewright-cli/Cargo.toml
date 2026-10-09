@@ -1,0 +1,29 @@
+[package]
+name = "splinewright-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Splinewright command line: MCP server (stdio) and headless batch runs"
+
+[[bin]]
+name = "splinewright-cli"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+splinewright-color = { workspace = true }
+splinewright-doc = { workspace = true }
+splinewright-engine = { workspace = true }
+splinewright-format = { workspace = true }
+splinewright-geom = { workspace = true }
+splinewright-svg = { workspace = true }
+splinewright-mcp = { workspace = true }
+splinewright-render = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+splinewright-testkit = { workspace = true }
+serde_json = { workspace = true }

@@ -22,8 +22,8 @@
 //! where the next one would go.
 
 use serde_json::json;
-use vectorcraft_doc::{NodeId, NodeKind};
-use vectorcraft_geom::{BezPath, Point};
+use splinewright_doc::{NodeId, NodeKind};
+use splinewright_geom::{BezPath, Point};
 
 use crate::direct::hit_handle;
 use crate::draw2::AnchorTool;
@@ -198,7 +198,7 @@ impl Tool for PenTool {
                 if let Some((id, si, ai, a)) = self.handle {
                     let mut h = ev.pos;
                     if ev.mods.shift {
-                        h = a + vectorcraft_geom::constrain_angle(ev.pos - a, 45.0);
+                        h = a + splinewright_geom::constrain_angle(ev.pos - a, 45.0);
                     }
                     return vec![set_out_handle(id, si, ai, h)];
                 }
@@ -213,7 +213,7 @@ impl Tool for PenTool {
                 self.last = ev.pos;
                 let mut out_h = ev.pos;
                 if ev.mods.shift {
-                    out_h = a + vectorcraft_geom::constrain_angle(ev.pos - a, 45.0);
+                    out_h = a + splinewright_geom::constrain_angle(ev.pos - a, 45.0);
                 }
                 let alt = ev.mods.alt;
                 let Some(id) = path else {
@@ -372,7 +372,7 @@ fn auto_add_delete(cx: &ToolContext, p: Point, m: Mods, tol: f64) -> Option<Acti
 fn spine_click(cx: &ToolContext, p: Point, tol: f64) -> Option<Vec<Action>> {
     for (id, path) in crate::direct::spines(cx).into_iter().filter(|(id, _)| cx.selection.contains(*id)) {
         let Some(NodeKind::Blend { children, spec }) = cx.doc.node(id).map(|n| &n.kind) else { continue };
-        let keys = vectorcraft_doc::live::blend_spine(children, spec).and_then(|(_, a)| a).unwrap_or_default();
+        let keys = splinewright_doc::live::blend_spine(children, spec).and_then(|(_, a)| a).unwrap_or_default();
         if let Some((_, ai, _)) = path.anchors().find(|(_, _, a)| a.p.distance(p) <= tol) {
             if keys.contains(&ai) {
                 return Some(vec![]);
@@ -390,7 +390,7 @@ fn spine_click(cx: &ToolContext, p: Point, tol: f64) -> Option<Vec<Action>> {
 mod tests {
     use super::*;
     use crate::testutil::*;
-    use vectorcraft_doc::Selection;
+    use splinewright_doc::Selection;
 
     #[test]
     fn first_click_creates_path() {
@@ -410,8 +410,8 @@ mod tests {
         let (mut d, _) = doc_with_rect();
         let l = d.layers[0].id;
         let id = d.alloc_id();
-        let line = vectorcraft_geom::shapes::line(Point::new(10.0, 300.0), Point::new(60.0, 300.0));
-        d.insert(Some(l), 1, vectorcraft_doc::Node::path(id, line, vectorcraft_doc::Appearance::default_art())).unwrap();
+        let line = splinewright_geom::shapes::line(Point::new(10.0, 300.0), Point::new(60.0, 300.0));
+        d.insert(Some(l), 1, splinewright_doc::Node::path(id, line, splinewright_doc::Appearance::default_art())).unwrap();
         let mut s = Selection::default();
         s.set([id]);
         let p = paint();
@@ -460,8 +460,8 @@ mod tests {
         // moves with it.
         let l = d.layers[0].id;
         let id = d.alloc_id();
-        let line = vectorcraft_geom::shapes::line(Point::new(10.0, 300.0), Point::new(60.0, 300.0));
-        d.insert(Some(l), 1, vectorcraft_doc::Node::path(id, line, vectorcraft_doc::Appearance::default_art())).unwrap();
+        let line = splinewright_geom::shapes::line(Point::new(10.0, 300.0), Point::new(60.0, 300.0));
+        d.insert(Some(l), 1, splinewright_doc::Node::path(id, line, splinewright_doc::Appearance::default_art())).unwrap();
         let mut s = Selection::default();
         s.set([id]);
         let cx = cx(&d, &s, &p);
@@ -481,12 +481,12 @@ mod tests {
     }
 
     /// A document with an open path of `anchors`, selected, being drawn by a Pen.
-    fn drawing(anchors: vectorcraft_geom::SubPath) -> (vectorcraft_doc::Document, NodeId, Selection) {
+    fn drawing(anchors: splinewright_geom::SubPath) -> (splinewright_doc::Document, NodeId, Selection) {
         let (mut d, _) = doc_with_rect();
         let l = d.layers[0].id;
         let id = d.alloc_id();
-        let path = vectorcraft_geom::PathData::single(anchors);
-        d.insert(Some(l), 1, vectorcraft_doc::Node::path(id, path, vectorcraft_doc::Appearance::default_art())).unwrap();
+        let path = splinewright_geom::PathData::single(anchors);
+        d.insert(Some(l), 1, splinewright_doc::Node::path(id, path, splinewright_doc::Appearance::default_art())).unwrap();
         let mut s = Selection::default();
         s.set([id]);
         (d, id, s)
@@ -499,7 +499,7 @@ mod tests {
     #[test]
     fn clicking_the_last_anchor_retracts_its_handle_and_dragging_pulls_a_new_one() {
         // The last anchor is smooth: handles at 40 and 80 either side of (60, 300).
-        let mut sp = vectorcraft_geom::SubPath::polyline(&[Point::new(10.0, 300.0), Point::new(60.0, 300.0)], false);
+        let mut sp = splinewright_geom::SubPath::polyline(&[Point::new(10.0, 300.0), Point::new(60.0, 300.0)], false);
         sp.anchors[1].h_in = Point::new(40.0, 300.0);
         sp.anchors[1].h_out = Point::new(80.0, 300.0);
         let (d, id, s) = drawing(sp);
@@ -528,7 +528,7 @@ mod tests {
     #[test]
     fn a_drag_from_the_first_anchor_always_closes() {
         let pts = [Point::new(100.0, 300.0), Point::new(200.0, 300.0), Point::new(200.0, 400.0)];
-        let (mut d, id, s) = drawing(vectorcraft_geom::SubPath::polyline(&pts, false));
+        let (mut d, id, s) = drawing(splinewright_geom::SubPath::polyline(&pts, false));
         let p = paint();
         let mut t = PenTool { drawing: true, ..PenTool::default() };
         let a = t.pointer(&cx(&d, &s, &p), &PointerEvent::new(PointerKind::Down, 101.0, 301.0));
@@ -550,7 +550,7 @@ mod tests {
 
     #[test]
     fn a_one_anchor_path_does_not_close_on_itself() {
-        let (d, id, s) = drawing(vectorcraft_geom::SubPath::polyline(&[Point::new(10.0, 300.0)], false));
+        let (d, id, s) = drawing(splinewright_geom::SubPath::polyline(&[Point::new(10.0, 300.0)], false));
         let p = paint();
         let cx = cx(&d, &s, &p);
         let mut t = PenTool { drawing: true, ..PenTool::default() };
@@ -564,14 +564,14 @@ mod tests {
         let (mut d, _) = doc_with_rect();
         let l = d.layers[0].id;
         let key = |id: NodeId, x: f64| {
-            let r = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(x, 300.0, x + 20.0, 320.0));
-            std::sync::Arc::new(vectorcraft_doc::Node::path(id, r, vectorcraft_doc::Appearance::default_art()))
+            let r = splinewright_geom::shapes::rectangle(splinewright_geom::Rect::new(x, 300.0, x + 20.0, 320.0));
+            std::sync::Arc::new(splinewright_doc::Node::path(id, r, splinewright_doc::Appearance::default_art()))
         };
         let (g, k1, k2) = (d.alloc_id(), d.alloc_id(), d.alloc_id());
         d.insert(
             Some(l),
             1,
-            vectorcraft_doc::Node::new(g, NodeKind::Blend { children: vec![key(k1, 100.0), key(k2, 200.0)], spec: Default::default() }),
+            splinewright_doc::Node::new(g, NodeKind::Blend { children: vec![key(k1, 100.0), key(k2, 200.0)], spec: Default::default() }),
         )
         .unwrap();
         let mut s = Selection::default();
@@ -598,8 +598,8 @@ mod tests {
         let l = d.layers[0].id;
         let id = d.alloc_id();
         let pts = [Point::new(300.0, 400.0), Point::new(350.0, 300.0), Point::new(400.0, 400.0)];
-        let path = vectorcraft_geom::PathData::single(vectorcraft_geom::SubPath::polyline(&pts, false));
-        d.insert(Some(l), 1, vectorcraft_doc::Node::path(id, path, vectorcraft_doc::Appearance::default_art())).unwrap();
+        let path = splinewright_geom::PathData::single(splinewright_geom::SubPath::polyline(&pts, false));
+        d.insert(Some(l), 1, splinewright_doc::Node::path(id, path, splinewright_doc::Appearance::default_art())).unwrap();
         let mut s = Selection::default();
         s.set([id]);
         let p = paint();
@@ -635,7 +635,7 @@ mod tests {
     /// there), in line with another object's centre; Shift slides it along its 45° step into line.
     #[test]
     fn anchors_snap_to_smart_guides() {
-        let (d, id, s) = drawing(vectorcraft_geom::SubPath::polyline(&[Point::new(10.0, 300.0), Point::new(60.0, 300.0)], false));
+        let (d, id, s) = drawing(splinewright_geom::SubPath::polyline(&[Point::new(10.0, 300.0), Point::new(60.0, 300.0)], false));
         let p = paint();
         let cx = cx(&d, &s, &p);
         let mut t = PenTool { drawing: true, ..PenTool::default() };
@@ -659,8 +659,8 @@ mod tests {
     #[test]
     fn alt_over_a_shown_handle_or_an_anchor_converts() {
         // The middle anchor is smooth: handles at (150, 100) and (250, 100) round (200, 100).
-        let mut sp = vectorcraft_geom::SubPath::polyline(&[Point::new(100.0, 200.0), Point::new(200.0, 100.0), Point::new(300.0, 200.0)], false);
-        sp.anchors[1] = vectorcraft_geom::Anchor::smooth(Point::new(200.0, 100.0), Point::new(250.0, 100.0));
+        let mut sp = splinewright_geom::SubPath::polyline(&[Point::new(100.0, 200.0), Point::new(200.0, 100.0), Point::new(300.0, 200.0)], false);
+        sp.anchors[1] = splinewright_geom::Anchor::smooth(Point::new(200.0, 100.0), Point::new(250.0, 100.0));
         let (d, id, mut s) = drawing(sp);
         let p = paint();
         let alt = Mods { alt: true, ..Mods::default() };
@@ -698,7 +698,7 @@ mod tests {
     /// while drawing too; Alt away from paths still places an anchor.
     #[test]
     fn alt_over_a_segment_reshapes_it() {
-        let (d, id, s) = drawing(vectorcraft_geom::SubPath::polyline(&[Point::new(100.0, 300.0), Point::new(200.0, 300.0)], false));
+        let (d, id, s) = drawing(splinewright_geom::SubPath::polyline(&[Point::new(100.0, 300.0), Point::new(200.0, 300.0)], false));
         let p = paint();
         let cx = cx(&d, &s, &p);
         let alt = Mods { alt: true, ..Mods::default() };
@@ -721,11 +721,11 @@ mod tests {
     /// drag with Direct Selection), but never another open path selected meanwhile.
     #[test]
     fn the_pen_draws_on_the_path_it_began_only() {
-        let (mut d, a, s) = drawing(vectorcraft_geom::SubPath::polyline(&[Point::new(10.0, 300.0), Point::new(60.0, 300.0)], false));
+        let (mut d, a, s) = drawing(splinewright_geom::SubPath::polyline(&[Point::new(10.0, 300.0), Point::new(60.0, 300.0)], false));
         let l = d.layers[0].id;
         let b = d.alloc_id();
-        let line = vectorcraft_geom::shapes::line(Point::new(10.0, 400.0), Point::new(60.0, 400.0));
-        d.insert(Some(l), 2, vectorcraft_doc::Node::path(b, line, vectorcraft_doc::Appearance::default_art())).unwrap();
+        let line = splinewright_geom::shapes::line(Point::new(10.0, 400.0), Point::new(60.0, 400.0));
+        d.insert(Some(l), 2, splinewright_doc::Node::path(b, line, splinewright_doc::Appearance::default_art())).unwrap();
         let p = paint();
         let mut t = PenTool { drawing: true, ..PenTool::default() };
         let cx_a = cx(&d, &s, &p);

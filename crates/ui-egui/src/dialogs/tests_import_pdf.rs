@@ -1,22 +1,22 @@
 //! The Import PDF dialog: opening and placing multi-page and password-protected PDFs.
 
 use serde_json::json;
-use vectorcraft_doc::NodeKind;
-use vectorcraft_engine::Session;
-use vectorcraft_testkit::pdf::{PdfPage, pdf};
+use splinewright_doc::NodeKind;
+use splinewright_engine::Session;
+use splinewright_testkit::pdf::{PdfPage, pdf};
 
 use super::*;
 use crate::io;
 use crate::theme;
 
-fn app() -> VectorcraftApp {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn app() -> SplinewrightApp {
+    let mut app = SplinewrightApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 400})).unwrap();
     app
 }
 
 /// One headless frame of the dialog layer.
-fn frame(app: &mut VectorcraftApp) {
+fn frame(app: &mut SplinewrightApp) {
     let ctx = egui::Context::default();
     theme::install_fonts(&ctx);
     theme::apply(&ctx, Default::default());
@@ -24,11 +24,11 @@ fn frame(app: &mut VectorcraftApp) {
     out.textures_delta.clear();
 }
 
-fn set(app: &mut VectorcraftApp, key: &str, v: serde_json::Value) {
+fn set(app: &mut SplinewrightApp, key: &str, v: serde_json::Value) {
     app.ui.dialog.as_mut().unwrap().fields.insert(key.into(), v);
 }
 
-fn field(app: &VectorcraftApp, key: &str) -> serde_json::Value {
+fn field(app: &SplinewrightApp, key: &str) -> serde_json::Value {
     app.ui.dialog.as_ref().unwrap().fields[key].clone()
 }
 
@@ -39,7 +39,7 @@ fn three_pages() -> Vec<u8> {
     pdf(&[PdfPage::new(100.0, 100.0, "0 g 0 0 10 10 re f"), second, PdfPage::new(300.0, 100.0, "1 0 0 rg 0 0 30 30 re f")], None)
 }
 
-fn artboard_widths(app: &VectorcraftApp) -> Vec<f64> {
+fn artboard_widths(app: &SplinewrightApp) -> Vec<f64> {
     app.session.active().unwrap().doc.artboards.iter().map(|a| a.rect.width()).collect()
 }
 
@@ -117,15 +117,15 @@ fn a_password_protected_pdf_asks_for_its_password() {
 }
 
 /// The placed object: its kind (clip group or not) and bounds.
-fn placed(app: &VectorcraftApp) -> (bool, vectorcraft_geom::Rect) {
+fn placed(app: &SplinewrightApp) -> (bool, splinewright_geom::Rect) {
     let st = app.session.active().unwrap();
     let n = st.doc.node(st.selection.objects[0]).unwrap();
     let NodeKind::Group { clip, .. } = n.kind else { panic!("{:?}", n.kind) };
     (clip, n.geometric_bounds().unwrap())
 }
 
-fn place(app: &mut VectorcraftApp, bytes: &[u8], extra: serde_json::Value) -> Result<serde_json::Value, String> {
-    let mut p = json!({"name": "three.pdf", "dataBase64": vectorcraft_format::base64_encode(bytes)});
+fn place(app: &mut SplinewrightApp, bytes: &[u8], extra: serde_json::Value) -> Result<serde_json::Value, String> {
+    let mut p = json!({"name": "three.pdf", "dataBase64": splinewright_format::base64_encode(bytes)});
     if let (Some(o), serde_json::Value::Object(e)) = (p.as_object_mut(), extra) {
         o.extend(e);
     }
@@ -150,7 +150,7 @@ fn placing_a_pdf_page_asks_for_the_page_and_crop_box() {
     let (clip, b) = placed(&app);
     assert!(clip, "clipped to the art box");
     assert_eq!((b.width(), b.height()), (50.0, 60.0));
-    assert_eq!(b.center(), vectorcraft_geom::Point::new(100.0, 120.0), "where `at` asked");
+    assert_eq!(b.center(), splinewright_geom::Point::new(100.0, 120.0), "where `at` asked");
     assert_eq!(app.session.clipboard, clipboard, "the clipboard is untouched");
     assert_eq!(app.session.doc().unwrap().history.undo.len(), undo + 1, "one undo step");
     // With a page, no dialog; Bounding Box places the art itself.

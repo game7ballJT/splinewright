@@ -2,8 +2,8 @@
 //! and adding one to the Swatches panel as a colour group.
 
 use serde_json::{Value, json};
-use vectorcraft_color::Color;
-use vectorcraft_color::harmony::Harmony;
+use splinewright_color::Color;
+use splinewright_color::harmony::Harmony;
 
 use super::*;
 

@@ -3,11 +3,11 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use serde_json::json;
-use vectorcraft_color::Paint;
-use vectorcraft_doc::{Document, NodeId, NodeKind, TextObject, appearance::stroke_paint_bounds};
-use vectorcraft_geom::Rect;
-use vectorcraft_testkit::fixtures::{exec, session_with};
-use vectorcraft_testkit::raster::{Image, render_view};
+use splinewright_color::Paint;
+use splinewright_doc::{Document, NodeId, NodeKind, TextObject, appearance::stroke_paint_bounds};
+use splinewright_geom::Rect;
+use splinewright_testkit::fixtures::{exec, session_with};
+use splinewright_testkit::raster::{Image, render_view};
 
 /// Mean red and blue of the solid ink (no green: the ramp has none, the paper and anti-aliased
 /// edges do) in columns `x0..x1`.

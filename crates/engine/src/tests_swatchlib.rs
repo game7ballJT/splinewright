@@ -2,7 +2,7 @@
 //! and Default Swatches.
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
+use splinewright_color::{Color, Paint};
 
 use super::*;
 
@@ -16,7 +16,7 @@ fn run(s: &mut Session, id: &str, p: Value) -> Value {
     s.execute(id, &p).unwrap_or_else(|e| panic!("{id} {p}: {e}"))
 }
 
-fn doc(s: &Session) -> &vectorcraft_doc::Document {
+fn doc(s: &Session) -> &splinewright_doc::Document {
     &s.doc().unwrap().doc
 }
 
@@ -91,14 +91,14 @@ fn add_with_apply_paints_the_selection_in_the_same_undo_step() {
     let before = undo_len(&s);
     let r = run(&mut s, "swatch.library.add", json!({"library": "web-safe-216", "names": ["#FF6600"], "apply": "fill"}));
     assert_eq!((r["added"].clone(), r["applied"].clone()), (json!(["#FF6600"]), json!("#FF6600")));
-    let fill = doc(&s).node(vectorcraft_doc::NodeId(id.as_u64().unwrap())).unwrap().appearance.fill_paint();
+    let fill = doc(&s).node(splinewright_doc::NodeId(id.as_u64().unwrap())).unwrap().appearance.fill_paint();
     assert_eq!(fill.color().map(|c| c.to_hex()), Some("#ff6600".into()));
     assert_eq!(undo_len(&s), before + 1, "added and applied as one step");
     run(&mut s, "edit.undo", json!({}));
     assert!(doc(&s).swatch("#FF6600").is_none());
     // A gradient swatch applied to the stroke; an existing swatch is applied without an add.
     run(&mut s, "swatch.library.add", json!({"library": "metallic-gradients", "names": ["Gold"], "apply": "stroke"}));
-    let n = doc(&s).node(vectorcraft_doc::NodeId(id.as_u64().unwrap())).unwrap();
+    let n = doc(&s).node(splinewright_doc::NodeId(id.as_u64().unwrap())).unwrap();
     assert!(matches!(n.appearance.stroke_paint(), Paint::Gradient(_)));
     let r = run(&mut s, "swatch.library.add", json!({"library": "metallic-gradients", "names": ["Gold"], "apply": "fill"}));
     assert_eq!((r["added"].clone(), r["applied"].clone()), (json!([]), json!("Gold")));
@@ -125,7 +125,7 @@ fn reset_defaults_restores_missing_swatches_or_replaces_them() {
     run(&mut s, "swatch.resetDefaults", json!({"replace": true}));
     let d = doc(&s);
     assert_eq!(d.swatches_iter().map(|w| w.name.clone()).collect::<Vec<_>>(), defaults);
-    let fill = d.node(vectorcraft_doc::NodeId(id.as_u64().unwrap())).unwrap().appearance.fill_paint();
+    let fill = d.node(splinewright_doc::NodeId(id.as_u64().unwrap())).unwrap().appearance.fill_paint();
     assert_eq!(fill, Paint::solid(Color::from_hex("#abcdef").unwrap()));
     assert_eq!(s.paint.fill, Paint::solid(Color::from_hex("#abcdef").unwrap()), "the default fill is unlinked too");
 }
@@ -190,7 +190,7 @@ fn another_documents_swatches_load_as_a_library() {
     let mut s = session();
     run(&mut s, "swatch.new", json!({"name": "Signal", "color": "#ff3300"}));
     let b64 = run(&mut s, "document.serialize", json!({}))["dataBase64"].as_str().unwrap().to_string();
-    let r = run(&mut s, "swatch.library.load", json!({"dataBase64": b64, "name": "Poster.vectorcraft"}));
+    let r = run(&mut s, "swatch.library.load", json!({"dataBase64": b64, "name": "Poster.splinewright"}));
     assert_eq!(r["name"], "Poster");
     let (_, lib) = cmd::swatchlib::library(&s, r["library"].as_str().unwrap()).unwrap();
     assert!(lib.swatch("Signal").is_some() && lib.swatch("[None]").is_none());
@@ -214,7 +214,7 @@ fn gradient_libraries_are_listed_and_gradient_swatches_rename_and_take_new_gradi
         json!({"gradient": {"kind": "radial", "stops": [{"offset": 0, "color": "#ff0000"}, {"offset": 1, "color": "#0000ff"}], "swatch": "Early"}});
     run(&mut s, "swatch.edit", json!({"name": "Early", "paint": g}));
     let Paint::Gradient(gp) = &doc(&s).swatch("Early").unwrap().paint else { panic!("a gradient") };
-    assert_eq!((gp.gradient.kind, gp.gradient.stops.len(), gp.swatch.clone(), gp.geom), (vectorcraft_color::GradientKind::Radial, 2, None, None));
+    assert_eq!((gp.gradient.kind, gp.gradient.stops.len(), gp.swatch.clone(), gp.geom), (splinewright_color::GradientKind::Radial, 2, None, None));
     assert_eq!(undo_len(&s), undo + 1);
     // Kinds don't mix; a colour replaces a colour.
     assert!(s.execute("swatch.edit", &json!({"name": "Early", "paint": {"color": "#00ff00"}})).is_err());

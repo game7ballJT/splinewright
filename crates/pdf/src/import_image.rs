@@ -7,8 +7,8 @@
 use hayro_syntax::Filter;
 use hayro_syntax::object::stream::ImageDecodeParams;
 use hayro_syntax::object::{Array, Dict, Name, Stream};
-use vectorcraft_doc::ImageBlob;
-use vectorcraft_doc::cmyk::{Inks, MAX_CMYK_PIXELS, jpeg_components};
+use splinewright_doc::ImageBlob;
+use splinewright_doc::cmyk::{Inks, MAX_CMYK_PIXELS, jpeg_components};
 
 /// A CMYK image read as RGB: why.
 pub(crate) const MASKED: &str = "CMYK images with a mask were imported in RGB";

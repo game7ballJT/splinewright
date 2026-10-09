@@ -25,9 +25,9 @@
 use std::sync::{Arc, OnceLock};
 
 use krilla::image::ImageColorspace;
-use vectorcraft_color::Color;
-use vectorcraft_color::cms::{self, Cms, CmykLut, Intent, Model, ProfileKind, ProofLut};
-use vectorcraft_doc::{ColorMode, Document};
+use splinewright_color::Color;
+use splinewright_color::cms::{self, Cms, CmykLut, Intent, Model, ProfileKind, ProofLut};
+use splinewright_doc::{ColorMode, Document};
 
 use crate::patch::{Patch, Xref};
 use crate::{ColorConversion, PdfError, PdfSettings, ProfileInclusion, Standard};

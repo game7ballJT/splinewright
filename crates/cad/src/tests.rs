@@ -2,9 +2,9 @@
 
 use std::sync::Arc;
 
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Appearance, CharStyle, Dash, Document, ImageBlob, ImageObject, Node, NodeKind, TextObject, Unit};
-use vectorcraft_geom::{Affine, PathData, Point, Rect, shapes};
+use splinewright_color::{Color, Paint};
+use splinewright_doc::{Appearance, CharStyle, Dash, Document, ImageBlob, ImageObject, Node, NodeKind, TextObject, Unit};
+use splinewright_geom::{Affine, PathData, Point, Rect, shapes};
 
 use crate::*;
 
@@ -277,7 +277,7 @@ fn alter_paths_writes_strokes_as_filled_outlines() {
     let mut d = shapes_doc();
     let rect = d.layers[0].children().and_then(|c| c.first()).map(|n| n.id).unwrap();
     if let Some(st) = d.node_mut(rect).and_then(|n| n.appearance.stroke_mut()) {
-        st.align = vectorcraft_doc::StrokeAlign::Outside;
+        st.align = splinewright_doc::StrokeAlign::Outside;
     }
     assert_eq!(kinds(&export(&d, &opts(&d)).unwrap()), ["HATCH", "HATCH", "SPLINE"]);
     let editable = export(&d, &DxfOptions { preserve: Preserve::Editability, ..opts(&d) }).unwrap();

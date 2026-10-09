@@ -10,16 +10,16 @@ use serde_json::json;
 use super::{pstate, set_pstate};
 use crate::theme::Tokens;
 use crate::widgets::{self, menu_item};
-use crate::{VectorcraftApp, icons};
+use crate::{SplinewrightApp, icons};
 
 /// The active artboard (of `n`).
-fn selected(app: &VectorcraftApp, n: usize) -> usize {
+fn selected(app: &SplinewrightApp, n: usize) -> usize {
     app.view().map_or(0, |v| v.artboard).min(n.saturating_sub(1))
 }
 
 /// Make artboard `i` the active one, leaving the view where it is: the navigator's and, while it
 /// is the tool, the Artboard tool's.
-fn select(app: &mut VectorcraftApp, i: usize) {
+fn select(app: &mut SplinewrightApp, i: usize) {
     if let Some(v) = app.view_mut() {
         v.artboard = i;
     }
@@ -33,7 +33,7 @@ fn select(app: &mut VectorcraftApp, i: usize) {
 struct RowDrag(usize);
 
 /// Duplicate artboard `i` (`artboard.duplicate`) and make the copy the active artboard.
-fn duplicate(app: &mut VectorcraftApp, i: usize) {
+fn duplicate(app: &mut SplinewrightApp, i: usize) {
     if let Ok(r) = app.run("artboard.duplicate", json!({ "index": i }))
         && let Some(copy) = r["index"].as_u64()
     {
@@ -41,7 +41,7 @@ fn duplicate(app: &mut VectorcraftApp, i: usize) {
     }
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let abs: Vec<String> = app.session.active().map(|d| d.doc.artboards.iter().map(|a| a.name.clone()).collect()).unwrap_or_default();
     if abs.is_empty() {
@@ -140,7 +140,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     });
 }
 
-pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(app: &mut SplinewrightApp, ui: &mut Ui) {
     let n = app.session.active().map(|d| d.doc.artboards.len()).unwrap_or(0);
     let sel = selected(app, n);
     if menu_item(ui, tl!("New Artboard"), n > 0, false) {
@@ -171,17 +171,17 @@ pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vectorcraft_engine::Session;
+    use splinewright_engine::Session;
 
     /// Clicking a row makes its artboard the active one (the navigator's, Fit Artboard in Window's).
     #[test]
     fn clicking_a_row_makes_its_artboard_active() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 200, "height": 150})).unwrap();
         app.session.execute("artboard.new", &json!({"x": 400, "y": 300, "width": 200, "height": 150})).unwrap();
         app.view_mut().unwrap().artboard = 0;
         let ctx = egui::Context::default();
-        let frame = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
+        let frame = |app: &mut SplinewrightApp, events: Vec<egui::Event>| {
             let mut out = ctx.run_ui(egui::RawInput { events, ..Default::default() }, |ui| show(app, ui));
             out.textures_delta.clear();
             out.shapes
@@ -208,13 +208,13 @@ mod tests {
     /// active one.
     #[test]
     fn double_clicks_go_to_or_rename_and_options_edits_the_rows_artboard() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 200, "height": 150})).unwrap();
         app.session.execute("artboard.new", &json!({"x": 400, "y": 300, "width": 200, "height": 150})).unwrap();
         app.view_mut().unwrap().artboard = 0;
         let ctx = egui::Context::default();
         let screen = Some(egui::Rect::from_min_size(egui::Pos2::ZERO, vec2(240.0, 400.0)));
-        let frame = |app: &mut VectorcraftApp, time: f64, events: Vec<egui::Event>| {
+        let frame = |app: &mut SplinewrightApp, time: f64, events: Vec<egui::Event>| {
             let mut out = ctx.run_ui(egui::RawInput { events, time: Some(time), screen_rect: screen, ..Default::default() }, |ui| show(app, ui));
             out.textures_delta.clear();
             out.shapes
@@ -258,8 +258,8 @@ mod tests {
         assert_eq!(app.session.tool_options()["active"], json!(1));
         // And clicking an artboard with the tool makes it the active one, highlighted in the panel.
         let view = app.view_info();
-        for kind in [vectorcraft_tools::PointerKind::Down, vectorcraft_tools::PointerKind::Up] {
-            crate::canvas::dispatch(&mut app, &vectorcraft_tools::PointerEvent::new(kind, 100.0, 100.0), view);
+        for kind in [splinewright_tools::PointerKind::Down, splinewright_tools::PointerKind::Up] {
+            crate::canvas::dispatch(&mut app, &splinewright_tools::PointerEvent::new(kind, 100.0, 100.0), view);
         }
         assert_eq!((app.session.tool_options()["active"].clone(), selected(&app, 2)), (json!(0), 0));
     }
@@ -268,12 +268,12 @@ mod tests {
     /// button while it is held over it, and the copy becomes the active artboard.
     #[test]
     fn dragging_a_row_onto_new_artboard_duplicates_it() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 200, "height": 150})).unwrap();
         app.session.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 20, "height": 20})).unwrap();
         let ctx = egui::Context::default();
         let screen = Some(egui::Rect::from_min_size(egui::Pos2::ZERO, vec2(240.0, 400.0)));
-        let frame = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
+        let frame = |app: &mut SplinewrightApp, events: Vec<egui::Event>| {
             let mut out = ctx.run_ui(egui::RawInput { events, screen_rect: screen, ..Default::default() }, |ui| show(app, ui));
             out.textures_delta.clear();
             out.shapes

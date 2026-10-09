@@ -46,10 +46,10 @@ mod tests_images;
 
 use std::sync::Arc;
 
-use vectorcraft_color::Paint;
-use vectorcraft_color::swatch::Swatch;
-use vectorcraft_doc::{ColorMode, Document, LayerColor, Node};
-use vectorcraft_geom::{Affine, Rect};
+use splinewright_color::Paint;
+use splinewright_color::swatch::Swatch;
+use splinewright_doc::{ColorMode, Document, LayerColor, Node};
+use splinewright_geom::{Affine, Rect};
 
 use graphics::{GState, Out};
 use interp::{Fault, Interp};
@@ -139,7 +139,7 @@ impl Dsc {
 /// operator that raised it and the procedure it ran in (`fault`).
 fn reason(e: &PsError, fault: Option<&Fault>) -> String {
     let what = match e {
-        PsError::Ps("undefined", at) => format!("it uses `{at}`, which VectorCraft's PostScript reader doesn't know"),
+        PsError::Ps("undefined", at) => format!("it uses `{at}`, which Splinewright's PostScript reader doesn't know"),
         PsError::Ps(name, at) => match fault.and_then(|f| f.op) {
             Some(op) if at.is_empty() || at == op => format!("a PostScript error ({name} in `{op}`)"),
             Some(op) => format!("a PostScript error ({name} in `{op}`: {at})"),
@@ -183,7 +183,7 @@ pub fn import(bytes: &[u8]) -> Result<Imported, String> {
     let drew = !out.drawn.is_empty();
     let why = match (&result, drew) {
         (Ok(()), true) => return Ok(finish(out)),
-        (Ok(()), false) => "it draws nothing VectorCraft's PostScript reader can show".to_string(),
+        (Ok(()), false) => "it draws nothing Splinewright's PostScript reader can show".to_string(),
         (Err(e), _) => reason(e, fault.as_ref()),
     };
     if let Some(p) = preview::preview(bytes, ps, frame) {
@@ -207,14 +207,14 @@ pub fn import(bytes: &[u8]) -> Result<Imported, String> {
 /// groups), the spot inks as spot swatches, in CMYK when most process colours were.
 fn finish(mut out: Out) -> Imported {
     let drawn = std::mem::take(&mut out.drawn);
-    let mut children = vectorcraft_doc::clipnest::nest(&mut out.doc, drawn);
+    let mut children = splinewright_doc::clipnest::nest(&mut out.doc, drawn);
     if !out.shadings.is_empty() {
         graphics::collapse(&mut children, &out.shadings);
     }
     let mut doc = out.doc;
     if out.cmyk > out.rgb {
         doc.color_mode = ColorMode::Cmyk;
-        (doc.swatches, doc.swatch_groups) = vectorcraft_color::default_swatches(ColorMode::Cmyk.model());
+        (doc.swatches, doc.swatch_groups) = splinewright_color::default_swatches(ColorMode::Cmyk.model());
     }
     for (name, color) in out.spots {
         if doc.swatch(&name).is_none() {

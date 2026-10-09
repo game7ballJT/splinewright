@@ -13,7 +13,7 @@ use super::confirm::ask;
 use super::{DialogSpec, form};
 use crate::state::Dialog;
 use crate::theme::Tokens;
-use crate::{VectorcraftApp, io, widgets};
+use crate::{SplinewrightApp, io, widgets};
 
 pub(super) const KIND: &str = "package";
 const LABEL: f32 = 90.0;
@@ -37,12 +37,12 @@ pub(super) const SPEC: DialogSpec = DialogSpec {
 };
 
 /// Is there no file system to write a folder to (the web downloads a zip)?
-fn downloads(app: &VectorcraftApp) -> bool {
+fn downloads(app: &SplinewrightApp) -> bool {
     app.services.download.is_some()
 }
 
 /// Open the dialog for the active document; one never saved is offered Save As first.
-pub fn open(app: &mut VectorcraftApp) -> Result<Value, String> {
+pub fn open(app: &mut SplinewrightApp) -> Result<Value, String> {
     let st = app.session.active().ok_or("no document")?;
     let Some(path) = st.path.clone() else {
         ask(
@@ -65,7 +65,7 @@ pub fn open(app: &mut VectorcraftApp) -> Result<Value, String> {
     Ok(Value::Null)
 }
 
-fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
+fn body(app: &mut SplinewrightApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     let t = Tokens::get(ui.ctx());
     if !downloads(app) {
         widgets::label_row(ui, tl!("Location:"), LABEL, |ui| {
@@ -97,7 +97,7 @@ fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     false
 }
 
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut SplinewrightApp, d: &Dialog) -> Result<Value, String> {
     let mut params = Value::Object(d.fields.clone());
     let web = downloads(app);
     if web {
@@ -107,7 +107,7 @@ fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
     }
     // The package holds the document as saved.
     if app.session.active().is_some_and(|st| st.is_dirty()) {
-        io::save(app, vectorcraft_engine::cmd::fileio::SaveMode::Save, &json!({}), false)?;
+        io::save(app, splinewright_engine::cmd::fileio::SaveMode::Save, &json!({}), false)?;
     }
     let r = app.run("file.package", params)?;
     app.ui.dialog = None;
@@ -116,7 +116,7 @@ fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
     let note = if missing > 0 { format!(" ({missing} linked file(s) not found)") } else { String::new() };
     if web {
         let (name, data) = (r["name"].as_str().unwrap_or("package.zip"), r["dataBase64"].as_str().unwrap_or_default());
-        let bytes = vectorcraft_format::base64_decode(data).ok_or("the package came back damaged")?;
+        let bytes = splinewright_format::base64_decode(data).ok_or("the package came back damaged")?;
         io::write_named(app, None, name, &bytes)?;
         app.status(format!("Packaged {n} file(s){note}"));
         return Ok(r);
@@ -137,7 +137,7 @@ fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
 }
 
 /// `file.showPackage {folder}`: show a package folder in the file manager.
-pub fn show_package(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
+pub fn show_package(app: &mut SplinewrightApp, p: &Value) -> Result<Value, String> {
     let folder = p.get("folder").and_then(Value::as_str).ok_or("missing `folder`")?.to_string();
     io::open_in_app(app, &folder)?;
     Ok(json!({ "folder": folder }))

@@ -38,6 +38,6 @@ jobs:
         run: ./packaging/windows/windows7.ps1 -Test
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: vectorcraft-windows7-x64-portable
-          path: dist/release/vectorcraft-windows7-x64-portable.zip
+          name: splinewright-windows7-x64-portable
+          path: dist/release/splinewright-windows7-x64-portable.zip
           if-no-files-found: error

@@ -3,11 +3,11 @@
 
 use egui::{Ui, vec2};
 use serde_json::{Value, json};
-use vectorcraft_doc::{Justify, NodeKind, ParaDirection, ParaStyle};
+use splinewright_doc::{Justify, NodeKind, ParaDirection, ParaStyle};
 
 use super::character::text_style;
 use super::{pstate, set_pstate};
-use crate::VectorcraftApp;
+use crate::SplinewrightApp;
 use crate::theme::Tokens;
 use crate::widgets::{self, menu_item};
 
@@ -22,11 +22,11 @@ pub const ALIGNMENTS: [(Justify, &str, &str, &str); 7] = [
 ];
 
 /// Paragraph attributes apply to the whole text object (ending a Type tool typing session first).
-fn format(app: &mut VectorcraftApp, p: Value) {
+fn format(app: &mut SplinewrightApp, p: Value) {
     para_cmd(app, "text.setFormat", p);
 }
 
-fn para_cmd(app: &mut VectorcraftApp, cmd: &str, mut p: Value) {
+fn para_cmd(app: &mut SplinewrightApp, cmd: &str, mut p: Value) {
     if let Some((id, _, _)) = super::character::text_editing(app) {
         super::character::end_typing(app);
         p["ids"] = json!([id.0]);
@@ -36,14 +36,14 @@ fn para_cmd(app: &mut VectorcraftApp, cmd: &str, mut p: Value) {
 
 /// Does the paragraph being edited (at the caret), else the selected text's first paragraph, run
 /// right to left: its Paragraph Direction, else from its first strong character?
-fn resolved_rtl(app: &VectorcraftApp, para: &ParaStyle) -> bool {
+fn resolved_rtl(app: &SplinewrightApp, para: &ParaStyle) -> bool {
     let editing = super::character::text_editing(app);
     let selected = super::first_selected(app);
     let node = editing.and_then(|(id, _, _)| app.session.active().and_then(|d| d.doc.node(id))).or(selected.as_ref());
     let Some(NodeKind::Text(t)) = node.map(|n| &n.kind) else { return para.direction == Some(ParaDirection::RightToLeft) };
     let plain = t.plain_text();
-    let paragraph = vectorcraft_text::edit::paragraph_at(&plain, editing.map_or(0, |(_, a, _)| a));
-    vectorcraft_text::paragraph_is_rtl(plain.get(paragraph).unwrap_or_default(), para.direction)
+    let paragraph = splinewright_text::edit::paragraph_at(&plain, editing.map_or(0, |(_, a, _)| a));
+    splinewright_text::paragraph_is_rtl(plain.get(paragraph).unwrap_or_default(), para.direction)
 }
 
 /// The alignment button that shows `justify` in a paragraph running right to left (`rtl`) or not:
@@ -56,7 +56,7 @@ fn shown_alignment(justify: Justify, rtl: bool) -> Justify {
     }
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let Some((_, para)) = text_style(app) else {
         super::empty_state(ui, "pilcrow", tl!("No text selected"), tl!("Select a text object to edit its paragraph attributes."));
@@ -131,7 +131,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
         ui.horizontal(|ui| {
             widgets::dim_label(ui, tl!("Mojikumi Set"));
             let sets = [tl!("None"), tl!("Line-end Punctuation Half Width")];
-            let current = if para.mojikumi == vectorcraft_doc::Mojikumi::LineEndHalf { sets[1] } else { sets[0] };
+            let current = if para.mojikumi == splinewright_doc::Mojikumi::LineEndHalf { sets[1] } else { sets[0] };
             // Already translated: shown as they are.
             if let Some(i) = widgets::dropdown_names(ui, "pa-mojikumi", current, &sets, ui.available_width() - 4.0) {
                 format(app, json!({"mojikumi": if i == 1 { "lineEndHalf" } else { "none" }}));
@@ -140,7 +140,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     }
 }
 
-pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(app: &mut SplinewrightApp, ui: &mut Ui) {
     let style = text_style(app);
     let has = style.is_some();
     let hidden: bool = pstate(ui.ctx(), "pa-hide-options");
@@ -155,7 +155,7 @@ pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
     // the East Asian options.
     if app.session.prefs.show_east_asian_options {
         ui.separator();
-        let top_to_top = style.as_ref().is_some_and(|(_, p)| p.leading_model == vectorcraft_doc::LeadingModel::EmBoxTop);
+        let top_to_top = style.as_ref().is_some_and(|(_, p)| p.leading_model == splinewright_doc::LeadingModel::EmBoxTop);
         if menu_item(ui, tl!("Top-to-Top Leading"), has, top_to_top) {
             format(app, json!({"leadingModel": "emBoxTop"}));
         }
@@ -167,7 +167,7 @@ pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
         ui.add_enabled_ui(has, |ui| {
             // Indented like the items beside it (their check column).
             ui.menu_button(format!("   {}", tl!("Burasagari")), |ui| {
-                use vectorcraft_doc::Burasagari;
+                use splinewright_doc::Burasagari;
                 for (label, b, key) in [
                     (tl!("None"), Burasagari::None, "none"),
                     (tl!("Regular"), Burasagari::Standard, "standard"),
@@ -196,17 +196,17 @@ pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vectorcraft_engine::Session;
+    use splinewright_engine::Session;
 
     /// New Hebrew type aligns to the start of its direction (Align Right shows), an explicit
     /// alignment stays as chosen, and Paragraph Direction (with the Indic options) sets the
     /// direction: Auto then follows it.
     #[test]
     fn alignment_buttons_show_the_resolved_alignment_and_direction_sets_it() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 200})).unwrap();
         app.session.execute("text.create", &json!({"x": 200, "y": 50, "text": "שלום"})).unwrap();
-        let shown = |app: &VectorcraftApp| {
+        let shown = |app: &SplinewrightApp| {
             let para = text_style(app).unwrap().1;
             shown_alignment(para.justify, resolved_rtl(app, &para))
         };
@@ -218,7 +218,7 @@ mod tests {
         assert_eq!(shown(&app), Justify::Left);
         // The direction buttons show with the Indic options only.
         crate::i18n::set_current(crate::i18n::Lang::EN);
-        let tips = |app: &mut VectorcraftApp| {
+        let tips = |app: &mut SplinewrightApp| {
             let ctx = egui::Context::default();
             let mut frame = ctx.run_ui(egui::RawInput::default(), |ui| show(app, ui));
             frame.textures_delta.clear();

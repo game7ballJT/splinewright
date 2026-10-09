@@ -2,7 +2,7 @@
 //! [`Backend`].
 
 use serde_json::{Map, Value, json};
-use vectorcraft_engine::cmd::fileio::{ARTBOARD_PARAMS, FORMATS, OPEN_EXTS, SAVE_FORMATS, format};
+use splinewright_engine::cmd::fileio::{ARTBOARD_PARAMS, FORMATS, OPEN_EXTS, SAVE_FORMATS, format};
 
 use crate::backend::Backend;
 
@@ -80,7 +80,7 @@ pub fn tool_definitions() -> Vec<Value> {
         tool(
             "list_commands",
             "List commands",
-            "List VectorCraft commands (id, label, menu path, shortcut, parameter description, enabled state). Every editing action is a command; run any of them with run_command. Coordinates are points in document space, y down, origin at the first artboard's top-left.",
+            "List Splinewright commands (id, label, menu path, shortcut, parameter description, enabled state). Every editing action is a command; run any of them with run_command. Coordinates are points in document space, y down, origin at the first artboard's top-left.",
             obj(
                 json!({"filter": string("Case-insensitive substring matched against id, label and menu path (e.g. \"align\", \"Object\")"), "enabledOnly": {"type": "boolean", "description": "Only commands that can run right now"}}),
                 &[],
@@ -90,7 +90,7 @@ pub fn tool_definitions() -> Vec<Value> {
         tool(
             "run_command",
             "Run command",
-            "Execute any VectorCraft command by id with JSON params (see list_commands for ids and params). Examples: {\"command\":\"object.group\"}, {\"command\":\"object.align\",\"params\":{\"align\":\"left\"}}, {\"command\":\"file.new\",\"params\":{\"width\":800,\"height\":600}}. Returns the command's result (e.g. {id} for creation commands).",
+            "Execute any Splinewright command by id with JSON params (see list_commands for ids and params). Examples: {\"command\":\"object.group\"}, {\"command\":\"object.align\",\"params\":{\"align\":\"left\"}}, {\"command\":\"file.new\",\"params\":{\"width\":800,\"height\":600}}. Returns the command's result (e.g. {id} for creation commands).",
             obj(
                 json!({"command": string("Command id, e.g. shape.rectangle, object.group, paint.setFill"), "params": {"type": "object", "description": "Command parameters"}}),
                 &["command"],
@@ -272,7 +272,7 @@ pub fn tool_definitions() -> Vec<Value> {
             "save_file",
             "Save file",
             &format!(
-                "Save the active document with the engine's document.save: by default to its own file in its own format (native .vectorcraft unless it was opened from or saved as SVG, PDF or a restorable .ai). With `path`, the extension picks the format: .{}. Other formats are exports (see export). The reply's `format` says what was written and `warnings` what that format loses.",
+                "Save the active document with the engine's document.save: by default to its own file in its own format (native .splinewright unless it was opened from or saved as SVG, PDF or a restorable .ai). With `path`, the extension picks the format: .{}. Other formats are exports (see export). The reply's `format` says what was written and `warnings` what that format loses.",
                 save_extensions().join(", .")
             ),
             obj(json!({"path": string("Destination; its extension picks the format (default: the document's own file)")}), &[]),
@@ -281,7 +281,7 @@ pub fn tool_definitions() -> Vec<Value> {
         tool(
             "export",
             "Export",
-            "Export the active document with the engine's document.export (the same bytes in the app and headless), in any format of the `format` enum: vectors (svg/svgz with the artboard as viewBox, eps, dxf, emf, wmf), pdf (one page per artboard: all, or `artboard` / `range`), rasters (one rendered artboard: png, jpg, webp, gif, png8 as an indexed .png, tiff, bmp, tga, psd with its layers), txt (the stories, back to front), vectorcraft or template (a native copy or template; the document keeps its path). run_command document.formats lists each format's options. `selection: true` exports only the selected objects, cropped to their bounds. Template layers are left out; live effects are kept (geometry baked, SVG filters for shadows/glows/blur). Without `path` the bytes come back as dataBase64.",
+            "Export the active document with the engine's document.export (the same bytes in the app and headless), in any format of the `format` enum: vectors (svg/svgz with the artboard as viewBox, eps, dxf, emf, wmf), pdf (one page per artboard: all, or `artboard` / `range`), rasters (one rendered artboard: png, jpg, webp, gif, png8 as an indexed .png, tiff, bmp, tga, psd with its layers), txt (the stories, back to front), splinewright or template (a native copy or template; the document keeps its path). run_command document.formats lists each format's options. `selection: true` exports only the selected objects, cropped to their bounds. Template layers are left out; live effects are kept (geometry baked, SVG filters for shadows/glows/blur). Without `path` the bytes come back as dataBase64.",
             obj(
                 json!({
                     "format": {"type": "string", "enum": FORMATS.iter().filter(|f| f.write).map(|f| f.id).collect::<Vec<_>>(), "description": "Default: from the path's extension"},
@@ -425,7 +425,7 @@ fn need_ui(b: &dyn Backend, tool: &str) -> Result<(), String> {
         Ok(())
     } else {
         Err(format!(
-            "`{tool}` needs the desktop app: run `vectorcraft --control 7979` and start the server with `vectorcraft-cli mcp --connect 127.0.0.1:7979`"
+            "`{tool}` needs the desktop app: run `splinewright --control 7979` and start the server with `splinewright-cli mcp --connect 127.0.0.1:7979`"
         ))
     }
 }
@@ -608,7 +608,7 @@ fn screenshot(b: &mut dyn Backend, a: &Args) -> Result<ToolResult, String> {
         let target = match path {
             Some(p) => p,
             None => {
-                tmp = std::env::temp_dir().join(format!("vectorcraft-window-{}.png", std::process::id())).to_string_lossy().to_string();
+                tmp = std::env::temp_dir().join(format!("splinewright-window-{}.png", std::process::id())).to_string_lossy().to_string();
                 &tmp
             }
         };
@@ -628,7 +628,7 @@ fn screenshot(b: &mut dyn Backend, a: &Args) -> Result<ToolResult, String> {
     let r = b.call("ui.render", p)?;
     let b64 = r.get("pngBase64").and_then(Value::as_str).ok_or("renderer returned no image")?;
     if let Some(path) = path {
-        let png = vectorcraft_format::base64_decode(b64).ok_or("renderer returned bad base64")?;
+        let png = splinewright_format::base64_decode(b64).ok_or("renderer returned bad base64")?;
         std::fs::write(path, png).map_err(|e| format!("write {path}: {e}"))?;
     }
     Ok(ToolResult {
@@ -643,7 +643,7 @@ fn screenshot(b: &mut dyn Backend, a: &Args) -> Result<ToolResult, String> {
 fn image_result(png: &[u8], info: Value) -> ToolResult {
     ToolResult {
         content: vec![
-            json!({"type": "image", "data": vectorcraft_format::base64_encode(png), "mimeType": "image/png"}),
+            json!({"type": "image", "data": splinewright_format::base64_encode(png), "mimeType": "image/png"}),
             json!({"type": "text", "text": info.to_string()}),
         ],
         is_error: false,

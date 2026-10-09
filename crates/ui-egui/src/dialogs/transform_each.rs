@@ -10,7 +10,7 @@ use serde_json::{Value, json};
 
 use super::transform::{add_scale_options, scale_options, with_scale_options};
 use super::{DialogSpec, form};
-use crate::VectorcraftApp;
+use crate::SplinewrightApp;
 use crate::state::Dialog;
 use crate::widgets;
 
@@ -39,7 +39,7 @@ fn params(d: &Dialog) -> Value {
 
 /// A labelled number row of the field grid: `key` shown with `suffix` (a distance in `units` for
 /// "pt").
-fn number(ui: &mut egui::Ui, d: &mut Dialog, key: &str, label: &str, suffix: &str, units: vectorcraft_doc::Unit) {
+fn number(ui: &mut egui::Ui, d: &mut Dialog, key: &str, label: &str, suffix: &str, units: splinewright_doc::Unit) {
     widgets::dim_label(ui, label);
     if suffix == "pt" {
         form::length(ui, d, key, units, 90.0);
@@ -49,7 +49,7 @@ fn number(ui: &mut egui::Ui, d: &mut Dialog, key: &str, label: &str, suffix: &st
     ui.end_row();
 }
 
-fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
+fn body(app: &mut SplinewrightApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     let units = app.session.general_unit();
     ui.horizontal_top(|ui| {
         ui.vertical(|ui| {
@@ -91,7 +91,7 @@ fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     false
 }
 
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut SplinewrightApp, d: &Dialog) -> Result<Value, String> {
     let p = with_scale_options(app, d, params(d))?;
     form::commit_preview(app, CMD, p)
 }
@@ -99,12 +99,12 @@ fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vectorcraft_doc::NodeId;
-    use vectorcraft_engine::Session;
+    use splinewright_doc::NodeId;
+    use splinewright_engine::Session;
 
     #[test]
     fn ok_transforms_each_and_keeps_the_scale_options() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 300, "height": 300})).unwrap();
         let id = app.run("shape.rectangle", json!({"x": 0, "y": 0, "width": 50, "height": 50})).unwrap()["id"].as_u64().unwrap();
         app.run("select.all", json!({})).unwrap();

@@ -3,8 +3,8 @@
 //! boxes, a thumbnail) for the Import PDF dialog.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{ColorMode, Document};
-use vectorcraft_pdf::{Choice, CropTo, ImportOptions, PdfError, TextAs};
+use splinewright_doc::{ColorMode, Document};
+use splinewright_pdf::{Choice, CropTo, ImportOptions, PdfError, TextAs};
 
 use super::super::colormgmt::Grays;
 use super::super::*;
@@ -31,7 +31,7 @@ pub struct LoadOptions {
     /// that is off).
     pub layers: bool,
     /// How a DXF drawing comes in (the `dxf` param, see [`super::dxfimport`]).
-    pub dxf: vectorcraft_cad::ImportOptions,
+    pub dxf: splinewright_cad::ImportOptions,
 }
 
 impl Default for LoadOptions {
@@ -91,7 +91,7 @@ impl LoadOptions {
         let pages = match &self.pages {
             None => None,
             Some(range) => {
-                let count = vectorcraft_pdf::info(bytes, self.password.as_deref()).map_err(err)?.pages.len();
+                let count = splinewright_pdf::info(bytes, self.password.as_deref()).map_err(err)?.pages.len();
                 Some(parse_range(range, count).map_err(|e| err(format!("pages: {e}")))?)
             }
         };
@@ -119,7 +119,7 @@ fn choice<T: Choice + Default>(cmd: &str, key: &str, id: Option<&str>) -> Result
 
 /// Import the pages `o` pick → the document and import notes.
 pub(super) fn import(bytes: &[u8], o: &LoadOptions) -> Result<(Document, Vec<String>)> {
-    let r = vectorcraft_pdf::import_with_report(bytes, &o.import_options(bytes)?).map_err(err)?;
+    let r = splinewright_pdf::import_with_report(bytes, &o.import_options(bytes)?).map_err(err)?;
     Ok((r.document, r.warnings))
 }
 
@@ -134,7 +134,7 @@ pub fn page_document(bytes: &[u8], page: usize, o: &LoadOptions) -> Result<(Docu
         layers: false,
         ..Default::default()
     };
-    vectorcraft_pdf::import_with_report(bytes, &opts).map(|r| (r.document, r.warnings)).map_err(err)
+    splinewright_pdf::import_with_report(bytes, &opts).map(|r| (r.document, r.warnings)).map_err(err)
 }
 
 const INFO: &str = "document.pdfInfo";
@@ -143,14 +143,14 @@ const INFO: &str = "document.pdfInfo";
 pub(super) fn pdf_info(_: &mut Session, p: &Value) -> Result<Value> {
     let bytes = source(p, INFO)?.bytes;
     let o = LoadOptions::from_params(INFO, p)?;
-    let info = match vectorcraft_pdf::info(&bytes, o.password.as_deref()) {
+    let info = match splinewright_pdf::info(&bytes, o.password.as_deref()) {
         Ok(i) => i,
         Err(e @ (PdfError::NeedsPassword | PdfError::WrongPassword)) => {
             return Ok(json!({"pages": 0, "needsPassword": true, "wrongPassword": e == PdfError::WrongPassword, "pageInfo": []}));
         }
         Err(e) => return Err(err(e)),
     };
-    let r4 = |r: vectorcraft_geom::Rect| json!([r.x0, r.y0, r.x1, r.y1]);
+    let r4 = |r: splinewright_geom::Rect| json!([r.x0, r.y0, r.x1, r.y1]);
     let pages: Vec<Value> = info
         .pages
         .iter()
@@ -167,7 +167,7 @@ pub(super) fn pdf_info(_: &mut Session, p: &Value) -> Result<Value> {
         let size = f64_or(p, "thumbnailSize", 160.0).clamp(16.0, 1024.0);
         let r = doc.artboards.first().map(|a| a.rect).ok_or_else(|| err("the page has no area"))?;
         let png = super::encode(&doc, "png", &json!({"scale": size / r.width().max(r.height()).max(1.0)}))?;
-        out["thumbnail"] = json!(vectorcraft_format::base64_encode(&png));
+        out["thumbnail"] = json!(splinewright_format::base64_encode(&png));
     }
     Ok(out)
 }

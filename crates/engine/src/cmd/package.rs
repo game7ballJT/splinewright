@@ -21,7 +21,7 @@ pub fn specs() -> Vec<CommandSpec> {
         "Package",
         [],
         None,
-        "{folder?, name?: (default: \"<document> Folder\"), copyLinks?: true, linksFolder?: true (the linked files go in Links/, else next to the document), relink?: true (the packaged document links to the copies), copyFonts?: true (the fonts its type uses go in Fonts/; fonts whose licence doesn't allow embedding are left out), report?: true (<document> Report.txt)} copy the saved document as it is now into folder/name as <document>.vectorcraft with its linked files and fonts; the open document doesn't change → {folder, files: [paths relative to folder/name], links, fonts (counts copied), missingLinks: [file names not found], skippedFonts: [{font, reason}]}; no folder → the same with {name: \"<name>.zip\", dataBase64} (a zip of the files in <name>/) instead of folder",
+        "{folder?, name?: (default: \"<document> Folder\"), copyLinks?: true, linksFolder?: true (the linked files go in Links/, else next to the document), relink?: true (the packaged document links to the copies), copyFonts?: true (the fonts its type uses go in Fonts/; fonts whose licence doesn't allow embedding are left out), report?: true (<document> Report.txt)} copy the saved document as it is now into folder/name as <document>.splinewright with its linked files and fonts; the open document doesn't change → {folder, files: [paths relative to folder/name], links, fonts (counts copied), missingLinks: [file names not found], skippedFonts: [{font, reason}]}; no folder → the same with {name: \"<name>.zip\", dataBase64} (a zip of the files in <name>/) instead of folder",
         has_doc,
         package
     )]
@@ -104,7 +104,7 @@ fn package(s: &mut Session, p: &Value) -> Result<Value> {
     // The fonts.
     let (mut fonts, mut skipped) = (0, vec![]);
     if o.copy_fonts {
-        let db = vectorcraft_text::FontDb::global();
+        let db = splinewright_text::FontDb::global();
         let mut files = HashSet::new();
         lines.push("FONTS".to_string());
         for (family, style) in super::fonts::used_fonts(&st.doc) {
@@ -135,14 +135,14 @@ fn package(s: &mut Session, p: &Value) -> Result<Value> {
 
     // The document, linking to the copies.
     let mut doc = (*st.doc).clone();
-    let doc_name = format!("{stem}.{}", vectorcraft_format::EXTENSION);
+    let doc_name = format!("{stem}.{}", splinewright_format::EXTENSION);
     if let Some(root) = &root
         && let Some(d) = super::links::with_relative_paths(&doc, &root.join(&doc_name).to_string_lossy())
     {
         doc = d;
     }
     if o.relink && !copies.is_empty() {
-        let copied = |im: &vectorcraft_doc::ImageObject| im.link.as_ref().is_some_and(|l| copies.contains_key(&l.path));
+        let copied = |im: &splinewright_doc::ImageObject| im.link.as_ref().is_some_and(|l| copies.contains_key(&l.path));
         doc.update_images(copied, |im| {
             if let Some(l) = &mut im.link
                 && let Some(rel) = copies.get(&l.path)
@@ -152,7 +152,7 @@ fn package(s: &mut Session, p: &Value) -> Result<Value> {
             }
         });
     }
-    entries.insert(0, (doc_name.clone(), vectorcraft_format::save_file(&doc)));
+    entries.insert(0, (doc_name.clone(), splinewright_format::save_file(&doc)));
     taken.insert(doc_name.to_lowercase());
 
     // The report.
@@ -182,7 +182,7 @@ fn package(s: &mut Session, p: &Value) -> Result<Value> {
             let zip = zip(&named)?;
             out["name"] = json!(format!("{name}.zip"));
             out["bytes"] = json!(zip.len());
-            out["dataBase64"] = json!(vectorcraft_format::base64_encode(&zip));
+            out["dataBase64"] = json!(splinewright_format::base64_encode(&zip));
         }
     }
     Ok(out)
@@ -192,8 +192,8 @@ fn package(s: &mut Session, p: &Value) -> Result<Value> {
 
 /// The MS-DOS time and date a zip entry records: now (UTC), else 1980-01-01.
 fn dos_time() -> (u16, u16) {
-    let Some(t) = vectorcraft_doc::metadata::now_unix() else { return (0, 0x21) };
-    let [y, mo, d, h, mi, s] = vectorcraft_doc::metadata::civil(t);
+    let Some(t) = splinewright_doc::metadata::now_unix() else { return (0, 0x21) };
+    let [y, mo, d, h, mi, s] = splinewright_doc::metadata::civil(t);
     let date = (((y - 1980).clamp(0, 127) << 9) | (mo << 5) | d) as u16;
     (((h << 11) | (mi << 5) | (s / 2)) as u16, date)
 }

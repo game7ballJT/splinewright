@@ -1,9 +1,9 @@
-//! Type tool state-machine tests (the engine side is covered in vectorcraft-engine's
+//! Type tool state-machine tests (the engine side is covered in splinewright-engine's
 //! `tests_textedit`).
 
 use super::*;
 use crate::testutil::{cx, paint};
-use vectorcraft_doc::{CharStyle, Document, Node, Selection};
+use splinewright_doc::{CharStyle, Document, Node, Selection};
 
 fn doc_with_text(text: &str) -> (Document, NodeId) {
     let mut d = Document::new(500.0, 500.0);
@@ -140,8 +140,8 @@ fn double_and_triple_click_select_word_and_paragraph() {
     let (d, id, mut tool) = editing("Alpha beta\ngamma");
     let (sel, p) = (Selection::default(), paint());
     let t = TypeTool::text(&cx(&d, &sel, &p), id).unwrap().clone();
-    let lay = vectorcraft_text::layout(FontDb::global(), &t);
-    let (top, bot) = vectorcraft_text::caret_position(&lay, 7);
+    let lay = splinewright_text::layout(FontDb::global(), &t);
+    let (top, bot) = splinewright_text::caret_position(&lay, 7);
     let at = t.xf * top.midpoint(bot);
     let c = cx(&d, &sel, &p);
     for k in [PointerKind::Down, PointerKind::Up, PointerKind::Down, PointerKind::Up, PointerKind::DoubleClick] {
@@ -159,9 +159,9 @@ fn drag_selects_and_overlay_highlights() {
     let (sel, p) = (Selection::default(), paint());
     let c = cx(&d, &sel, &p);
     let t = TypeTool::text(&c, id).unwrap().clone();
-    let lay = vectorcraft_text::layout(FontDb::global(), &t);
+    let lay = splinewright_text::layout(FontDb::global(), &t);
     let pt = |b: usize| {
-        let (a, bb) = vectorcraft_text::caret_position(&lay, b);
+        let (a, bb) = splinewright_text::caret_position(&lay, b);
         t.xf * a.midpoint(bb)
     };
     let (a, b) = (pt(7), pt(9));
@@ -183,9 +183,9 @@ fn a_drag_across_type_not_being_edited_selects_its_text() {
     let (sel, p) = (Selection::default(), paint());
     let c = cx(&d, &sel, &p);
     let t = TypeTool::text(&c, id).unwrap().clone();
-    let lay = vectorcraft_text::layout(FontDb::global(), &t);
+    let lay = splinewright_text::layout(FontDb::global(), &t);
     let pt = |b: usize| {
-        let (a, bb) = vectorcraft_text::caret_position(&lay, b);
+        let (a, bb) = splinewright_text::caret_position(&lay, b);
         t.xf * a.midpoint(bb)
     };
     let (a, b) = (pt(7), pt(9));
@@ -289,8 +289,8 @@ fn marked_text_is_underlined_with_the_converting_clause_thick() {
     assert_eq!(widths, vec![1.0, 2.5], "a thin underline, then the thick one under 演奏");
     // The candidate window follows the converting clause.
     let (top, _) = tool.ime_caret(&cx(&d, &sel, &p)).unwrap();
-    let lay = vectorcraft_text::layout(FontDb::global(), t);
-    let (at, _) = vectorcraft_text::caret_position(&lay, 9);
+    let lay = splinewright_text::layout(FontDb::global(), t);
+    let (at, _) = splinewright_text::caret_position(&lay, 9);
     assert!((top - t.xf * at).hypot() < 1e-6);
     // Keys wait for the IME; a commit replaces the marked text.
     assert!(key(&mut tool, &d, ToolKey::Backspace, Mods::default()).is_empty());

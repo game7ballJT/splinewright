@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use serde_json::json;
-use vectorcraft_engine::Session;
+use splinewright_engine::Session;
 
 use super::tests_export::{frame, kind, set};
 use super::*;
@@ -14,7 +14,7 @@ type Log = Rc<RefCell<Vec<String>>>;
 
 /// An app with a 60×40 pt document (an ellipse), whose save panel answers inside `dir`; `web`
 /// downloads instead (into the log).
-fn app(dir: &std::path::Path, web: bool) -> (VectorcraftApp, Log) {
+fn app(dir: &std::path::Path, web: bool) -> (SplinewrightApp, Log) {
     let log = Log::default();
     let (l1, l2) = (log.clone(), log.clone());
     let dir = dir.to_string_lossy().replace('\\', "/");
@@ -26,7 +26,7 @@ fn app(dir: &std::path::Path, web: bool) -> (VectorcraftApp, Log) {
     if web {
         services.download = Some(Box::new(move |name: &str, b: &[u8]| l2.borrow_mut().push(format!("download {name} {}", b.len()))));
     }
-    let mut app = VectorcraftApp::new(Session::new(), services);
+    let mut app = SplinewrightApp::new(Session::new(), services);
     app.run("file.new", json!({"width": 60, "height": 40})).unwrap();
     app.run("paint.setStroke", json!({"none": true})).unwrap();
     app.run("shape.ellipse", json!({"x": 5, "y": 4, "width": 30, "height": 20})).unwrap();
@@ -36,7 +36,7 @@ fn app(dir: &std::path::Path, web: bool) -> (VectorcraftApp, Log) {
 
 #[test]
 fn every_view_and_format_draws() {
-    let dir = vectorcraft_testkit::temp_dir("sfw-views");
+    let dir = splinewright_testkit::temp_dir("sfw-views");
     let (mut app, _) = app(&dir, false);
     assert_eq!(crate::menus::shortcut_of("file.saveForWeb"), Some("Cmd+Alt+Shift+S"));
     assert!(crate::menus::enabled(&app, "file.saveForWeb"));
@@ -66,7 +66,7 @@ fn every_view_and_format_draws() {
 
 #[test]
 fn save_remembers_and_writes_and_done_only_remembers() {
-    let dir = vectorcraft_testkit::temp_dir("sfw-save");
+    let dir = splinewright_testkit::temp_dir("sfw-save");
     let (mut app, _) = app(&dir, false);
     app.run("file.saveForWeb", json!({})).unwrap();
     // A preset field loads the preset; the keys set after it win.
@@ -89,7 +89,7 @@ fn save_remembers_and_writes_and_done_only_remembers() {
     set(&mut app, "discard", json!(true));
     assert_eq!(confirm(&mut app).unwrap()["remembered"], true);
     assert!(app.ui.dialog.is_none());
-    assert_eq!(app.session.last_web_settings().format, vectorcraft_engine::cmd::webexport::WebFormat::Png24);
+    assert_eq!(app.session.last_web_settings().format, splinewright_engine::cmd::webexport::WebFormat::Png24);
     assert!(!dir.join("Untitled-1.png").exists());
     // Bad settings keep the dialog open, with nothing written.
     app.run("file.saveForWeb", json!({})).unwrap();
@@ -100,7 +100,7 @@ fn save_remembers_and_writes_and_done_only_remembers() {
 
 #[test]
 fn html_output_with_slices_saves_the_page_and_images() {
-    let dir = vectorcraft_testkit::temp_dir("sfw-html");
+    let dir = splinewright_testkit::temp_dir("sfw-html");
     let (mut app, _) = app(&dir, false);
     app.run("object.slice.create", json!({"x": 0, "y": 0, "width": 30, "height": 20})).unwrap();
     app.run("file.saveForWeb", json!({})).unwrap();
@@ -116,7 +116,7 @@ fn html_output_with_slices_saves_the_page_and_images() {
 
 #[test]
 fn the_web_downloads_and_has_no_browser_preview() {
-    let dir = vectorcraft_testkit::temp_dir("sfw-web");
+    let dir = splinewright_testkit::temp_dir("sfw-web");
     let (mut app, log) = app(&dir, true);
     assert_eq!((spec(save_for_web::KIND).ok_label.unwrap())(&app), "Download");
     let r = app.run("file.saveForWeb", json!({"format": "png8", "output": "html"})).unwrap();
@@ -128,7 +128,7 @@ fn the_web_downloads_and_has_no_browser_preview() {
 
 #[test]
 fn preview_in_browser_opens_the_page() {
-    let dir = vectorcraft_testkit::temp_dir("sfw-browser");
+    let dir = splinewright_testkit::temp_dir("sfw-browser");
     let (mut app, log) = app(&dir, false);
     let r = app.run("file.saveForWeb.browser", json!({"format": "jpg"})).unwrap();
     let page = r["path"].as_str().unwrap().to_string();

@@ -5,10 +5,10 @@ use std::collections::HashMap;
 
 use egui::{Sense, Ui, vec2};
 use serde_json::{Value, json};
-use vectorcraft_doc::{Appearance, Document, Node, color::Color, color::Paint};
+use splinewright_doc::{Appearance, Document, Node, color::Color, color::Paint};
 
 use super::{first_selected, pstate, set_pstate};
-use crate::VectorcraftApp;
+use crate::SplinewrightApp;
 use crate::theme::Tokens;
 use crate::widgets::{self, PanelDrag, menu_item};
 
@@ -16,7 +16,7 @@ const KINDS: [(&str, &str); 5] =
     [("calligraphic", "Calligraphic"), ("scatter", "Scatter"), ("art", "Art"), ("bristle", "Bristle"), ("pattern", "Pattern")];
 
 /// (name, type) of every brush in the active document's library.
-pub fn brushes(app: &mut VectorcraftApp) -> (Vec<(String, String)>, Option<String>) {
+pub fn brushes(app: &mut SplinewrightApp) -> (Vec<(String, String)>, Option<String>) {
     let Ok(v) = app.run("brush.list", json!({})) else { return (vec![], None) };
     let list = v["brushes"]
         .as_array()
@@ -35,13 +35,13 @@ fn preview(ui: &Ui, def: &Value, size: egui::Vec2) -> Option<egui::TextureHandle
         let mut ap = Appearance::basic(Paint::None, Paint::solid(Color::BLACK), 1.0);
         ap.stroke_mut()?.brush = Some(name);
         // A gentle S-curve across the swatch.
-        let mut bp = vectorcraft_geom::BezPath::new();
+        let mut bp = splinewright_geom::BezPath::new();
         let (x0, x1) = (h * 0.5, w - h * 0.5);
         bp.move_to((x0, h * 0.5));
         bp.curve_to((x0 + (x1 - x0) * 0.35, h * 0.1), (x0 + (x1 - x0) * 0.65, h * 0.9), (x1, h * 0.5));
         let id = doc.alloc_id();
         let l = doc.layers[0].id;
-        doc.insert(Some(l), 0, Node::path(id, vectorcraft_geom::PathData::from_bezpath(&bp), ap)).ok()?;
+        doc.insert(Some(l), 0, Node::path(id, splinewright_geom::PathData::from_bezpath(&bp), ap)).ok()?;
         Some(doc)
     })
 }
@@ -55,11 +55,11 @@ pub(crate) fn chip(ui: &Ui, r: egui::Rect, def: &Value) {
     }
 }
 
-fn selected_brush(app: &VectorcraftApp) -> Option<String> {
+fn selected_brush(app: &SplinewrightApp) -> Option<String> {
     first_selected(app).and_then(|n| n.appearance.stroke().and_then(|s| s.brush.clone()))
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut SplinewrightApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let (list, current) = brushes(app);
     let sel_brush = selected_brush(app);
@@ -169,7 +169,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     });
 }
 
-pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(app: &mut SplinewrightApp, ui: &mut Ui) {
     let sel = selected_brush(app);
     let (_, current) = brushes(app);
     let target = sel.clone().or(current);
@@ -230,13 +230,13 @@ pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
 #[cfg(test)]
 mod tests {
     use egui::{Pos2, Rect, pos2};
-    use vectorcraft_doc::NodeId;
-    use vectorcraft_engine::Session;
+    use splinewright_doc::NodeId;
+    use splinewright_engine::Session;
 
     use super::*;
 
     /// One headless frame of the panel, 236 pt wide as in the dock.
-    fn frame(ctx: &egui::Context, app: &mut VectorcraftApp, events: Vec<egui::Event>) {
+    fn frame(ctx: &egui::Context, app: &mut SplinewrightApp, events: Vec<egui::Event>) {
         let raw = egui::RawInput { screen_rect: Some(Rect::from_min_size(Pos2::ZERO, vec2(236.0, 600.0))), events, ..Default::default() };
         let mut out = ctx.run_ui(raw, |ui| show(app, ui));
         out.textures_delta.clear();
@@ -248,7 +248,7 @@ mod tests {
 
     #[test]
     fn art_dropped_on_the_panel_becomes_an_art_brush_and_a_brush_drags_out() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 200, "height": 100})).unwrap();
         let id = app.run("shape.star", json!({"cx": 50, "cy": 50, "radius1": 20, "radius2": 9, "points": 5})).unwrap()["id"].as_u64().unwrap();
         let ctx = egui::Context::default();

@@ -3,8 +3,8 @@
 
 use super::*;
 use kurbo::{Affine, Circle, Shape};
-use vectorcraft_doc::{CharStyle, Justify, TextKind, TextRun};
-use vectorcraft_geom::PathData;
+use splinewright_doc::{CharStyle, Justify, TextKind, TextRun};
+use splinewright_geom::PathData;
 
 fn db() -> &'static FontDb {
     FontDb::global()
@@ -274,7 +274,7 @@ fn burasagari_keeps_the_every_line_composer_for_latin_text() {
     };
     let every_line = ends(&t, Composer::EveryLine);
     assert_ne!(every_line, ends(&t, Composer::SingleLine));
-    t.para.burasagari = vectorcraft_doc::Burasagari::Standard;
+    t.para.burasagari = splinewright_doc::Burasagari::Standard;
     assert_eq!(ends(&t, Composer::EveryLine), every_line);
 }
 

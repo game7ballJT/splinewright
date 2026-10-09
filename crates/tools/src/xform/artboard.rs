@@ -11,7 +11,7 @@
 //! snap too. A new artboard's corners snap as drawn points do ([`DrawSnap`]).
 
 use serde_json::{Value, json};
-use vectorcraft_geom::{Point, Rect, Vec2};
+use splinewright_geom::{Point, Rect, Vec2};
 
 use super::{BLUE, polygon, rect_corners};
 use crate::bbox::{Handle, hit_handle, move_delta, scale_for_drag};
@@ -99,7 +99,7 @@ impl ArtboardTool {
             return Point::new(p.x.round(), p.y.round());
         }
         if cx.snap_to_grid {
-            return vectorcraft_geom::snap::snap_point_to_grid(p, cx.grid_step());
+            return splinewright_geom::snap::snap_point_to_grid(p, cx.grid_step());
         }
         let Some(t) = &self.targets else { return p };
         let offsets: &[Vec2] = if bleed == Vec2::ZERO { &[] } else { &[bleed] };
@@ -117,7 +117,7 @@ impl ArtboardTool {
             return Vec2::new((tl.x + d.x).round() - tl.x, (tl.y + d.y).round() - tl.y);
         }
         if cx.snap_to_grid {
-            return vectorcraft_geom::snap::snap_point_to_grid(tl + d, cx.grid_step()) - tl;
+            return splinewright_geom::snap::snap_point_to_grid(tl + d, cx.grid_step()) - tl;
         }
         let Some(t) = (if copy { &self.copy_targets } else { &self.targets }) else { return d };
         let moved = rect + d;
@@ -351,7 +351,7 @@ impl Tool for ArtboardTool {
 mod tests {
     use super::*;
     use crate::testutil::*;
-    use vectorcraft_doc::Selection;
+    use splinewright_doc::Selection;
 
     fn ev(kind: PointerKind, x: f64, y: f64) -> PointerEvent {
         PointerEvent::new(kind, x, y)
@@ -359,7 +359,7 @@ mod tests {
 
     /// [`doc_with_rect`] (artboard 1 at 0–500, a rectangle at 100–200) plus Artboard 2 at x 600–800,
     /// y 0–200.
-    fn two_boards() -> vectorcraft_doc::Document {
+    fn two_boards() -> splinewright_doc::Document {
         let (mut d, _) = doc_with_rect();
         let mut ab = d.artboards[0].clone();
         ab.rect = Rect::new(600.0, 0.0, 800.0, 200.0);
@@ -424,8 +424,8 @@ mod tests {
         let mut d = two_boards();
         let l = d.layers[0].id;
         let id = d.alloc_id();
-        let art = vectorcraft_geom::shapes::rectangle(Rect::new(650.0, 50.0, 660.0, 60.0));
-        d.insert(Some(l), 0, vectorcraft_doc::Node::path(id, art, vectorcraft_doc::Appearance::default_art())).unwrap();
+        let art = splinewright_geom::shapes::rectangle(Rect::new(650.0, 50.0, 660.0, 60.0));
+        d.insert(Some(l), 0, splinewright_doc::Node::path(id, art, splinewright_doc::Appearance::default_art())).unwrap();
         let (s, p) = (Selection::default(), paint());
         let c = cx(&d, &s, &p);
         let mut t = ArtboardTool::default();

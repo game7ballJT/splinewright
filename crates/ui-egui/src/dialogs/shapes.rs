@@ -4,7 +4,7 @@
 use serde_json::{Value, json};
 
 use super::{DialogSpec, run_and_close};
-use crate::VectorcraftApp;
+use crate::SplinewrightApp;
 use crate::state::Dialog;
 
 pub(super) const SPEC: DialogSpec = DialogSpec { heading: |d| title(&d.kind).into(), confirm, ..DialogSpec::FORM };
@@ -20,7 +20,7 @@ fn title(kind: &str) -> &'static str {
     }
 }
 
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut SplinewrightApp, d: &Dialog) -> Result<Value, String> {
     let (x, y) = (d.f64("x", 0.0), d.f64("y", 0.0));
     let (id, params) = match d.kind.as_str() {
         "ellipse" => ("shape.ellipse", json!({"x": x, "y": y, "width": d.f64("width", 100.0), "height": d.f64("height", 100.0)})),
@@ -39,7 +39,7 @@ fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
         ),
     };
     // On the active plane while the perspective grid shows, sized in plane units from the click.
-    match vectorcraft_engine::perspective_click(&app.session, id, &params, vectorcraft_geom::Point::new(x, y)) {
+    match splinewright_engine::perspective_click(&app.session, id, &params, splinewright_geom::Point::new(x, y)) {
         Some((id, params)) => run_and_close(app, &id, params),
         None => run_and_close(app, id, params),
     }

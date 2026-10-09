@@ -1,19 +1,19 @@
 //! The dialog registry and the shared frame, drawn headlessly.
 
 use serde_json::json;
-use vectorcraft_engine::Session;
+use splinewright_engine::Session;
 
 use super::*;
 use crate::theme;
 
-fn app() -> VectorcraftApp {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn app() -> SplinewrightApp {
+    let mut app = SplinewrightApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
     app
 }
 
 /// One headless frame of the dialog layer.
-fn frame(app: &mut VectorcraftApp, input: egui::RawInput) {
+fn frame(app: &mut SplinewrightApp, input: egui::RawInput) {
     let ctx = egui::Context::default();
     theme::install_fonts(&ctx);
     theme::apply(&ctx, Default::default());
@@ -26,11 +26,11 @@ fn enter() -> egui::RawInput {
     egui::RawInput { events: vec![key], ..Default::default() }
 }
 
-fn open(app: &mut VectorcraftApp, kind: &str, fields: serde_json::Value) {
+fn open(app: &mut SplinewrightApp, kind: &str, fields: serde_json::Value) {
     app.ui.dialog = Some(Dialog::new(kind, fields));
 }
 
-fn objects(app: &VectorcraftApp) -> usize {
+fn objects(app: &SplinewrightApp) -> usize {
     app.session.doc().unwrap().doc.layers.iter().map(|l| l.children().map_or(0, |c| c.len())).sum()
 }
 
@@ -174,7 +174,7 @@ fn effect_dialog_applies_to_its_appearance_item() {
     app.run("effect.dialog", json!({"effect": "distort.roughen", "item": 1})).unwrap();
     frame(&mut app, Default::default());
     confirm(&mut app).unwrap();
-    let n = app.session.doc().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().clone();
+    let n = app.session.doc().unwrap().doc.node(splinewright_doc::NodeId(id)).unwrap().clone();
     assert_eq!(n.appearance.items[1].effects().len(), 1, "the effect goes to the stroke");
     assert!(n.appearance.effects.is_empty() && n.appearance.items[0].effects().is_empty());
 }
@@ -188,7 +188,7 @@ fn dialogs_are_as_tall_as_their_content() {
     theme::install_fonts(&ctx);
     theme::apply(&ctx, Default::default());
     let screen = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1600.0, 1000.0));
-    let height = |app: &mut VectorcraftApp, kind: &str, fields: serde_json::Value| {
+    let height = |app: &mut SplinewrightApp, kind: &str, fields: serde_json::Value| {
         open(app, kind, fields);
         for _ in 0..30 {
             let input = egui::RawInput { screen_rect: Some(screen), ..Default::default() };
@@ -249,7 +249,7 @@ fn dialogs_do_not_stretch_to_the_screen() {
 }
 
 /// The dialog window of `app`'s open dialog after a few frames in a `w` × 900 window.
-fn dialog_rect(app: &mut VectorcraftApp, w: f32) -> egui::Rect {
+fn dialog_rect(app: &mut SplinewrightApp, w: f32) -> egui::Rect {
     let ctx = egui::Context::default();
     theme::install_fonts(&ctx);
     theme::apply(&ctx, Default::default());
@@ -322,12 +322,12 @@ fn a_dialog_opens_with_its_first_field_focused_so_typing_and_enter_apply() {
     let ctx = egui::Context::default();
     theme::install_fonts(&ctx);
     theme::apply(&ctx, Default::default());
-    let frame = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
+    let frame = |app: &mut SplinewrightApp, events: Vec<egui::Event>| {
         let mut out = ctx.run_ui(egui::RawInput { events, ..Default::default() }, |ui| show(app, ui.ctx()));
         out.textures_delta.clear();
     };
     let enter = || egui::Event::Key { key: egui::Key::Enter, physical_key: None, pressed: true, repeat: false, modifiers: Default::default() };
-    let bounds = |app: &VectorcraftApp| app.session.doc().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
+    let bounds = |app: &SplinewrightApp| app.session.doc().unwrap().doc.node(splinewright_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
     // Object › Transform › Rotate…: type 90 over the angle, press Enter.
     crate::menus::invoke(&mut app, "object.rotate", json!({}));
     frame(&mut app, vec![]);

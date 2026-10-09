@@ -1,9 +1,9 @@
 //! Type redraws in a font that becomes available while it is on screen (fonts added, Refresh Font
 //! List).
 
-use vectorcraft_doc::text::{CharStyle, TextObject};
-use vectorcraft_doc::{Node, NodeKind};
-use vectorcraft_geom::Point;
+use splinewright_doc::text::{CharStyle, TextObject};
+use splinewright_doc::{Node, NodeKind};
+use splinewright_geom::Point;
 
 use super::*;
 
@@ -34,7 +34,7 @@ fn type_redraws_when_its_font_becomes_available() {
     let opts = RenderOptions { background: Some([255, 255, 255, 255]), ..Default::default() };
     let mut r = Renderer::new();
     let before = r.render(&d, 300, 150, Affine::IDENTITY, &opts).pixels;
-    assert!(vectorcraft_text::FontDb::global().add_font(serif_as(FAMILY)) > 0);
+    assert!(splinewright_text::FontDb::global().add_font(serif_as(FAMILY)) > 0);
     let after = r.render(&d, 300, 150, Affine::IDENTITY, &opts).pixels;
     assert_ne!(before, after, "drawn in the font that arrived");
     assert_eq!(after, Renderer::new().render(&d, 300, 150, Affine::IDENTITY, &opts).pixels, "as a new renderer draws it");

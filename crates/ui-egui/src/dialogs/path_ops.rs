@@ -3,7 +3,7 @@
 use serde_json::{Value, json};
 
 use super::{DialogSpec, form, run_and_close};
-use crate::VectorcraftApp;
+use crate::SplinewrightApp;
 use crate::state::Dialog;
 
 pub(super) const SPEC: DialogSpec = DialogSpec { heading: |d| title(&d.kind).into(), body, confirm, preview: true, ..DialogSpec::FORM };
@@ -29,7 +29,7 @@ fn command(d: &Dialog) -> (&'static str, Value) {
     }
 }
 
-fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
+fn body(app: &mut SplinewrightApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     form::grid(ui, d, app.session.general_unit());
     if d.kind == "offsetPath" {
         let (id, params) = command(d);
@@ -38,7 +38,7 @@ fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     false
 }
 
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut SplinewrightApp, d: &Dialog) -> Result<Value, String> {
     let (id, params) = command(d);
     if d.kind == "offsetPath" { form::commit_preview(app, id, params) } else { run_and_close(app, id, params) }
 }

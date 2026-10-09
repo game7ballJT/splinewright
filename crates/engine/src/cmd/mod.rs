@@ -9,6 +9,7 @@ pub mod clipboard;
 mod colorcmds;
 pub mod colormgmt;
 pub mod colortheme;
+pub mod contrast;
 mod create;
 mod css;
 mod cut;
@@ -60,6 +61,7 @@ mod recolor;
 pub mod recovery;
 mod select;
 pub(crate) mod slices;
+mod spellcmds;
 mod stroke;
 mod style;
 pub mod stylelib;
@@ -79,9 +81,9 @@ mod xform;
 
 use serde::Serialize;
 use serde_json::Value;
-use vectorcraft_color::Color;
-use vectorcraft_doc::NodeId;
-use vectorcraft_geom::{Affine, Point};
+use splinewright_color::Color;
+use splinewright_doc::NodeId;
+use splinewright_geom::{Affine, Point};
 
 use crate::{EngineError, Result, Session};
 
@@ -267,6 +269,8 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(cut::specs());
         v.extend(halftone::specs());
         v.extend(perspgrid::specs());
+        v.extend(spellcmds::specs());
+        v.extend(contrast::specs());
         v
     })
 }
@@ -320,7 +324,7 @@ pub fn matrix_param(p: &Value, key: &str) -> Option<Affine> {
 pub fn color_value(v: &Value) -> Option<Color> {
     match v {
         // A hex, or a colour key ("cmyk 0 100 100 0", as Recolor Artwork lists colours).
-        Value::String(s) => Color::from_hex(s).or_else(|| vectorcraft_color::recolor::ColorKey::parse(s).map(|k| k.color())),
+        Value::String(s) => Color::from_hex(s).or_else(|| splinewright_color::recolor::ColorKey::parse(s).map(|k| k.color())),
         Value::Array(a) if a.len() >= 3 => Some(Color::rgb(a[0].as_f64()? as f32, a[1].as_f64()? as f32, a[2].as_f64()? as f32)),
         Value::Object(o) => {
             if let (Some(c), Some(m), Some(y), Some(k)) = (o.get("c"), o.get("m"), o.get("y"), o.get("k")) {
@@ -358,7 +362,7 @@ pub(crate) fn ok() -> Result<Value> {
 /// Leaves whose appearance a paint command changes: groups and layers expand to their contents,
 /// and compound paths own their children's appearance.
 pub(crate) fn leaf_targets(s: &Session, ids: &[NodeId]) -> Result<Vec<NodeId>> {
-    use vectorcraft_doc::NodeKind;
+    use splinewright_doc::NodeKind;
     let d = &s.doc()?.doc;
     let mut out = vec![];
     for id in ids {
@@ -390,7 +394,7 @@ pub(crate) fn unique_name(base: &str, taken: impl Fn(&str) -> bool) -> String {
     (2..).map(|i| format!("{base} {i}")).find(|n| !taken(n)).unwrap_or_else(|| base.to_string())
 }
 
-pub(crate) use vectorcraft_doc::range::parse_range;
+pub(crate) use splinewright_doc::range::parse_range;
 
 /// A date param in Unix seconds that defaults to the clock: `None` when absent (now, see
 /// [`clock_date`]), `Some(None)` for null (no date), else `Some(Some(seconds))`.
@@ -406,7 +410,7 @@ pub(crate) fn date_param(p: &Value, key: &str, cmd: &str) -> Result<Option<Optio
 /// no clock). It joins the running command's journal entry as `key`, so a replay of the journal
 /// gives the same date whenever it runs (an action leaves it out: [`crate::Session::journal_for_action`]).
 pub(crate) fn clock_date(s: &mut Session, key: &str, given: Option<Option<i64>>) -> Option<i64> {
-    let t = given.unwrap_or_else(vectorcraft_doc::metadata::now_unix);
+    let t = given.unwrap_or_else(splinewright_doc::metadata::now_unix);
     s.note_journal(key, serde_json::json!(t));
     t
 }

@@ -11,13 +11,13 @@
 //! fields from that preset; changing any of them afterwards makes the settings custom.
 
 use serde_json::{Map, Value, json};
-use vectorcraft_doc::Unit;
-use vectorcraft_engine::cmd::newdoc::{self, ArtboardLayout, DocSettings, MAX_ARTBOARDS, PreviewMode, RASTER_PPI};
+use splinewright_doc::Unit;
+use splinewright_engine::cmd::newdoc::{self, ArtboardLayout, DocSettings, MAX_ARTBOARDS, PreviewMode, RASTER_PPI};
 
 use super::{DialogSpec, form};
 use crate::state::Dialog;
 use crate::theme::{self, Tokens};
-use crate::{VectorcraftApp, widgets};
+use crate::{SplinewrightApp, widgets};
 
 pub(super) const KIND: &str = "newDocument";
 /// More Settings.
@@ -67,7 +67,7 @@ const HEIGHT: f32 = 600.0;
 
 /// Open New Document on the most recent settings (or Letter), named after the next untitled
 /// document.
-pub fn open(app: &mut VectorcraftApp) {
+pub fn open(app: &mut SplinewrightApp) {
     let category = if app.session.prefs.recent_new_docs.is_empty() { "Print" } else { "Recent" };
     let first = newdoc::category(&app.session, category).and_then(|v| v.into_iter().next()).unwrap_or_default();
     let mut d = Dialog::new(KIND, json!({ "category": category, "name": app.session.peek_untitled(), "advanced": false }));
@@ -93,7 +93,7 @@ fn apply(d: &mut Dialog, s: &DocSettings) {
 
 /// Keep the fields and the chosen preset in step: a new `preset` (also from `ui.dialog.set`) fills
 /// the fields; a changed field makes the settings custom.
-fn sync(app: &VectorcraftApp, d: &mut Dialog) {
+fn sync(app: &SplinewrightApp, d: &mut Dialog) {
     let preset = d.str("preset");
     match d.fields.get(APPLIED).and_then(Value::as_object) {
         Some(a) if a.get("preset").and_then(Value::as_str) == Some(preset.as_str()) => {
@@ -115,7 +115,7 @@ fn sync(app: &VectorcraftApp, d: &mut Dialog) {
 }
 
 /// Create the document; the dialog stays open when that fails (bad size, …).
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut SplinewrightApp, d: &Dialog) -> Result<Value, String> {
     let mut p: Map<String, Value> = PARAMS.iter().filter_map(|k| Some((k.to_string(), d.fields.get(*k)?.clone()))).collect();
     // Recent entries such as "Custom" aren't presets file.new knows.
     if newdoc::find(&app.session, &d.str("preset")).is_none() {
@@ -165,7 +165,7 @@ struct Buttons {
 
 impl Buttons {
     /// Act on the buttons (Enter also creates) once the window is drawn.
-    fn finish(self, app: &mut VectorcraftApp, ctx: &egui::Context, d: Dialog) {
+    fn finish(self, app: &mut SplinewrightApp, ctx: &egui::Context, d: Dialog) {
         let create = self.create || ctx.input(|i| i.key_pressed(egui::Key::Enter)) && !ctx.memory(|m| m.focused().is_some());
         app.ui.dialog = Some(d);
         if self.close {
@@ -176,7 +176,7 @@ impl Buttons {
     }
 }
 
-fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
+fn show(app: &mut SplinewrightApp, ctx: &egui::Context) {
     let Some(mut d) = app.ui.dialog.clone() else { return };
     sync(app, &mut d);
     let t = Tokens::get(ctx);
@@ -206,7 +206,7 @@ fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
 }
 
 /// The category tabs and the chosen category's preset cards.
-fn presets(app: &VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) {
+fn presets(app: &SplinewrightApp, ui: &mut egui::Ui, d: &mut Dialog) {
     let t = Tokens::get(ui.ctx());
     let names: Vec<&str> = newdoc::category_names().collect();
     let cat = names.iter().position(|n| n.eq_ignore_ascii_case(&d.str("category"))).unwrap_or(0);
@@ -287,7 +287,7 @@ pub fn preset_card(ui: &mut egui::Ui, s: &DocSettings, selected: bool) -> egui::
 }
 
 /// The Preset Details column.
-fn details(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog, b: &mut Buttons) {
+fn details(app: &mut SplinewrightApp, ui: &mut egui::Ui, d: &mut Dialog, b: &mut Buttons) {
     let t = Tokens::get(ui.ctx());
     ui.spacing_mut().item_spacing = egui::vec2(6.0, 4.0);
     let top = ui.cursor().top();
@@ -352,7 +352,7 @@ fn details(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog, b: &mut 
 }
 
 /// Save Preset: the preset's name, Save and Cancel.
-fn save_row(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) {
+fn save_row(app: &mut SplinewrightApp, ui: &mut egui::Ui, d: &mut Dialog) {
     ui.add_space(4.0);
     form::caption(ui, tl!("Preset Name"));
     ui.horizontal(|ui| {
@@ -471,7 +471,7 @@ fn advanced(ui: &mut egui::Ui, d: &mut Dialog, label: f32, field: f32) {
 }
 
 /// More Settings: the classic form of the same fields.
-fn show_more(app: &mut VectorcraftApp, ctx: &egui::Context) {
+fn show_more(app: &mut SplinewrightApp, ctx: &egui::Context) {
     let Some(mut d) = app.ui.dialog.clone() else { return };
     sync(app, &mut d);
     let t = Tokens::get(ctx);
@@ -589,9 +589,9 @@ fn show_more(app: &mut VectorcraftApp, ctx: &egui::Context) {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use vectorcraft_engine::Session;
+    use splinewright_engine::Session;
 
-    use crate::VectorcraftApp;
+    use crate::SplinewrightApp;
 
     /// Cards translate the built-in presets' names only: Recent and Saved show the user's names.
     #[test]
@@ -601,7 +601,7 @@ mod tests {
         assert_eq!(super::preset_name("Black"), "Black");
     }
 
-    fn frame(app: &mut VectorcraftApp) -> egui::FullOutput {
+    fn frame(app: &mut SplinewrightApp) -> egui::FullOutput {
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
         crate::theme::apply(&ctx, Default::default());
@@ -611,17 +611,17 @@ mod tests {
         out
     }
 
-    fn set(app: &mut VectorcraftApp, k: &str, v: serde_json::Value) {
+    fn set(app: &mut SplinewrightApp, k: &str, v: serde_json::Value) {
         app.ui.dialog.as_mut().unwrap().fields.insert(k.into(), v);
     }
 
-    fn field(app: &VectorcraftApp, k: &str) -> serde_json::Value {
+    fn field(app: &SplinewrightApp, k: &str) -> serde_json::Value {
         app.ui.dialog.as_ref().unwrap().fields.get(k).cloned().unwrap_or_default()
     }
 
     #[test]
     fn a_preset_fills_the_details_and_create_makes_the_document() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.run("file.newDialog", json!({})).unwrap();
         frame(&mut app);
         assert_eq!((field(&app, "category"), field(&app, "preset"), field(&app, "name")), (json!("Print"), json!("Letter"), json!("Untitled-1")));
@@ -642,7 +642,7 @@ mod tests {
         let st = app.session.active().unwrap();
         let rects: Vec<_> = st.doc.artboards.iter().map(|a| (a.rect.x0, a.rect.y0)).collect();
         assert_eq!(rects, [(0.0, 0.0), (3850.0, 0.0), (0.0, 2170.0), (3850.0, 2170.0)]);
-        assert_eq!(st.doc.setup.background, vectorcraft_doc::Background::White);
+        assert_eq!(st.doc.setup.background, splinewright_doc::Background::White);
         assert!(app.ui.view.pixel_preview, "Pixel preview mode");
         // Next time Recent opens on it.
         app.run("file.newDialog", json!({})).unwrap();
@@ -652,10 +652,10 @@ mod tests {
 
     #[test]
     fn every_category_and_more_settings_draw_and_save_preset_saves() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = SplinewrightApp::new(Session::new(), Default::default());
         app.run("file.newDialog", json!({})).unwrap();
         set(&mut app, "advanced", json!(true));
-        for c in vectorcraft_engine::cmd::newdoc::category_names() {
+        for c in splinewright_engine::cmd::newdoc::category_names() {
             set(&mut app, "category", json!(c));
             let out = frame(&mut app);
             assert!(!out.shapes.is_empty());

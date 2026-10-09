@@ -8,7 +8,7 @@ use serde_json::{Map, Value, json};
 use super::*;
 use crate::Prefs;
 use crate::units::Measure;
-use vectorcraft_doc::Unit;
+use splinewright_doc::Unit;
 
 /// What kind of value a preference holds.
 #[derive(Clone, Copy, Debug)]
@@ -178,6 +178,7 @@ pub const PREF_SPECS: &[PrefSpec] = &[
     p!("baselineShiftIncrement", "Type", "", "Baseline Shift", len(0.001, 1296.0, Type)),
     p!("showEastAsianOptions", "Type", "Language Options", "Show East Asian Options", bool),
     p!("showIndicOptions", "Type", "Language Options", "Show Indic Options", bool),
+    p!("customDictionary", "Type", "Spelling", "Custom Dictionary", text),
     p!("typeSelectionByPathOnly", "Type", "Options", "Type Object Selection by Path Only", bool),
     p!("fontNamesInEnglish", "Type", "Options", "Show Font Names in English", bool),
     p!("autoSizeAreaType", "Type", "Options", "Auto Size New Area Type", bool),
@@ -356,7 +357,7 @@ fn validate_group(key: &str, current: &Value, v: &Value) -> std::result::Result<
             if let (Some(o), Some(p)) = (merged.as_object_mut(), v.as_object()) {
                 o.extend(p.clone());
             }
-            serde_json::from_value::<vectorcraft_tools::distort::perspective::widget::WidgetOptions>(merged)
+            serde_json::from_value::<splinewright_tools::distort::perspective::widget::WidgetOptions>(merged)
                 .map(|o| json!(o))
                 .map_err(|e| e.to_string())
         }
@@ -461,7 +462,7 @@ impl Session {
         let history_changed = p.history_states != self.prefs.history_states;
         let tile_edge_changed = p.pattern_tile_edge_color != self.prefs.pattern_tile_edge_color;
         self.prefs = p;
-        vectorcraft_render::set_default_threads(u16::try_from(self.prefs.render_threads).ok());
+        splinewright_render::set_default_threads(u16::try_from(self.prefs.render_threads).ok());
         for st in &mut self.docs {
             if history_changed {
                 st.history.limit = self.prefs.history_states as usize;

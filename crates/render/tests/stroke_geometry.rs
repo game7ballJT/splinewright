@@ -1,15 +1,15 @@
-//! Pixel tests for the shared stroke geometry (`vectorcraft_effects::stroke`) on the canvas:
+//! Pixel tests for the shared stroke geometry (`splinewright_effects::stroke`) on the canvas:
 //! dotted lines (zero-length dashes) and arrowheads (hollow kinds, alignment, compositing).
 // Integration tests: unwrapping and panicking on failure is fine here, unlike in shipped code (AGENTS.md › Robustness).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-use vectorcraft_color::{Color, Gradient, GradientKind, GradientPaint, GradientStop, Paint};
-use vectorcraft_doc::{Appearance, AppearanceItem, ArrowAlign, Arrowhead, Dash, Document, LineCap, StrokeLayer};
-use vectorcraft_geom::{Point, Rect, Shape, shapes};
-use vectorcraft_render::{Renderer, effects};
-use vectorcraft_testkit::fixtures::DocBuilder;
-use vectorcraft_testkit::raster::{Image, assert_similar, render_region};
-use vectorcraft_testkit::svg;
+use splinewright_color::{Color, Gradient, GradientKind, GradientPaint, GradientStop, Paint};
+use splinewright_doc::{Appearance, AppearanceItem, ArrowAlign, Arrowhead, Dash, Document, LineCap, StrokeLayer};
+use splinewright_geom::{Point, Rect, Shape, shapes};
+use splinewright_render::{Renderer, effects};
+use splinewright_testkit::fixtures::DocBuilder;
+use splinewright_testkit::raster::{Image, assert_similar, render_region};
+use splinewright_testkit::svg;
 
 /// Pixels per point in these tests.
 const S: f64 = 4.0;
@@ -172,7 +172,7 @@ fn a_gradient_runs_on_into_the_head() {
 
 #[test]
 fn a_head_past_the_end_counts_in_the_visual_bounds_and_is_never_culled() {
-    let d = arrow_doc(Arrowhead::Triangle, ArrowAlign::Extend, 1.0, |s| s.join = vectorcraft_doc::LineJoin::Round);
+    let d = arrow_doc(Arrowhead::Triangle, ArrowAlign::Extend, 1.0, |s| s.join = splinewright_doc::LineJoin::Round);
     let h = head_of(&d);
     let vb = d.layers[0].children().unwrap()[0].visual_bounds().unwrap();
     let head = h.outline.bounding_box();

@@ -2,12 +2,12 @@
 
 ## Web build
 
-`apps/vectorcraft-web` runs the same `VectorcraftApp` in the browser through eframe's web runner. The renderer is wgpu: WebGPU where the browser has it, WebGL2 otherwise. It is Rust only; the only JavaScript is the glue wasm-bindgen generates.
+`apps/splinewright-web` runs the same `SplinewrightApp` in the browser through eframe's web runner. The renderer is wgpu: WebGPU where the browser has it, WebGL2 otherwise. It is Rust only; the only JavaScript is the glue wasm-bindgen generates.
 
 ```sh
 brew install trunk                 # or: cargo install trunk --locked
 rustup target add wasm32-unknown-unknown
-cd apps/vectorcraft-web
+cd apps/splinewright-web
 trunk build --release              # writes ../../dist/web (index.html, .js glue, .wasm)
 trunk serve --release              # dev server on http://127.0.0.1:8766
 ```
@@ -16,16 +16,16 @@ Any static file server works for `dist/web`, for example `python3 -m http.server
 
 URL flag: `?webgl` forces the WebGL2 backend.
 
-How the web shell (`apps/vectorcraft-web/src/web.rs`) differs from desktop:
+How the web shell (`apps/splinewright-web/src/web.rs`) differs from desktop:
 
 - **Open** sets `Services::open_async`, which shows `rfd::AsyncFileDialog`. The bytes arrive in `Services::inbox`, which the app drains every frame.
 - **Save / Save As / Export** go through `Services::download`: a Blob, an object URL and a temporary `<a download>`, all created from Rust. There is no save dialog, so the suggested name becomes the download name.
-- **Drag-and-drop:** `WebShell` takes the frame's `dropped_files` before the app sees them, reads each with `DroppedFile::bytes_async` and pushes the bytes into the inbox (files dropped on a canvas go to `Services::place_inbox` with their `place::DropAt`: the document they were dropped on, by uid, and the point; `VectorcraftApp::drop_target` decides from the position the page's drag events give). Desktop drags carry no position (winit 0.30 reports none, and the pointer position egui last had is stale), so the desktop app decides by kind: documents open, pictures and text are placed in the middle of the view. A file that arrives after another document became active still lands in its own document, which becomes active again; if that document closed meanwhile, the file is not placed and the status bar says so. (The app's synchronous drop path is compiled out on wasm32.)
-- **Data Recovery** keeps its copies in `localStorage` (`vectorcraft-recovery/<area>/<name>`, shared by the site's tabs), so tabs can't lock their areas the way desktop apps lock a folder (`RecoveryStore::lock`). Each tab holds its area with a heartbeat it refreshes every minute and, where the browser has Web Locks (secure pages: `https://` or localhost), with a Web Lock named after the area (`apps/vectorcraft-web/src/locks.rs`, through `js_sys::Reflect` since web-sys has them only as an unstable API). The browser releases the lock only when the tab is gone, not while its timers are paused in the background, which a heartbeat can't tell apart (#367). `navigator.locks.query()` is asynchronous, so the shell keeps a snapshot refreshed every 10 seconds (taken once before the first frame); a snapshot older than a minute counts every area as held. An area is offered as a crash's leftovers only when no tab holds its lock and its heartbeat is older than three intervals. Without Web Locks a paused tab can still be taken for gone; it repairs that when it resumes: its next heartbeat (or recovery save) writes again the copies missing from its area, and a heartbeat newer than the one the other tab wrote taking the area over makes the area running again for that tab.
+- **Drag-and-drop:** `WebShell` takes the frame's `dropped_files` before the app sees them, reads each with `DroppedFile::bytes_async` and pushes the bytes into the inbox (files dropped on a canvas go to `Services::place_inbox` with their `place::DropAt`: the document they were dropped on, by uid, and the point; `SplinewrightApp::drop_target` decides from the position the page's drag events give). Desktop drags carry no position (winit 0.30 reports none, and the pointer position egui last had is stale), so the desktop app decides by kind: documents open, pictures and text are placed in the middle of the view. A file that arrives after another document became active still lands in its own document, which becomes active again; if that document closed meanwhile, the file is not placed and the status bar says so. (The app's synchronous drop path is compiled out on wasm32.)
+- **Data Recovery** keeps its copies in `localStorage` (`splinewright-recovery/<area>/<name>`, shared by the site's tabs), so tabs can't lock their areas the way desktop apps lock a folder (`RecoveryStore::lock`). Each tab holds its area with a heartbeat it refreshes every minute and, where the browser has Web Locks (secure pages: `https://` or localhost), with a Web Lock named after the area (`apps/splinewright-web/src/locks.rs`, through `js_sys::Reflect` since web-sys has them only as an unstable API). The browser releases the lock only when the tab is gone, not while its timers are paused in the background, which a heartbeat can't tell apart (#367). `navigator.locks.query()` is asynchronous, so the shell keeps a snapshot refreshed every 10 seconds (taken once before the first frame); a snapshot older than a minute counts every area as held. An area is offered as a crash's leftovers only when no tab holds its lock and its heartbeat is older than three intervals. Without Web Locks a paused tab can still be taken for gone; it repairs that when it resumes: its next heartbeat (or recovery save) writes again the copies missing from its area, and a heartbeat newer than the one the other tab wrote taking the area over makes the area running again for that tab.
 - **Losing the graphics (#369):** the browser can drop the page's WebGPU device or WebGL context (a GPU reset, a driver update, too many tabs on the GPU; or a script calling `device.destroy()` / `WEBGL_lose_context.loseContext()`). The app goes on without it, so the shell watches for it: wgpu's device-lost callback for WebGPU, the canvas's `webglcontextlost` event for WebGL2. Both report to a `graphics::GraphicsLoss`, and the next frame of `WebShell::logic` handles it:
-  1. `VectorcraftApp::graphics_lost` writes Data Recovery copies of the modified documents at once (to browser storage, also when Data Recovery is turned off).
-  2. The shell puts a fresh `<canvas>` in place of the dead one (a canvas whose WebGL context is lost can't get another) and starts the same `WebRunner` again on it, with new graphics and a new egui context, handing over the same `VectorcraftApp`: documents, undo history, selection and panels stay as they were. Its `Services` are made again for the new context, and the status bar says the graphics were restarted.
-  3. Textures belong to the egui context they were uploaded to. The app notices the new context (`VectorcraftApp::adopt_context`) and uploads everything again: fonts and theme, the canvas, the place cursor's thumbnails, and every per-thread texture cache (thumbnails, previews, font samples), which are `graphics::TexCache`s for that reason. A new texture cache must be a `TexCache` (or live in the context's `ctx.data`), or it shows stale or wrong pictures after a restart.
+  1. `SplinewrightApp::graphics_lost` writes Data Recovery copies of the modified documents at once (to browser storage, also when Data Recovery is turned off).
+  2. The shell puts a fresh `<canvas>` in place of the dead one (a canvas whose WebGL context is lost can't get another) and starts the same `WebRunner` again on it, with new graphics and a new egui context, handing over the same `SplinewrightApp`: documents, undo history, selection and panels stay as they were. Its `Services` are made again for the new context, and the status bar says the graphics were restarted.
+  3. Textures belong to the egui context they were uploaded to. The app notices the new context (`SplinewrightApp::adopt_context`) and uploads everything again: fonts and theme, the canvas, the place cursor's thumbnails, and every per-thread texture cache (thumbnails, previews, font samples), which are `graphics::TexCache`s for that reason. A new texture cache must be a `TexCache` (or live in the context's `ctx.data`), or it shows stale or wrong pictures after a restart.
   4. If no new graphics can be had (no adapter, WebGL blocked after repeated losses) or the graphics were lost more than three times, the shell gives up: the dead canvas is removed, the app lets go of its recovery area but not its copies (`recovery::leave`: its heartbeat and Web Lock go, so the reloaded page offers the copies at once). The Web Locks are started once, before the first frame, and kept across graphics restarts, so a restarted tab stays the owner of its area and the page says to reload.
 
   To try it, in the browser console: for WebGL2 (`?webgl`), `document.querySelector('canvas').getContext('webgl2').getExtension('WEBGL_lose_context').loseContext()`. For WebGPU, keep the device the page creates (wrap `GPUAdapter.prototype.requestDevice` before the page loads) and call its `destroy()`.
@@ -36,14 +36,14 @@ How the web shell (`apps/vectorcraft-web/src/web.rs`) differs from desktop:
 
 ## Desktop graphics processor
 
-The canvas is rasterized on the CPU (`vectorcraft-render`, vello_cpu); the GPU (wgpu, through eframe) only composites the canvas texture and draws the UI, so any GPU that can show the window will do. The desktop app picks the window's adapter itself (`apps/vectorcraft/src/gpu.rs`, eframe's `native_adapter_selector`) and logs every adapter it found and the one it uses.
+The canvas is rasterized on the CPU (`splinewright-render`, vello_cpu); the GPU (wgpu, through eframe) only composites the canvas texture and draws the UI, so any GPU that can show the window will do. The desktop app picks the window's adapter itself (`apps/splinewright/src/gpu.rs`, eframe's `native_adapter_selector`) and logs every adapter it found and the one it uses.
 
 - **Order:** adapters that report they can't present to the window are never tried; then the one `WGPU_ADAPTER_NAME` names; hardware before software (llvmpipe, WARP); the native backends (Vulkan, Metal, DX12) before OpenGL; then the power preference; then, on Windows, where each GPU is listed under both, a GPU's DX12 adapter before its Vulkan one (Intel's Vulkan driver made the whole window flicker black, #545), keeping the system's order among equals. `WGPU_BACKEND=vulkan` still picks Vulkan.
 - **Preferences › Performance › Graphics Processor** (`gpuPreference`): `automatic` (the default), `lowPower` (Power Saving, the integrated GPU) or `highPerformance` (the discrete GPU). The adapter is chosen when the window opens, so a change applies after a restart.
   - **Automatic on Windows and macOS** is power saving: the system shows frames from any GPU, and presenting frames rendered on a discrete GPU through the integrated one made the window flicker on some hybrid laptops (#306).
   - **Automatic on Linux and the BSDs** keeps the system's order: Mesa's Vulkan device-select layer puts the GPU the desktop runs on first (the integrated one on hybrid laptops; `DRI_PRIME` and `MESA_VK_DEVICE_SELECT` steer it). A Wayland compositor may not accept frames from another GPU: on a desktop whose compositor ran on an NVIDIA GPU, rendering on the Ryzen's integrated GPU made KWin end the window's connection ("importing the supplied dmabufs failed") and 0.5.0 crashed at startup (#502).
   - 0.5.0 saved `powerSaving`, its default, for everyone; it reads as `automatic`.
-- **If the window fails on its adapter while starting up** (an error from wgpu, or a panic inside wgpu or egui-wgpu during the first frames), the app starts again without that adapter and tries the next one, telling which in the status bar; the run that failed keeps its log as `vectorcraft.1.log`. On Unix the new app replaces the process (an AppImage stays mounted); on Windows it starts beside it. The adapters left out travel in `VECTORCRAFT_GPU_SKIP` (`backend:vendor:device`, such as `Vulkan:1002:164e`), one more on each restart, so the restarts end. When no adapter is left, the app logs why and exits with an error instead of panicking.
+- **If the window fails on its adapter while starting up** (an error from wgpu, or a panic inside wgpu or egui-wgpu during the first frames), the app starts again without that adapter and tries the next one, telling which in the status bar; the run that failed keeps its log as `splinewright.1.log`. On Unix the new app replaces the process (an AppImage stays mounted); on Windows it starts beside it. The adapters left out travel in `SPLINEWRIGHT_GPU_SKIP` (`backend:vendor:device`, such as `Vulkan:1002:164e`), one more on each restart, so the restarts end. When no adapter is left, the app logs why and exits with an error instead of panicking.
 - **Environment variables** for when the choice still goes wrong, all read at startup and stronger than the preference:
   - `WGPU_POWER_PREF`: `low`, `high` or `none` (the system's order).
   - `WGPU_ADAPTER_NAME`: part of an adapter's name, any case (`WGPU_ADAPTER_NAME=nvidia`, `=radv`, `=intel`); the names are in the log.
@@ -53,61 +53,61 @@ The canvas is rasterized on the CPU (`vectorcraft-render`, vello_cpu); the GPU (
 
 ## Logs
 
-The desktop app writes its `log` records to standard error and to `logs/vectorcraft.log` next to the preferences (Linux `$XDG_CONFIG_HOME/vectorcraft/logs/`, by default `~/.config/vectorcraft/logs/`; macOS `~/Library/Application Support/VectorCraft/logs/`; Windows `%APPDATA%\VectorCraft\logs\`). A start launched from a desktop menu or the Dock has no terminal, so this file is what to attach to a bug report: the graphics adapter in use, a lost graphics device, panics the engine's guard recovered from and clipboard formats that couldn't be made land there. Each launch moves the previous log to `vectorcraft.1.log` (and that one to `vectorcraft.2.log`), so the log of a run that crashed survives the next start. The file stops growing at 16 MiB. `--version` writes no file, and runs with `VECTORCRAFT_NO_PREFS` log to standard error only.
+The desktop app writes its `log` records to standard error and to `logs/splinewright.log` next to the preferences (Linux `$XDG_CONFIG_HOME/splinewright/logs/`, by default `~/.config/splinewright/logs/`; macOS `~/Library/Application Support/Splinewright/logs/`; Windows `%APPDATA%\Splinewright\logs\`). A start launched from a desktop menu or the Dock has no terminal, so this file is what to attach to a bug report: the graphics adapter in use, a lost graphics device, panics the engine's guard recovered from and clipboard formats that couldn't be made land there. Each launch moves the previous log to `splinewright.1.log` (and that one to `splinewright.2.log`), so the log of a run that crashed survives the next start. The file stops growing at 16 MiB. `--version` writes no file, and runs with `SPLINEWRIGHT_NO_PREFS` log to standard error only.
 
-By default VectorCraft's own crates log at `info` and everything else at `warn`. `RUST_LOG` replaces that with env_logger-style directives, for example `RUST_LOG=debug`, `RUST_LOG=warn,vectorcraft_render=trace` or `RUST_LOG=info,wgpu_core=warn`; a directive ending in `*` covers every target starting with it (`vectorcraft*=debug`). The logger is `apps/vectorcraft/src/logging.rs`. `vectorcraft-cli mcp` has its own logger, which sends records to the MCP client (`docs/mcp.md`).
+By default Splinewright's own crates log at `info` and everything else at `warn`. `RUST_LOG` replaces that with env_logger-style directives, for example `RUST_LOG=debug`, `RUST_LOG=warn,splinewright_render=trace` or `RUST_LOG=info,wgpu_core=warn`; a directive ending in `*` covers every target starting with it (`splinewright*=debug`). The logger is `apps/splinewright/src/logging.rs`. `splinewright-cli mcp` has its own logger, which sends records to the MCP client (`docs/mcp.md`).
 
 ## Environment variables (desktop app)
 
 | Variable | Effect |
 |---|---|
-| `VECTORCRAFT_CONTROL_PORT` | Same as `--control <port>` |
-| `VECTORCRAFT_IN_WINDOW_MENUS` | Any value but empty or `0`: same as `--in-window-menus` (see [macOS: the menu bar](#macos-the-menu-bar)) |
-| `VECTORCRAFT_NO_PREFS` | No preferences read or written, no default Data Recovery folder and no log file (agents' test runs) |
+| `SPLINEWRIGHT_CONTROL_PORT` | Same as `--control <port>` |
+| `SPLINEWRIGHT_IN_WINDOW_MENUS` | Any value but empty or `0`: same as `--in-window-menus` (see [macOS: the menu bar](#macos-the-menu-bar)) |
+| `SPLINEWRIGHT_NO_PREFS` | No preferences read or written, no default Data Recovery folder and no log file (agents' test runs) |
 | `WGPU_POWER_PREF` | Graphics adapter: `low`, `high` or `none` (see [Desktop graphics processor](#desktop-graphics-processor)) |
 | `WGPU_ADAPTER_NAME` | Graphics adapter by (part of) its name, any case (see [Desktop graphics processor](#desktop-graphics-processor)) |
 | `WGPU_BACKEND` | Graphics backends: `vulkan`, `dx12`, `metal`, `gl` |
-| `VECTORCRAFT_GPU_SKIP` | Set by the app when it starts again without a graphics adapter that failed (see [Desktop graphics processor](#desktop-graphics-processor)) |
+| `SPLINEWRIGHT_GPU_SKIP` | Set by the app when it starts again without a graphics adapter that failed (see [Desktop graphics processor](#desktop-graphics-processor)) |
 | `RUST_LOG` | Log levels for standard error and the log file (see [Logs](#logs)) |
 
 ## macOS: the menu bar
 
-On macOS the menus live in the system menu bar, not in the window's app bar (which keeps the brand mark, Home, the search box and the workspace switcher next to the traffic lights). `--in-window-menus` or `VECTORCRAFT_IN_WINDOW_MENUS=1` keeps them in the window, as on Windows, Linux and the web; so does a menu bar AppKit refuses to build (logged). `ui.inspect` says which with `nativeMenuBar`.
+On macOS the menus live in the system menu bar, not in the window's app bar (which keeps the brand mark, Home, the search box and the workspace switcher next to the traffic lights). `--in-window-menus` or `SPLINEWRIGHT_IN_WINDOW_MENUS=1` keeps them in the window, as on Windows, Linux and the web; so does a menu bar AppKit refuses to build (logged). `ui.inspect` says which with `nativeMenuBar`.
 
-- **One menu model.** `crates/ui-egui/src/native_menu.rs` (platform-free, tested on every platform) builds the menu bar from the in-window menus (`menus::menu_tree`, each item through `menus::entry`, which the in-window menus draw too) and lays it out the Mac way: the VectorCraft menu holds About, Settings ▸ (one item per Preferences page, General… ⌘K), Language ▸, Appearance ▸ (UI brightness), Services, Hide VectorCraft ⌃⌘H (⌘H stays View › Hide Edges), Hide Others ⌥⌘H, Show All and Quit ⌘Q (the app's own `app.quit`, so unsaved documents are asked about); those leave Edit and Help. Window starts with Minimize ⌃⌘M and Zoom and ends with Bring All to Front, and Help is the system's Help menu (its search field). A system key a command (or a user's shortcut) already has stays the command's, and the log says so.
-- **The native side** is `apps/vectorcraft/src/mac_menu.rs`: muda (`=0.21.1`, default features off, macOS only, no `unsafe`) builds the `NSMenu`s. Labels, enabled and checked are updated in place when anything they show may have changed (a command ran, the document, its history or selection changed, a click or a key press); a change of structure (a recent file, the language, a shortcut) rebuilds the menus.
+- **One menu model.** `crates/ui-egui/src/native_menu.rs` (platform-free, tested on every platform) builds the menu bar from the in-window menus (`menus::menu_tree`, each item through `menus::entry`, which the in-window menus draw too) and lays it out the Mac way: the Splinewright menu holds About, Settings ▸ (one item per Preferences page, General… ⌘K), Language ▸, Appearance ▸ (UI brightness), Services, Hide Splinewright ⌃⌘H (⌘H stays View › Hide Edges), Hide Others ⌥⌘H, Show All and Quit ⌘Q (the app's own `app.quit`, so unsaved documents are asked about); those leave Edit and Help. Window starts with Minimize ⌃⌘M and Zoom and ends with Bring All to Front, and Help is the system's Help menu (its search field). A system key a command (or a user's shortcut) already has stays the command's, and the log says so.
+- **The native side** is `apps/splinewright/src/mac_menu.rs`: muda (`=0.21.1`, default features off, macOS only, no `unsafe`) builds the `NSMenu`s. Labels, enabled and checked are updated in place when anything they show may have changed (a command ran, the document, its history or selection changed, a click or a key press); a change of structure (a recent file, the language, a shortcut) rebuilds the menus.
 - **Keys stay with egui.** AppKit runs a menu's key equivalents before the window sees the key, so the item's key goes back to egui as the key press it was (⌘X/⌘C/⌘V as egui's Cut/Copy/Paste events), through `raw_input_hook`: `shortcuts::handle` runs it once, user shortcuts apply, and a focused text field keeps ⌘A, ⌘C, ⌘V and ⌘Z. A click runs the item like an in-window click. Bare keys and ⌥/⇧ chords are never key equivalents (they type).
-- Built and clippy-checked for `aarch64-apple-darwin` and `x86_64-apple-darwin` from any host: `cargo clippy -p vectorcraft --target aarch64-apple-darwin --all-targets -- -D warnings`.
+- Built and clippy-checked for `aarch64-apple-darwin` and `x86_64-apple-darwin` from any host: `cargo clippy -p splinewright --target aarch64-apple-darwin --all-targets -- -D warnings`.
 
 ## Linux: Wayland and X11
 
-The window runs natively on Wayland (eframe's `wayland` feature) and on X11. On machines with two GPUs it renders on the one the desktop runs on unless Preferences say otherwise; see [Desktop graphics processor](#desktop-graphics-processor) (#502). The system clipboard (`apps/vectorcraft/src/clipboard.rs`) is arboard with its `wayland-data-control` feature:
+The window runs natively on Wayland (eframe's `wayland` feature) and on X11. On machines with two GPUs it renders on the one the desktop runs on unless Preferences say otherwise; see [Desktop graphics processor](#desktop-graphics-processor) (#502). The system clipboard (`apps/splinewright/src/clipboard.rs`) is arboard with its `wayland-data-control` feature:
 
 - **Clipboard:** under Wayland arboard talks to the compositor through the data-control protocol (wlroots compositors such as Sway and Hyprland, KDE Plasma), so bitmaps (`image/png`), SVG markup and text copied in any app paste (#398). Where the compositor lacks the protocol (GNOME's Mutter, [arboard#223](https://github.com/1Password/arboard/issues/223)), arboard falls back to the X11 clipboard through XWayland, which only holds what X11 apps copied. egui's own text paste into fields goes through smithay-clipboard and works either way.
 - **Clipboard owners that never answer (#510):** reading the clipboard waits on the app that owns it: arboard gives up on an X11 owner after 4 s, and a Wayland read waits for the owner to send its data. So on Linux the check that enables the Paste menu items runs on a background thread with a second clipboard handle (`crates/ui-egui/src/clipboard_probe.rs`, installed as `Services::clipboard_probe`), only while nothing is copied in the app and a document is open, and the window keeps drawing. A paste itself still reads on the UI thread, so pasting from such an owner waits for it once. Windows and macOS keep the check on the UI thread: Windows only asks which formats the clipboard holds, macOS asks the pasteboard server.
 - **Copied files:** files copied in a file manager (`text/uri-list`; `CF_HDROP` on Windows, file URLs on macOS) paste as the first one that is art (SVG, PDF, EMF/WMF or a bitmap), before the clipboard's other formats (which include the files' paths as text).
-- **Dropping files on the window does not work under Wayland:** winit 0.30, which eframe 0.36 runs on, has no Wayland drag and drop ([winit#1881](https://github.com/rust-windowing/winit/issues/1881), added in winit 0.31; [egui#1563](https://github.com/emilk/egui/issues/1563)), so no `dropped_files` arrive. Until eframe moves to winit 0.31: copy the files in the file manager and paste them, use File › Place or Open, or run the app under XWayland, where drops work (`WAYLAND_DISPLAY= vectorcraft`).
-- **Pens and pen displays under Wayland (#491):** winit 0.30 doesn't bind the Wayland tablet protocol (`zwp_tablet_v2`; tablet input arrives in winit 0.31, [winit#4318](https://github.com/rust-windowing/winit/pull/4318), [egui#7731](https://github.com/emilk/egui/pull/7731)). Since Plasma 6.3, KWin no longer turns tablet input into pointer input for such apps ([kwin!6336](https://invent.kde.org/plasma/kwin/-/merge_requests/6336)): the pen moves the compositor's cursor over the window, but the app gets no motion or presses and shows none of its own cursors. Until eframe moves to winit 0.31, either run the app under XWayland, which supports the tablet protocol and hands the pen to X11 apps as a pointer (`WAYLAND_DISPLAY= vectorcraft`, or `env -u WAYLAND_DISPLAY vectorcraft`; for a desktop launcher, put `env WAYLAND_DISPLAY=` before the command in its `Exec=` line), or turn KWin's deprecated emulation back on for the whole session by setting `KWIN_WAYLAND_EMULATE_TABLET=1` in KWin's environment (for example in a file under `~/.config/environment.d/` or in `/etc/environment`) and logging in again. The pen then works as a mouse, without pressure: winit 0.30 reads pen pressure on Windows only (Windows Ink, which reaches the Liquify tools' Use Pressure Pen). Other compositors that don't emulate a pointer for tablets behave the same way.
+- **Dropping files on the window does not work under Wayland:** winit 0.30, which eframe 0.36 runs on, has no Wayland drag and drop ([winit#1881](https://github.com/rust-windowing/winit/issues/1881), added in winit 0.31; [egui#1563](https://github.com/emilk/egui/issues/1563)), so no `dropped_files` arrive. Until eframe moves to winit 0.31: copy the files in the file manager and paste them, use File › Place or Open, or run the app under XWayland, where drops work (`WAYLAND_DISPLAY= splinewright`).
+- **Pens and pen displays under Wayland (#491):** winit 0.30 doesn't bind the Wayland tablet protocol (`zwp_tablet_v2`; tablet input arrives in winit 0.31, [winit#4318](https://github.com/rust-windowing/winit/pull/4318), [egui#7731](https://github.com/emilk/egui/pull/7731)). Since Plasma 6.3, KWin no longer turns tablet input into pointer input for such apps ([kwin!6336](https://invent.kde.org/plasma/kwin/-/merge_requests/6336)): the pen moves the compositor's cursor over the window, but the app gets no motion or presses and shows none of its own cursors. Until eframe moves to winit 0.31, either run the app under XWayland, which supports the tablet protocol and hands the pen to X11 apps as a pointer (`WAYLAND_DISPLAY= splinewright`, or `env -u WAYLAND_DISPLAY splinewright`; for a desktop launcher, put `env WAYLAND_DISPLAY=` before the command in its `Exec=` line), or turn KWin's deprecated emulation back on for the whole session by setting `KWIN_WAYLAND_EMULATE_TABLET=1` in KWin's environment (for example in a file under `~/.config/environment.d/` or in `/etc/environment`) and logging in again. The pen then works as a mouse, without pressure: winit 0.30 reads pen pressure on Windows only (Windows Ink, which reaches the Liquify tools' Use Pressure Pen). Other compositors that don't emulate a pointer for tablets behave the same way.
 
 ## Fonts: craft-fonts (optional build input)
 
 Font files are never committed to this repository. Fonts shared by the Crafting Apps live in
 [storytold/craft-fonts](https://github.com/storytold/craft-fonts); the rules are in craftrules
-[`standards/fonts.md`](https://github.com/storytold/craftrules/blob/main/standards/fonts.md). To add
+`standards/fonts.md`. To add
 a font, add it there. (The Latin fonts in `assets/fonts/` predate the rule and stay.)
 
-VectorCraft builds, tests and runs without craft-fonts. To embed its Japanese fonts (BIZ UDPGothic
+Splinewright builds, tests and runs without craft-fonts. To embed its Japanese fonts (BIZ UDPGothic
 for UI text, Shippori Mincho and BIZ UDMincho for document text), point the `CRAFT_FONTS_DIR` build
 option at a checkout:
 
 ```sh
 git clone https://github.com/storytold/craft-fonts ../craft-fonts
-CRAFT_FONTS_DIR="$PWD/../craft-fonts" cargo run --release -p vectorcraft
+CRAFT_FONTS_DIR="$PWD/../craft-fonts" cargo run --release -p splinewright
 CRAFT_FONTS_DIR="$PWD/../craft-fonts" cargo xtask ci   # also runs the Japanese-glyph tests
 ```
 
 - `crates/text/build.rs` reads the checkout's `fonts/manifest.txt` and embeds every font it lists as
-  `vectorcraft_text::CRAFT_FONTS` (empty without `CRAFT_FONTS_DIR`). Give it an absolute path:
+  `splinewright_text::CRAFT_FONTS` (empty without `CRAFT_FONTS_DIR`). Give it an absolute path:
   build scripts run in the crate's directory (a relative path is taken from the workspace root
   as a convenience, but CI and the docs always use absolute paths). Nothing is downloaded, and
   craft-fonts is never a `Cargo.toml` dependency. A bad path is a build warning, or an error with
@@ -146,9 +146,9 @@ complete; `it-IT`, `it-CH` and every other `it-*` locale resolve to it), Czech (
 - The shared widgets (`widgets::check`, `dropdown`, `menu_item`, the buttons, `label_row`, tooltips of
   `icon_button`…), the menus, the dock, the toolbar, the dialog frame and `panels::empty_state` translate
   the text they are given, so a panel mostly needs its literals wrapped in `tl!` to be covered by the tests.
-- The language is VectorCraft › Language (the `app.language` UI command, `{lang: auto|<code>}`) or Edit ›
+- The language is Splinewright › Language (the `app.language` UI command, `{lang: auto|<code>}`) or Edit ›
   Preferences › User Interface › Language; both set the `interfaceLanguage` preference (`auto` or a language
-  code; `auto` follows the system locale: `VECTORCRAFT_LOCALE`, then `LC_ALL`/`LC_MESSAGES`/`LANG`/`LANGUAGE`,
+  code; `auto` follows the system locale: `SPLINEWRIGHT_LOCALE`, then `LC_ALL`/`LC_MESSAGES`/`LANG`/`LANGUAGE`,
   the macOS preferred languages, the Windows user locale; on the web, `?lang=<code>` in the address, then
   the browser's `navigator.languages`). The Preferences dialog previews the chosen language before OK.
 - To add a language: add `<code>.tsv` and one row in `i18n::LANGUAGES` (code, native name, catalog, plural
@@ -156,7 +156,7 @@ complete; `it-IT`, `it-CH` and every other `it-*` locale resolve to it), Czech (
   placeholders and ellipses agree, command ids exist, every row of a partial catalog is a string the UI
   shows, the UI fonts have every glyph, no Simplified characters in `zh-hant`) pick it up. Set `complete_menus`
   once every menu string and `tl!` literal is translated; `i18n::tests` then enforce it
-  (`VECTORCRAFT_I18N_DUMP=strings.txt cargo test -p vectorcraft-ui-egui dump_source_strings` lists them).
+  (`SPLINEWRIGHT_I18N_DUMP=strings.txt cargo test -p splinewright-ui-egui dump_source_strings` lists them).
 - Translations are clean-room: written from the meaning of the English text in ordinary vocabulary, never
   from another product's localisation resources. Product and technology names stay in Latin letters.
 - Status-bar messages and errors stay English where they are made (`app.ui.status`, `EngineError`: the
@@ -166,7 +166,7 @@ complete; `it-IT`, `it-CH` and every other `it-*` locale resolve to it), Czech (
   placeholders are translated in turn (the reason after `: {e}` is often a message too). Spanish and Italian cover every
   message literal the test scan finds (`complete_languages_translate_every_message`, languages listed in
   `COMPLETE_MESSAGES`): a new `Err("…")`, `Other(…)`, `#[error(…)]` or `status(…)` message needs an `es.tsv`
-  and an `it.tsv` row (`VECTORCRAFT_I18N_DUMP_MESSAGES=messages.txt cargo test -p vectorcraft-ui-egui
+  and an `it.tsv` row (`SPLINEWRIGHT_I18N_DUMP_MESSAGES=messages.txt cargo test -p splinewright-ui-egui
   complete_languages_translate_every_message` lists them all). Other languages show messages in English
   until they add `@msg` rows.
 - Not translated on purpose: names that are user data (layers, swatches, fonts, documents), the tab
@@ -180,10 +180,10 @@ complete; `it-IT`, `it-CH` and every other `it-*` locale resolve to it), Czech (
 
 `cargo xtask brands` (part of `cargo xtask ci`) fails when user-visible text names another vendor's products or company: string literals in Rust sources (command labels and params docs, menus, panels, MCP tool definitions), `Cargo.toml` descriptions and packaging files. Comments and test code are not checked. Say "the reference app" or name the feature itself. A line that must keep an old name, such as an alias that files or preferences from earlier versions still use, carries a `brand-ok` comment.
 
-## Robustness: VectorCraft never crashes
+## Robustness: Splinewright never crashes
 
 A crash takes the user's unsaved work with it, and much of what the app reads is untrusted: SVG,
-PDF, `.ai` and `.vectorcraft` files, pasted data, MCP and control-channel messages, command
+PDF, `.ai` and `.splinewright` files, pasted data, MCP and control-channel messages, command
 parameters. Shipped code therefore never panics. Anything that can fail returns `Result` (or
 `Option`), the caller handles or propagates it, and the user sees an error message.
 
@@ -220,13 +220,13 @@ don't matter, with a comment saying why.
 
 ### The safety net
 
-`vectorcraft_engine::guard::catch_panic` wraps every entry point:
+`splinewright_engine::guard::catch_panic` wraps every entry point:
 
 - `Session::execute` restores the active document, selection and interaction as they were before
   the top-level command and returns `EngineError::Internal`.
 - Tool events (`Session::pointer`, `tool_key`, `tool_text`) reset the tool and cancel its drag.
 - The MCP server answers the request with a JSON-RPC internal error and keeps serving.
-- `VectorcraftApp::logic` and `ui` lose one frame and show the error in the status bar; each
+- `SplinewrightApp::logic` and `ui` lose one frame and show the error in the status bar; each
   control-channel request is guarded on its own.
 
 The net exists for bugs, not as a substitute for `Result`. On wasm a panic aborts the app, so the
@@ -240,11 +240,11 @@ Untrusted input has property tests that must never panic:
   (`.vcswatches`, `.gpl`), graphic style (`.vcstyles`) and flattener preset (`.vcflattener`)
   libraries, loaded and used, then rendered and exported.
 - `crates/engine/tests/command_sweep.rs`: every command with junk parameters.
-- `crates/format/tests/prop_format.rs`: garbage and mutated `.vectorcraft` files.
+- `crates/format/tests/prop_format.rs`: garbage and mutated `.splinewright` files.
 - `crates/mcp/tests/protocol_props.rs`: malformed MCP messages.
 
 CI runs a few dozen cases each. Before touching an importer, run a deeper search, e.g.
-`PROPTEST_CASES=20000 cargo test --release -p vectorcraft-engine --test import_fuzz`. When it finds a
+`PROPTEST_CASES=20000 cargo test --release -p splinewright-engine --test import_fuzz`. When it finds a
 panic, fix the code and add the input as a regular test.
 
 ## Bidirectional type

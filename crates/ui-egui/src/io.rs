@@ -2,36 +2,36 @@
 //! `fileio` decodes, encodes and saves every format.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::SavedView;
-use vectorcraft_engine::EngineError;
-use vectorcraft_engine::cmd::fileio::{self, Format, SAVE_FORMATS, SaveMode, SavePlan};
+use splinewright_doc::SavedView;
+use splinewright_engine::EngineError;
+use splinewright_engine::cmd::fileio::{self, Format, SAVE_FORMATS, SaveMode, SavePlan};
 
 use crate::background::{self, Writer};
 use crate::dialogs::svg_options;
 use crate::state::Dialog;
-use crate::{FilePick, Services, VectorcraftApp, dialogs};
+use crate::{FilePick, Services, SplinewrightApp, dialogs};
 
 /// Template extensions New from Template's open dialog lists first.
-const TEMPLATE_EXTS: &[&str] = &["vctemplate", "ait", "vectorcraft", "drawcraft"];
+const TEMPLATE_EXTS: &[&str] = &["vctemplate", "ait", "splinewright", "drawcraft"];
 
 /// Open bytes of any readable format as a new document (templates open untitled); swatch and
 /// graphic style library files open in the library panel and flattener, PDF, print and perspective
 /// grid presets files are imported. → `document.open`'s result for a document opened now (its
 /// `warnings` say what didn't come in as it was), else null.
-pub fn open_bytes(app: &mut VectorcraftApp, name: &str, bytes: &[u8], path: Option<String>) -> Result<Value, String> {
+pub fn open_bytes(app: &mut SplinewrightApp, name: &str, bytes: &[u8], path: Option<String>) -> Result<Value, String> {
     let ext = fileio::extension(name);
     // A WebAssembly plug-in is installed.
-    if vectorcraft_engine::cmd::plugin::EXTS.contains(&ext.as_str()) {
+    if splinewright_engine::cmd::plugin::EXTS.contains(&ext.as_str()) {
         let r =
-            app.run("plugin.install", json!({"dataBase64": vectorcraft_format::base64_encode(bytes), "name": path.as_deref().unwrap_or(name)}))?;
+            app.run("plugin.install", json!({"dataBase64": splinewright_format::base64_encode(bytes), "name": path.as_deref().unwrap_or(name)}))?;
         app.status(format!("Installed plug-in {}", r["name"].as_str().unwrap_or(name)));
         return Ok(Value::Null);
     }
     let presets = [
-        (vectorcraft_engine::cmd::flatten::PRESET_EXTS, "flattener.presets.import", "flattener presets"),
-        (vectorcraft_engine::cmd::pdfcmds::PRESET_EXTS, "pdf.preset.import", "PDF presets"),
-        (vectorcraft_engine::cmd::printpresets::PRESET_EXTS, "print.presets.import", "print presets"),
-        (vectorcraft_engine::cmd::perspgrid::PRESET_EXTS, "perspective.presets.import", "perspective grid presets"),
+        (splinewright_engine::cmd::flatten::PRESET_EXTS, "flattener.presets.import", "flattener presets"),
+        (splinewright_engine::cmd::pdfcmds::PRESET_EXTS, "pdf.preset.import", "PDF presets"),
+        (splinewright_engine::cmd::printpresets::PRESET_EXTS, "print.presets.import", "print presets"),
+        (splinewright_engine::cmd::perspgrid::PRESET_EXTS, "perspective.presets.import", "perspective grid presets"),
     ];
     if let Some((_, import, what)) = presets.iter().find(|(exts, ..)| exts.contains(&ext.as_str())) {
         let r = app.run(import, serde_json::json!({"data": String::from_utf8_lossy(bytes)}))?;
@@ -39,8 +39,8 @@ pub fn open_bytes(app: &mut VectorcraftApp, name: &str, bytes: &[u8], path: Opti
         app.status(format!("Imported {what}: {}", names.join(", ")));
         return Ok(Value::Null);
     }
-    let swatches = vectorcraft_engine::cmd::swatchlib::LIBRARY_EXTS.contains(&ext.as_str());
-    if swatches || ext == vectorcraft_doc::style_libs::STYLES_EXT {
+    let swatches = splinewright_engine::cmd::swatchlib::LIBRARY_EXTS.contains(&ext.as_str());
+    if swatches || ext == splinewright_doc::style_libs::STYLES_EXT {
         let p = match path {
             Some(path) => serde_json::json!({ "path": path }),
             None => serde_json::json!({"name": name, "data": String::from_utf8_lossy(bytes)}),
@@ -60,7 +60,7 @@ pub fn open_bytes(app: &mut VectorcraftApp, name: &str, bytes: &[u8], path: Opti
 
 /// Open a document through the engine loader with the `document.open` options in `p` →
 /// `document.open`'s result.
-pub fn open_document(app: &mut VectorcraftApp, name: &str, bytes: &[u8], path: Option<String>, p: &Value) -> Result<Value, String> {
+pub fn open_document(app: &mut SplinewrightApp, name: &str, bytes: &[u8], path: Option<String>, p: &Value) -> Result<Value, String> {
     let r = fileio::open_bytes_with(&mut app.session, name, bytes, path, p).map_err(|e| e.to_string())?;
     app.sync_views();
     if let Some(w) = r["warnings"].as_array().filter(|w| !w.is_empty()) {
@@ -71,17 +71,17 @@ pub fn open_document(app: &mut VectorcraftApp, name: &str, bytes: &[u8], path: O
 }
 
 /// A path from the open dialog, or "cancelled".
-fn pick_open(app: &mut VectorcraftApp, pick: &FilePick) -> Result<String, String> {
+fn pick_open(app: &mut SplinewrightApp, pick: &FilePick) -> Result<String, String> {
     app.services.pick_open.as_mut().and_then(|f| f(pick)).ok_or_else(|| "cancelled".into())
 }
 
 /// Object › Plug-ins › Install Plug-in…: installs the `.wasm` at `path`, else a picked one (the
 /// web's file picker hands the file to [`open_bytes`], which installs it).
-pub fn install_plugin(app: &mut VectorcraftApp, path: Option<String>) -> Result<Value, String> {
+pub fn install_plugin(app: &mut SplinewrightApp, path: Option<String>) -> Result<Value, String> {
     let path = match path {
         Some(p) => p,
         None if app.services.open_async.is_some() => return open_dialog(app).map(|_| Value::Null),
-        None => pick_open(app, &FilePick { filters: vec![("Plug-ins", vectorcraft_engine::cmd::plugin::EXTS)], ..Default::default() })?,
+        None => pick_open(app, &FilePick { filters: vec![("Plug-ins", splinewright_engine::cmd::plugin::EXTS)], ..Default::default() })?,
     };
     let r = app.run("plugin.install", json!({ "path": path }))?;
     app.status(format!("Installed plug-in {}", r["name"].as_str().unwrap_or_default()));
@@ -89,7 +89,7 @@ pub fn install_plugin(app: &mut VectorcraftApp, path: Option<String>) -> Result<
 }
 
 /// File → Open…
-pub fn open_dialog(app: &mut VectorcraftApp) -> Result<(), String> {
+pub fn open_dialog(app: &mut SplinewrightApp) -> Result<(), String> {
     if let Some(f) = app.services.open_async.as_mut() {
         f();
         return Ok(());
@@ -98,12 +98,12 @@ pub fn open_dialog(app: &mut VectorcraftApp) -> Result<(), String> {
     open_path(app, &path).map(|_| ())
 }
 
-fn read(app: &VectorcraftApp, path: &str) -> Result<Vec<u8>, String> {
+fn read(app: &SplinewrightApp, path: &str) -> Result<Vec<u8>, String> {
     app.services.read.as_ref().ok_or("no file reader")?(path)
 }
 
 /// Open the file at `path` (see [`open_bytes`]) → `document.open`'s result, or null.
-pub fn open_path(app: &mut VectorcraftApp, path: &str) -> Result<Value, String> {
+pub fn open_path(app: &mut SplinewrightApp, path: &str) -> Result<Value, String> {
     let bytes = read(app, path)?;
     let r = open_bytes(app, path, &bytes, Some(path.to_string()))?;
     note_recent(app, path);
@@ -113,7 +113,7 @@ pub fn open_path(app: &mut VectorcraftApp, path: &str) -> Result<Value, String> 
 /// File → New from Template…: a template (or any readable file) as a new untitled document. Without
 /// a path the open dialog starts in the Templates folder. On the web the browser's file picker
 /// opens it (`.vctemplate`, `.ait` and template files open untitled there too).
-pub fn new_from_template(app: &mut VectorcraftApp, path: Option<String>) -> Result<Value, String> {
+pub fn new_from_template(app: &mut SplinewrightApp, path: Option<String>) -> Result<Value, String> {
     let path = match path {
         Some(p) => p,
         None if app.services.open_async.is_some() => return open_dialog(app).map(|_| Value::Null),
@@ -139,13 +139,13 @@ pub(crate) fn write_to(services: &mut Services, path: &str, bytes: &[u8]) -> Res
 }
 
 /// The web saves by downloading: no save panel, no folders.
-pub(crate) fn is_web(app: &VectorcraftApp) -> bool {
+pub(crate) fn is_web(app: &SplinewrightApp) -> bool {
     app.services.download.is_some()
 }
 
 /// Write `bytes` to `path`, else to a file picked with `name` suggested next to the document (the
 /// web downloads them as `name`) → where they went.
-pub(crate) fn write_named(app: &mut VectorcraftApp, path: Option<String>, name: &str, bytes: &[u8]) -> Result<String, String> {
+pub(crate) fn write_named(app: &mut SplinewrightApp, path: Option<String>, name: &str, bytes: &[u8]) -> Result<String, String> {
     let path = match path {
         Some(p) => p,
         None => {
@@ -160,7 +160,7 @@ pub(crate) fn write_named(app: &mut VectorcraftApp, path: Option<String>, name: 
 /// Where a file goes when no path was given: the suggested name on the web (a download), else the
 /// save panel's choice, given the suggested name's extension when it names no file type (a name
 /// typed without one).
-fn pick_path(app: &mut VectorcraftApp, pick: &FilePick) -> Result<String, String> {
+fn pick_path(app: &mut SplinewrightApp, pick: &FilePick) -> Result<String, String> {
     if is_web(app) {
         return Ok(pick.name.clone());
     }
@@ -180,7 +180,7 @@ fn with_extension(path: &str, ext: &str, keeps: impl Fn(&Format) -> bool) -> Str
 }
 
 /// The active document's file name with extension `ext`, and its folder.
-fn suggested(app: &VectorcraftApp, ext: &str) -> (String, Option<String>) {
+fn suggested(app: &SplinewrightApp, ext: &str) -> (String, Option<String>) {
     let st = app.session.active();
     let t = st.map(|d| d.path.clone().unwrap_or_else(|| d.doc.title.clone())).unwrap_or_else(|| "Untitled".into());
     let folder = st.and_then(|d| d.path.as_deref()).and_then(|p| std::path::Path::new(p).parent()).map(|p| p.to_string_lossy().to_string());
@@ -189,7 +189,7 @@ fn suggested(app: &VectorcraftApp, ext: &str) -> (String, Option<String>) {
 
 /// `path`, else one picked in a save panel (the web: the suggested name) for the active document
 /// with extension `ext`, filtered to that format when it is one.
-pub(crate) fn target_path(app: &mut VectorcraftApp, path: Option<String>, ext: &str) -> Result<String, String> {
+pub(crate) fn target_path(app: &mut SplinewrightApp, path: Option<String>, ext: &str) -> Result<String, String> {
     if let Some(p) = path {
         return Ok(p);
     }
@@ -199,7 +199,7 @@ pub(crate) fn target_path(app: &mut VectorcraftApp, path: Option<String>, ext: &
 }
 
 /// Keep the active document's saved view current before a save (native files reopen at it).
-pub fn remember_view(app: &mut VectorcraftApp) {
+pub fn remember_view(app: &mut SplinewrightApp) {
     let Some(v) = app.view().copied().filter(|v| v.fitted) else { return };
     if let Some(st) = app.session.active_mut() {
         st.view = Some(SavedView { name: String::new(), center: v.center, zoom: v.zoom, rotation: v.rotation });
@@ -214,7 +214,7 @@ fn with_save_extension(path: &str, f: &Format) -> String {
 
 /// Write every file of an export (one per artboard, linked images) for the destination `path`.
 /// → the export's own files (without the linked images).
-fn write_encoded(write: Writer, doc: &vectorcraft_doc::Document, path: &str, enc: &fileio::Encoded) -> Result<Vec<String>, String> {
+fn write_encoded(write: Writer, doc: &splinewright_doc::Document, path: &str, enc: &fileio::Encoded) -> Result<Vec<String>, String> {
     let named = enc.named(doc, path);
     for (p, bytes) in &named {
         write(p, bytes)?;
@@ -222,7 +222,7 @@ fn write_encoded(write: Writer, doc: &vectorcraft_doc::Document, path: &str, enc
     Ok(named.into_iter().take(enc.files.len()).map(|(p, _)| p).collect())
 }
 
-fn plan(app: &VectorcraftApp, mode: SaveMode, p: &Value) -> Result<SavePlan, String> {
+fn plan(app: &SplinewrightApp, mode: SaveMode, p: &Value) -> Result<SavePlan, String> {
     fileio::save_plan(&app.session, mode, p).map_err(|e| e.to_string())
 }
 
@@ -235,7 +235,7 @@ fn plan(app: &VectorcraftApp, mode: SaveMode, p: &Value) -> Result<SavePlan, Str
 /// Options, the Save PDF dialog, or the save options dialog: native and `.ai` files on Save As
 /// only), and so does Save As or Save a Copy to a given SVG path. → `{path, format, warnings…}` once written, or `{pending: <dialog kind>,
 /// path?}` while a dialog is open.
-pub fn save(app: &mut VectorcraftApp, mode: SaveMode, p: &Value, ask_options: bool) -> Result<Value, String> {
+pub fn save(app: &mut SplinewrightApp, mode: SaveMode, p: &Value, ask_options: bool) -> Result<Value, String> {
     remember_view(app);
     let first = plan(app, mode, p)?;
     let ask = ask_options && !has_options(p);
@@ -273,7 +273,7 @@ pub fn save(app: &mut VectorcraftApp, mode: SaveMode, p: &Value, ask_options: bo
 fn asks_options(mode: SaveMode, f: &Format) -> bool {
     !f.options.is_empty()
         && match f.id {
-            "vectorcraft" | "ai" => mode == SaveMode::SaveAs,
+            "splinewright" | "ai" => mode == SaveMode::SaveAs,
             "template" => false,
             _ => true,
         }
@@ -286,7 +286,7 @@ fn has_options(p: &Value) -> bool {
 
 /// Ask for format `f`'s options before a save (`mode`) to `path`: SVG Options for SVG, the Save
 /// PDF dialog for PDF, else the save options dialog. OK finishes the save.
-pub fn ask_format_options(app: &mut VectorcraftApp, mode: SaveMode, f: &Format, path: &str) -> Result<Value, String> {
+pub fn ask_format_options(app: &mut SplinewrightApp, mode: SaveMode, f: &Format, path: &str) -> Result<Value, String> {
     match f.id {
         "pdf" => ask_pdf_options(app, mode, path),
         "svg" | "svgz" => {
@@ -300,7 +300,7 @@ pub fn ask_format_options(app: &mut VectorcraftApp, mode: SaveMode, f: &Format, 
 
 /// A save as PDF asks with the Save PDF dialog, filled with the PDF options the document was last
 /// saved with; its OK finishes the save ([`save_pdf`]).
-pub fn ask_pdf_options(app: &mut VectorcraftApp, mode: SaveMode, path: &str) -> Result<Value, String> {
+pub fn ask_pdf_options(app: &mut SplinewrightApp, mode: SaveMode, path: &str) -> Result<Value, String> {
     let mut p = Value::Object(plan(app, mode, &json!({ "path": path, "format": "pdf" }))?.options);
     p["path"] = json!(path);
     dialogs::open_save_pdf(app, &p)?;
@@ -311,7 +311,7 @@ pub fn ask_pdf_options(app: &mut VectorcraftApp, mode: SaveMode, path: &str) -> 
 
 /// The Save PDF dialog's OK during a save (`mode`): `params` are its `document.exportPdf` options
 /// and `path`.
-pub fn save_pdf(app: &mut VectorcraftApp, mode: SaveMode, mut params: Value) -> Result<Value, String> {
+pub fn save_pdf(app: &mut SplinewrightApp, mode: SaveMode, mut params: Value) -> Result<Value, String> {
     let path = params.as_object_mut().and_then(|o| o.remove("path"));
     let view = params.get("viewAfterSaving").and_then(Value::as_bool).unwrap_or(false);
     let r = save(app, mode, &json!({ "path": path, "format": "pdf", "options": params }), false)?;
@@ -322,14 +322,14 @@ pub fn save_pdf(app: &mut VectorcraftApp, mode: SaveMode, mut params: Value) -> 
 }
 
 /// Open a written file in the system viewer (not on the web, which downloads it).
-fn view_file(app: &mut VectorcraftApp, path: &str) {
+fn view_file(app: &mut SplinewrightApp, path: &str) {
     if !is_web(app) {
         app.open_url(&file_url(path));
     }
 }
 
 /// "Saved <path>", with the first of the result's warnings.
-pub(crate) fn report_saved(app: &mut VectorcraftApp, path: &str, r: &Value) {
+pub(crate) fn report_saved(app: &mut SplinewrightApp, path: &str, r: &Value) {
     let warnings: Vec<&str> = r["warnings"].as_array().map(|w| w.iter().filter_map(Value::as_str).collect()).unwrap_or_default();
     app.status(match warnings.first() {
         Some(first) => format!("Saved {path} with {} note(s): {first}", warnings.len()),
@@ -341,7 +341,7 @@ pub(crate) fn report_saved(app: &mut VectorcraftApp, path: &str, r: &Value) {
 /// With Background Save on, the file is encoded and written from a snapshot off the UI thread
 /// ([`background`]): this returns `{path, background: true, status}` at once, and the document
 /// takes the file (and counts as saved, as of the snapshot) once it is written.
-fn write_plan(app: &mut VectorcraftApp, plan: SavePlan) -> Result<Value, String> {
+fn write_plan(app: &mut SplinewrightApp, plan: SavePlan) -> Result<Value, String> {
     let uid = app.session.active().ok_or("no document")?.uid;
     // Saves of one document finish in order.
     if app.background.busy_with(uid) {
@@ -358,7 +358,7 @@ fn write_plan(app: &mut VectorcraftApp, plan: SavePlan) -> Result<Value, String>
     // The work writes the file; the copy makes it the document's own afterwards.
     let done = job.clone();
     let work = move |write: Writer| job.write(|p, b| write(p, b).map_err(EngineError::Other)).map_err(|e| e.to_string());
-    let then = move |app: &mut VectorcraftApp, r: Result<Value, String>| {
+    let then = move |app: &mut SplinewrightApp, r: Result<Value, String>| {
         let r = r?;
         // The document may have closed meanwhile: the file is written all the same.
         done.complete(&mut app.session, uid);
@@ -378,7 +378,7 @@ fn write_plan(app: &mut VectorcraftApp, plan: SavePlan) -> Result<Value, String>
 
 /// Open the save options dialog of format `f` before writing `path`: `action` is the save command
 /// it finishes, and `pick` (the web's Save As) also names the file and chooses the format.
-fn open_options(app: &mut VectorcraftApp, action: &str, f: &Format, path: &str, pick: bool) -> Value {
+fn open_options(app: &mut SplinewrightApp, action: &str, f: &Format, path: &str, pick: bool) -> Value {
     let mut fields = dialogs::save_options::option_values(app, f);
     fields.insert("__action".into(), json!(action));
     fields.insert("__pick".into(), json!(pick));
@@ -393,7 +393,7 @@ fn open_options(app: &mut VectorcraftApp, action: &str, f: &Format, path: &str, 
 pub const MAX_RECENT_FILES: usize = 30;
 
 /// Put `path` at the top of File → Open Recent Files.
-pub fn note_recent(app: &mut VectorcraftApp, path: &str) {
+pub fn note_recent(app: &mut SplinewrightApp, path: &str) {
     let r = &mut app.ui.recent_files;
     r.retain(|p| p != path);
     r.insert(0, path.to_string());
@@ -401,7 +401,7 @@ pub fn note_recent(app: &mut VectorcraftApp, path: &str) {
 }
 
 /// The recent files File → Open Recent Files lists.
-pub fn recent_files(app: &VectorcraftApp) -> &[String] {
+pub fn recent_files(app: &SplinewrightApp) -> &[String] {
     let r = &app.ui.recent_files;
     &r[..r.len().min(app.session.prefs.recent_files_count as usize)]
 }
@@ -411,7 +411,7 @@ pub fn recent_files(app: &VectorcraftApp) -> &[String] {
 /// options…): every file it writes (one per artboard, linked images) goes next to `path`. The
 /// document keeps its path. → `{path, warnings, files?}` (`files`: every file when there are
 /// several).
-pub fn export(app: &mut VectorcraftApp, format: Option<&str>, path: Option<String>, params: &Value) -> Result<Value, String> {
+pub fn export(app: &mut SplinewrightApp, format: Option<&str>, path: Option<String>, params: &Value) -> Result<Value, String> {
     let f = fileio::writable_format(format, path.as_deref())?;
     let st = app.session.active().ok_or("no document")?;
     let doc = match fileio::export_source(st, params).map_err(|e| e.to_string())? {
@@ -458,7 +458,7 @@ pub fn export(app: &mut VectorcraftApp, format: Option<&str>, path: Option<Strin
 
 /// Run an engine command that returns `{dataBase64}` and write the bytes to a picked path
 /// (Export Selection, Save as Template).
-pub fn save_command_output(app: &mut VectorcraftApp, id: &str, ext: &str, params: Value) -> Result<String, String> {
+pub fn save_command_output(app: &mut SplinewrightApp, id: &str, ext: &str, params: Value) -> Result<String, String> {
     let (path, _) = run_to_file(app, id, ext, params)?;
     app.status(format!("Saved {path}"));
     Ok(path)
@@ -468,7 +468,7 @@ pub fn save_command_output(app: &mut VectorcraftApp, id: &str, ext: &str, params
 /// that path (else a picked or suggested name) → (path, the command's result without the data).
 /// The command runs before a path is asked for, so bad params never open a save dialog, except
 /// for Export Selection without a `format`, which takes it from the picked path.
-pub(crate) fn run_to_file(app: &mut VectorcraftApp, id: &str, ext: &str, mut params: Value) -> Result<(String, Value), String> {
+pub(crate) fn run_to_file(app: &mut SplinewrightApp, id: &str, ext: &str, mut params: Value) -> Result<(String, Value), String> {
     let mut path = params.as_object_mut().and_then(|o| o.remove("path")).and_then(|p| p.as_str().map(str::to_string));
     if let Some(o) = params.as_object_mut()
         && o.get("format").is_none()
@@ -483,7 +483,7 @@ pub(crate) fn run_to_file(app: &mut VectorcraftApp, id: &str, ext: &str, mut par
     // Binary output comes as base64, text (swatch libraries) as is; the result keeps the rest.
     let o = v.as_object_mut().ok_or("no data")?;
     let bytes = match (o.remove("dataBase64"), o.remove("data")) {
-        (Some(Value::String(b64)), _) => vectorcraft_format::base64_decode(&b64),
+        (Some(Value::String(b64)), _) => splinewright_format::base64_decode(&b64),
         (_, Some(Value::String(text))) => Some(text.into_bytes()),
         _ => None,
     };
@@ -500,7 +500,7 @@ pub(crate) fn run_to_file(app: &mut VectorcraftApp, id: &str, ext: &str, mut par
 /// to `path` (else a picked or suggested name) → `{path, bytes, warnings}`. With
 /// `viewAfterSaving`, the written file opens in the system viewer (not on the web, which
 /// downloads it).
-pub fn export_pdf(app: &mut VectorcraftApp, params: Value) -> Result<Value, String> {
+pub fn export_pdf(app: &mut SplinewrightApp, params: Value) -> Result<Value, String> {
     let view = params.get("viewAfterSaving").and_then(Value::as_bool).unwrap_or(false);
     let (path, mut v) = run_to_file(app, "document.exportPdf", "pdf", params)?;
     if view {
@@ -528,8 +528,8 @@ pub(crate) fn file_url(path: &str) -> String {
 }
 
 /// File → Revert: ask first; OK runs `file.revert` with `confirmed`, which goes to the engine.
-pub fn ask_revert(app: &mut VectorcraftApp) -> Result<Value, String> {
-    let c = vectorcraft_engine::find_command("file.revert").ok_or("no revert command")?;
+pub fn ask_revert(app: &mut SplinewrightApp) -> Result<Value, String> {
+    let c = splinewright_engine::find_command("file.revert").ok_or("no revert command")?;
     (c.enabled)(&app.session)?;
     let name = app.session.active().map(|d| d.title()).unwrap_or_default();
     let message = crate::i18n::fmt(tl!("Revert to the saved version of “{name}”?"), &[("name", &name)]);
@@ -538,31 +538,31 @@ pub fn ask_revert(app: &mut VectorcraftApp) -> Result<Value, String> {
 }
 
 /// File → Show in Folder: the document's file in the system file manager.
-pub fn reveal(app: &mut VectorcraftApp) -> Result<Value, String> {
+pub fn reveal(app: &mut SplinewrightApp) -> Result<Value, String> {
     let path = app.session.active().and_then(|d| d.path.clone()).ok_or("the document has never been saved")?;
     reveal_path(app, &path)?;
     Ok(json!({ "path": path }))
 }
 
 /// Show the file at `path` in the system file manager (desktop).
-pub(crate) fn reveal_path(app: &mut VectorcraftApp, path: &str) -> Result<(), String> {
+pub(crate) fn reveal_path(app: &mut SplinewrightApp, path: &str) -> Result<(), String> {
     app.services.reveal.as_mut().ok_or("no file manager here")?(path)
 }
 
 /// Open `path` (a file or a folder) in the system's default app for it (desktop).
-pub(crate) fn open_in_app(app: &mut VectorcraftApp, path: &str) -> Result<(), String> {
+pub(crate) fn open_in_app(app: &mut SplinewrightApp, path: &str) -> Result<(), String> {
     app.services.open_file.as_mut().ok_or("no app to open files here")?(path)
 }
 
 /// File → Export for Screens with `document.exportForScreens` params: the files go into `folder`;
 /// without one the web downloads them (the ZIP, or each file) and the other frontends get them
 /// back as base64. With `openLocation`, the file manager shows the first file written.
-pub fn export_for_screens(app: &mut VectorcraftApp, params: Value) -> Result<Value, String> {
+pub fn export_for_screens(app: &mut SplinewrightApp, params: Value) -> Result<Value, String> {
     export_files(app, "document.exportForScreens", params)
 }
 
 /// [`export_for_screens`] through command `id` (`document.exportForScreens` or `assets.export`).
-pub(crate) fn export_files(app: &mut VectorcraftApp, id: &str, params: Value) -> Result<Value, String> {
+pub(crate) fn export_files(app: &mut SplinewrightApp, id: &str, params: Value) -> Result<Value, String> {
     let open_location = params.get("openLocation").and_then(Value::as_bool).unwrap_or(false);
     let folder = params.get("folder").and_then(Value::as_str).unwrap_or_default().to_string();
     let r = app.run(id, params)?;
@@ -586,7 +586,7 @@ pub(crate) fn export_files(app: &mut VectorcraftApp, id: &str, params: Value) ->
         app.status(status);
     } else if let Some(download) = app.services.download.as_mut() {
         for (name, data) in &returned {
-            let bytes = vectorcraft_format::base64_decode(data).ok_or("the export returned unreadable data")?;
+            let bytes = splinewright_format::base64_decode(data).ok_or("the export returned unreadable data")?;
             download(name, &bytes);
         }
         let what = match returned.as_slice() {
@@ -599,8 +599,8 @@ pub(crate) fn export_files(app: &mut VectorcraftApp, id: &str, params: Value) ->
 }
 
 /// Place a file's bytes (no path, so embedded) centred in the view: `file.place`.
-pub fn place_bytes(app: &mut VectorcraftApp, name: &str, bytes: &[u8]) -> Result<(), String> {
-    crate::place::run(app, &serde_json::json!({ "name": name, "dataBase64": vectorcraft_format::base64_encode(bytes) })).map(|_| ())
+pub fn place_bytes(app: &mut SplinewrightApp, name: &str, bytes: &[u8]) -> Result<(), String> {
+    crate::place::run(app, &serde_json::json!({ "name": name, "dataBase64": splinewright_format::base64_encode(bytes) })).map(|_| ())
 }
 
 #[cfg(test)]
@@ -609,16 +609,16 @@ mod tests {
     use std::rc::Rc;
 
     use serde_json::json;
-    use vectorcraft_engine::Session;
+    use splinewright_engine::Session;
 
     use super::*;
     use crate::Services;
-    use vectorcraft_doc::NodeKind;
+    use splinewright_doc::NodeKind;
 
     type Written = Rc<RefCell<Vec<(String, Vec<u8>)>>>;
 
     /// An app whose writer records what it is given.
-    fn app() -> (VectorcraftApp, Written) {
+    fn app() -> (SplinewrightApp, Written) {
         let written = Written::default();
         let w = written.clone();
         let services = Services {
@@ -628,15 +628,15 @@ mod tests {
             })),
             ..Default::default()
         };
-        (VectorcraftApp::new(Session::new(), services), written)
+        (SplinewrightApp::new(Session::new(), services), written)
     }
 
-    fn bytes_of(app: &mut VectorcraftApp, cmd: &str, p: Value) -> Vec<u8> {
+    fn bytes_of(app: &mut SplinewrightApp, cmd: &str, p: Value) -> Vec<u8> {
         let v = app.session.execute(cmd, &p).unwrap();
-        vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()
+        splinewright_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()
     }
 
-    fn image_size(app: &VectorcraftApp, id: vectorcraft_doc::NodeId) -> (u32, u32) {
+    fn image_size(app: &SplinewrightApp, id: splinewright_doc::NodeId) -> (u32, u32) {
         match &app.session.doc().unwrap().doc.node(id).unwrap().kind {
             NodeKind::Image(im) => (im.width, im.height),
             other => panic!("{other:?}"),
@@ -676,13 +676,13 @@ mod tests {
         let (mut app, written) = app();
         app.session.execute("file.new", &json!({"width": 100, "height": 50, "artboards": 2})).unwrap();
         app.session.execute("artboard.setProps", &json!({"index": 1, "width": 40})).unwrap();
-        app.session.doc_mut().unwrap().path = Some("/tmp/doc.vectorcraft".into());
+        app.session.doc_mut().unwrap().path = Some("/tmp/doc.splinewright".into());
         export(&mut app, None, Some("/tmp/b.png".into()), &json!({"artboard": 1, "scale": 2})).unwrap();
-        export(&mut app, None, Some("/tmp/copy.vectorcraft".into()), &Value::Null).unwrap();
+        export(&mut app, None, Some("/tmp/copy.splinewright".into()), &Value::Null).unwrap();
         let w = written.borrow();
         assert_eq!(&w[0].1[16..20], 80u32.to_be_bytes(), "artboard 1 (40 pt) at scale 2");
-        assert!(vectorcraft_format::sniff(&w[1].1));
-        assert_eq!(app.session.active().unwrap().path.as_deref(), Some("/tmp/doc.vectorcraft"));
+        assert!(splinewright_format::sniff(&w[1].1));
+        assert_eq!(app.session.active().unwrap().path.as_deref(), Some("/tmp/doc.splinewright"));
         drop(w);
         assert!(export(&mut app, None, Some("/tmp/x.dwg".into()), &Value::Null).is_err(), "DWG can't be written");
     }
@@ -727,7 +727,7 @@ mod tests {
         let (req, _) = crate::control::ControlRequest::new("app.export", json!({"format": "png", "scale": 2}));
         let crate::control::Outcome::Done(r) = crate::control::handle(&mut app, &egui::Context::default(), &req) else { panic!("not done") };
         assert_eq!(r["ok"], true, "{r}");
-        let png = vectorcraft_format::base64_decode(r["result"]["dataBase64"].as_str().unwrap()).unwrap();
+        let png = splinewright_format::base64_decode(r["result"]["dataBase64"].as_str().unwrap()).unwrap();
         assert_eq!(&png[16..20], 60u32.to_be_bytes(), "30 pt at scale 2");
         assert!(written.borrow().is_empty(), "no file and no save dialog");
     }

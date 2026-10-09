@@ -4,7 +4,7 @@
 use serde_json::Value;
 
 use super::{DialogSpec, form};
-use crate::VectorcraftApp;
+use crate::SplinewrightApp;
 use crate::state::Dialog;
 
 pub(super) const SPEC: DialogSpec = DialogSpec {
@@ -46,14 +46,14 @@ fn choices(command: &str, key: &str) -> Option<form::Choices> {
 const PATH_ALIGN: form::Choices = &[("Ascender", "ascender"), ("Descender", "descender"), ("Center", "center"), ("Baseline", "baseline")];
 
 /// Closes before running, so a dialog the command opens stays open.
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut SplinewrightApp, d: &Dialog) -> Result<Value, String> {
     let cmd = d.str("__command");
     let params = form::params(d);
     app.ui.dialog = None;
     // A tool's click-to-size shape (Flare) goes on the active perspective plane while the grid shows.
-    let at = |x: &str, y: &str| Some(vectorcraft_geom::Point::new(params.get(x)?.as_f64()?, params.get(y)?.as_f64()?));
+    let at = |x: &str, y: &str| Some(splinewright_geom::Point::new(params.get(x)?.as_f64()?, params.get(y)?.as_f64()?));
     if let Some((c, p)) =
-        at("cx", "cy").or_else(|| at("x", "y")).and_then(|pt| vectorcraft_engine::perspective_click(&app.session, &cmd, &params, pt))
+        at("cx", "cy").or_else(|| at("x", "y")).and_then(|pt| splinewright_engine::perspective_click(&app.session, &cmd, &params, pt))
     {
         return app.run(&c, p);
     }
