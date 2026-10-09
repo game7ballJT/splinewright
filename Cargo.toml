@@ -100,3 +100,29 @@ opt-level = 1
 [profile.release]
 lto = "thin"
 codegen-units = 1
+
+# The browser build (`trunk build --release` in apps/splinewright-web picks this profile through
+# `data-cargo-profile`): small code everywhere (opt-level "s", fat LTO), full speed in the crates
+# that draw and cut paths. The plain release profile gave a 43 MiB .wasm, over the 24 MiB gate.
+[profile.wasm-release]
+inherits = "release"
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
+strip = "debuginfo"
+
+[profile.wasm-release.package."*"]
+opt-level = "s"
+
+[profile.wasm-release.package.splinewright-geom]
+opt-level = 3
+[profile.wasm-release.package.splinewright-render]
+opt-level = 3
+[profile.wasm-release.package.splinewright-pathops]
+opt-level = 3
+[profile.wasm-release.package.vello_cpu]
+opt-level = 3
+[profile.wasm-release.package.kurbo]
+opt-level = 3
+[profile.wasm-release.package.linesweeper]
+opt-level = 3

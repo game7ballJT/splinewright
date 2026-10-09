@@ -1,52 +1,53 @@
-<p align="center">
-  <a href="https://getartcraft.com/">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/brand/artcraft-logo-white.svg">
-      <img alt="ArtCraft" src="docs/brand/artcraft-logo.svg" width="200">
-    </picture>
-  </a>
-</p>
-
-
 <h1 align="center">Splinewright</h1>
 
 <p align="center">
-  <b>Vector illustration; an open-source, clean-room reimplementation of Adobe Illustrator, rebuilt in pure Rust.</b>
+  <b>A fast, open-source vector illustration app written entirely in Rust.</b><br>
+  Pen and Pathfinder, live effects, gradient meshes, perspective grids, type, real SVG and PDF,<br>
+  with a scriptable command line, an MCP server for AI agents, and the very same editor running in your browser.
 </p>
 
 <p align="center">
-  A fast, open-source, clean-room take on the Adobe Illustrator workflow. It runs natively on
-  macOS, Windows, Linux and FreeBSD, and in the browser via WebAssembly. Built by the ArtCraft team.
+  <img alt="100% Rust" src="https://img.shields.io/badge/100%25-Rust-b7410e?style=flat-square&logo=rust">
+  <img alt="Windows, macOS, Linux and the web" src="https://img.shields.io/badge/Windows%20%C2%B7%20macOS%20%C2%B7%20Linux%20%C2%B7%20Web-native-12a89a?style=flat-square">
+  <img alt="License: MIT OR Apache-2.0" src="https://img.shields.io/badge/license-MIT%20%2F%20Apache--2.0-3a3a3a?style=flat-square">
+  <img alt="Status: in active development" src="https://img.shields.io/badge/status-in%20active%20development-d69e2e?style=flat-square">
 </p>
 
 <p align="center">
-  <img alt="Status: in active development" src="https://img.shields.io/badge/status-in%20active%20development-e8573f">
-  <img alt="Written in pure Rust" src="https://img.shields.io/badge/pure-Rust-b83a24?logo=rust&logoColor=white">
-  <img alt="Runs on macOS, Windows, Linux, FreeBSD and the web" src="https://img.shields.io/badge/runs%20on-macOS%20%C2%B7%20Windows%20%C2%B7%20Linux%20%C2%B7%20FreeBSD%20%C2%B7%20Web-555555">
-  <img alt="MCP server for agents" src="https://img.shields.io/badge/agents-MCP%20server-555555">
-  <img alt="License: MIT OR Apache-2.0" src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-555555">
+  <a href="https://www.jonmcgee.online/apps/splinewright/"><b>Try it in your browser</b></a> ·
+  <a href="#quick-start">Build it</a> ·
+  <a href="#whats-new-in-this-fork">What's new</a> ·
+  <a href="#status">Status</a> ·
+  <a href="#the-family">The family</a> ·
+  <a href="#credits-and-license">Credits</a>
 </p>
 
 <p align="center">
-  <a href="https://discord.gg/artcraft"><img alt="Join the ArtCraft community on Discord" src="https://img.shields.io/badge/Join%20us%20on%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" height="40"></a>
+  <img src="docs/images/splinewright-editor.jpg" alt="Splinewright editing the Neon Drive poster: a synthwave sun over mountains and a pink perspective grid, with the Properties panel on the right" width="100%">
+  <br><sub>The real app. <b>Neon Drive</b>: a Pathfinder-cut sun, live Outer Glow on the type and grid, and clipping masks · <code>examples/neon-drive.splinewright</code></sub>
 </p>
+
+Splinewright is a fork of [VectorCraft](https://github.com/storytold/vectorcraft), a clean-room, Rust-only vector illustration app by the ArtCraft Team and contributors. It keeps their engine (a pure-data document, one registry of commands that the menus, the command line, a JSON control channel and an MCP server all share) and builds on it, with the original authors credited [below](#credits-and-license). **Try it now: <https://www.jonmcgee.online/apps/splinewright/>**, the real program compiled to WebAssembly, running entirely in your browser tab.
+
+## What's new in this fork
+
+First finished features from the roadmap's gap list, then additions of my own. Everything is a registered command, so it is in the menus, the command search, the control channel and MCP, and has tests and translations.
 
 <p align="center">
-  <a href="https://getartcraft.com/apps/splinewright"><b>Splinewright on getartcraft.com</b></a> ·
-  <a href="https://getartcraft.com/">ArtCraft</a> ·
-  <a href="https://getartcraft.com/apps">All Crafting Apps</a>
+  <img src="docs/images/splinewright-spelling.jpg" alt="The Check Spelling dialog over the perspective-city example: the word Teh is not in the dictionary, with The, Tea, Tan and other suggestions and the buttons Ignore, Ignore All, Change, Change All and Add" width="100%">
+  <br><sub>Edit › Spelling › Check Spelling…, running in the browser build</sub>
 </p>
 
-<br>
+| Feature | Where | What it does |
+|---|---|---|
+| **Check Spelling** | Edit › Spelling › Check Spelling… (Cmd/Ctrl+I) · `type.checkSpelling` | The roadmap listed spelling as missing. A bundled English dictionary (SCOWL, 72,000 words) checks the selected type, or all of it, in a dialog that steps through misspellings with suggestions: Change, Change All, Ignore, Ignore All, Add to dictionary. Changes are one undo step. |
+| **Custom dictionary** | Edit › Spelling › Edit Custom Dictionary… · `type.spell.addWord` | Words you add are kept in Preferences › Type and accepted in any case. |
+| **Check Contrast** | Object › Check Contrast · `object.checkContrast` | The WCAG 2 contrast ratio between two objects (type uses its first character's fill), or one object and a background colour, and whether it passes AA, AAA and the large-text and graphics levels. |
+| **Help (F1)** | Help › Splinewright Help… · `help.docs` | Finishes a stubbed menu item: opens the documentation. |
+| **`splinewright-cli palette`** | CLI | The colours a document is drawn with, most used first, as text, hex or JSON. |
+| **`splinewright-cli contrast`** | CLI | `splinewright-cli contrast "#767676" "#ffffff"` prints the ratio and which levels pass; exits 1 below AA. |
 
-<p align="center">
-  <img src="docs/images/shot-1-neon.png" alt="Splinewright editing the Neon Drive poster: the title is selected, the Appearance panel shows the settings of its live Outer Glow, and the Properties panel shows its character settings" width="100%">
-  <br><sub><b>Neon Drive</b>: a Pathfinder-cut sun, live Outer Glow on the type and grid, and clipping masks · <code>examples/neon-drive.splinewright</code></sub>
-</p>
-
-> [!NOTE]
-> **ArtCraft is a community of artists from all walks of life.** Digital, generative, music,
-> games &mdash; if you make things, you're one of us. **[Come say hi on Discord](https://discord.gg/artcraft).**
+The speller is the PhotoCraft/Pixelwright one, ported. See [`docs/fork-changes.md`](docs/fork-changes.md) for the complete list, including the rebrand.
 
 <p align="center">
   <a href="#a-look-around">A look around</a> ·
@@ -55,7 +56,7 @@
   <a href="#quick-start">Quick start</a> ·
   <a href="#status">Status</a> ·
   <a href="#downloads">Downloads</a> ·
-  <a href="#the-crafting-apps">The Crafting Apps</a> ·
+  <a href="#the-family">The family</a> ·
   <a href="#license-and-credits">License</a>
 </p>
 
@@ -64,22 +65,22 @@
 <table>
 <tr>
 <td width="50%" valign="top">
-  <img src="docs/images/shot-2-ribbons.png" alt="Three live blend ribbons clipped to the artboard, one selected with its key paths showing; the Layers panel lists the clip group, the blends and the selected blend's two key paths" width="100%">
+  <img src="docs/images/splinewright-ribbons.jpg" alt="Three live blend ribbons clipped to the artboard, one selected with its key paths showing; the Layers panel lists the clip group, the blends and the selected blend's two key paths" width="100%">
   <p align="center"><sub><b>Live Blends and Layers</b>: editable key paths, smooth colour, every object a row</sub></p>
 </td>
 <td width="50%" valign="top">
-  <img src="docs/images/shot-4-bezier.png" alt="Direct Selection tool showing anchor points and Bézier handles on a crescent built with Pathfinder, with the contextual task bar below it" width="100%">
+  <img src="docs/images/splinewright-bezier.jpg" alt="Direct Selection tool showing anchor points and Bézier handles on a crescent built with Pathfinder, with the contextual task bar below it" width="100%">
   <p align="center"><sub><b>Pen and Direct Selection</b>: real Bézier anchors and handles, plus a contextual task bar</sub></p>
 </td>
 </tr>
 <tr>
 <td width="50%" valign="top">
-  <img src="docs/images/shot-5-perspective.png" alt="Two lit building facades drawn on the left and right planes of a two-point perspective grid at sunset, with the Perspective Selection tool and the Plane Switching Widget" width="100%">
+  <img src="docs/images/splinewright-perspective.jpg" alt="Two lit building facades drawn on the left and right planes of a two-point perspective grid at sunset, with the Perspective Selection tool and the Plane Switching Widget" width="100%">
   <p align="center"><sub><b>Perspective Grid</b>: art attached to its planes stays editable in perspective · <code>examples/perspective-city.splinewright</code></sub></p>
 </td>
 <td width="50%" valign="top">
-  <img src="docs/images/shot-3-sheet.png" alt="Four artboards in the light UI theme: Pathfinder, Gradient Mesh, radial Repeat and Envelope Distort" width="100%">
-  <p align="center"><sub><b>Multiple artboards, light theme</b>: Pathfinder · Gradient Mesh · live radial Repeat · Envelope Distort · <code>examples/feature-sheet.splinewright</code></sub></p>
+  <img src="docs/images/splinewright-sheet.jpg" alt="The feature sheet example with several artboards: the Pathfinder artboard (a crescent and stars from exact booleans) and the edge of the Gradient Mesh artboard beside it" width="100%">
+  <p align="center"><sub><b>Multiple artboards</b>: Pathfinder · Gradient Mesh · live radial Repeat · Envelope Distort · <code>examples/feature-sheet.splinewright</code></sub></p>
 </td>
 </tr>
 </table>
@@ -221,114 +222,22 @@ signed and published. Every bundled asset is listed with its licence in [`ASSETS
 
 ## Downloads
 
-**New to Splinewright?** Download it from the [Splinewright page on getartcraft.com](https://getartcraft.com/apps/splinewright). That's the easiest way to install it.
+No release has been published yet. Until the first one, build from source (see [Quick start](#quick-start)) or use the browser build at <https://www.jonmcgee.online/apps/splinewright/>.
 
-**Want a specific build or format?** On GitHub, the [latest release](https://github.com/storytold/vectorcraft/releases/latest) has every build listed below, and [all releases](https://github.com/storytold/vectorcraft/releases) has earlier versions and their notes. `<ver>` in the file names is the version number, and `SHA256SUMS.txt` lists a checksum for every file.
+Release builds are made by [`.github/workflows/release.yml`](.github/workflows/release.yml) when the `release` branch is pushed (or the workflow is run by hand): Windows (x64, arm64, x86) MSI installers and portable zips, a universal macOS DMG, Linux AppImage, Flatpak, `.deb`, `.rpm` and tarballs, FreeBSD tarballs and the web build, each with a `SHA256SUMS.txt`. This fork has no signing certificates, so those builds are **unsigned**: Windows SmartScreen and macOS Gatekeeper will warn before the first run.
+## The family
 
-### Windows
+Splinewright is one of a growing family of forks of the ArtCraft Team's creative apps. Each has its own repository and a live preview in the browser:
 
-| Build | Installer | Portable |
-|---|---|---|
-| x64 (64-bit Intel/AMD) | `splinewright-<ver>-windows-x64.msi` | `splinewright-<ver>-windows-x64-portable.zip` |
-| arm64 (Snapdragon and other ARM PCs) | `splinewright-<ver>-windows-arm64.msi` | `splinewright-<ver>-windows-arm64-portable.zip` |
-| x86 (32-bit) | `splinewright-<ver>-windows-x86.msi` | `splinewright-<ver>-windows-x86-portable.zip` |
+| | App | What it is for | Forked from | Code | Live preview |
+|:-:|---|---|---|---|---|
+| <img src="https://raw.githubusercontent.com/game7ballJT/pixelwright/main/assets/app-icon/hicolor/64x64/apps/online.jonmcgee.pixelwright.png" alt="" width="32" height="32"> | **Pixelwright** | Image editing: layers, masks, type and real PSD files | [PhotoCraft](https://github.com/storytold/photocraft) | [GitHub](https://github.com/game7ballJT/pixelwright) | [Try it](https://www.jonmcgee.online/apps/pixelwright/) |
+| <img src="https://raw.githubusercontent.com/game7ballJT/splinewright/main/assets/app-icon/hicolor/64x64/apps/online.jonmcgee.splinewright.png" alt="" width="32" height="32"> | **Splinewright** (you are here) | Vector illustration: paths, Pathfinder, live effects, SVG and PDF | [VectorCraft](https://github.com/storytold/vectorcraft) | [GitHub](https://github.com/game7ballJT/splinewright) | [Try it](https://www.jonmcgee.online/apps/splinewright/) |
 
-Installers and executables are code-signed.
+## Credits and license
 
-### macOS
+Splinewright is a modified fork of **[VectorCraft](https://github.com/storytold/vectorcraft)**, copyright (c) 2026 the ArtCraft Team and the VectorCraft contributors, whose work this repository builds on and whose history it preserves. All of it, and the changes made here, are available under the same terms: [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option. This fork is independent and is not affiliated with or endorsed by the upstream authors; it carries none of their branding, as their brand license requires of forks. Required notices are in [NOTICE](NOTICE).
 
-| Build | File | Notes |
-|---|---|---|
-| App, universal (Apple silicon + Intel) | `splinewright-<ver>-macos-universal.dmg` | Signed and notarized |
-| Command-line tool, universal | `splinewright-cli-<ver>-macos-universal.zip` | Signed and notarized |
+Bundled fonts, icons and other assets keep their own open licenses; each one is listed with its author, source and license in [ASSETS.md](ASSETS.md). The app icon is original work made for this project. The artwork under `docs/images/` and `examples/` was made with Splinewright itself.
 
-### Linux
-
-| Format | x86_64 | aarch64 (ARM64) | Notes |
-|---|---|---|---|
-| AppImage | `splinewright-<ver>-linux-x86_64.AppImage` | `splinewright-<ver>-linux-aarch64.AppImage` | Runs anywhere; updates itself with [AppImageUpdate](https://github.com/AppImageCommunity/AppImageUpdate) (`.zsync` files) |
-| Flatpak | `splinewright-<ver>-linux-x86_64.flatpak` | `splinewright-<ver>-linux-aarch64.flatpak` | Sandboxed; `flatpak install --user <file>` |
-| Debian/Ubuntu | `splinewright-<ver>-linux-x86_64.deb` | `splinewright-<ver>-linux-aarch64.deb` | |
-| Fedora/RHEL/openSUSE | `splinewright-<ver>-linux-x86_64.rpm` | `splinewright-<ver>-linux-aarch64.rpm` | |
-| Tarball | `splinewright-<ver>-linux-x86_64.tar.gz` | `splinewright-<ver>-linux-aarch64.tar.gz` | Unpack anywhere |
-
-### FreeBSD
-
-| Build | File |
-|---|---|
-| x86_64 | `splinewright-<ver>-freebsd-x86_64.tar.gz` |
-
-### Web (WebAssembly)
-
-| Build | File | Notes |
-|---|---|---|
-| Static site | `splinewright-web-<ver>.zip` | Runs in a modern browser; host it on any static server |
-
-## The Crafting Apps
-
-Splinewright is one of the **Crafting Apps**: free, open-source creative tools from the
-[ArtCraft](https://getartcraft.com/) team, each written from scratch in Rust and each able to
-stand on its own.
-
-| | App | What it's for | Code | Learn more |
-|:-:|---|---|---|---|
-| <img src="https://raw.githubusercontent.com/storytold/photocraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.photocraft.png" alt="" width="32" height="32"> | **Pixelwright** | Image editing: layers, masks, type and real PSD files | [GitHub](https://github.com/storytold/photocraft) | [Website](https://getartcraft.com/apps/pixelwright) |
-| <img src="https://raw.githubusercontent.com/storytold/vectorcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.vectorcraft.png" alt="" width="32" height="32"> | **Splinewright** | **Vector illustration · you are here** | [GitHub](https://github.com/storytold/vectorcraft) | [Website](https://getartcraft.com/apps/splinewright) |
-| <img src="https://raw.githubusercontent.com/storytold/filmcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.filmcraft.png" alt="" width="32" height="32"> | **Reelwright** | Video editing, color and sound | [GitHub](https://github.com/storytold/filmcraft) | [Website](https://getartcraft.com/apps/reelwright) |
-| <img src="https://raw.githubusercontent.com/storytold/lightcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.lightcraft.png" alt="" width="32" height="32"> | **Lumenwright** | Photo library and raw development | [GitHub](https://github.com/storytold/lightcraft) | [Website](https://getartcraft.com/apps/lumenwright) |
-| <img src="https://raw.githubusercontent.com/storytold/pdfcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.pdfcraft.png" alt="" width="32" height="32"> | **Foliowright** | Reading, organizing and protecting PDFs | [GitHub](https://github.com/storytold/pdfcraft) | [Website](https://getartcraft.com/apps/foliowright) |
-| <img src="https://raw.githubusercontent.com/storytold/effectcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.effectcraft.png" alt="" width="32" height="32"> | **Tweenwright** | Motion graphics and visual effects | [GitHub](https://github.com/storytold/effectcraft) | [Website](https://getartcraft.com/apps/tweenwright) |
-| <img src="https://raw.githubusercontent.com/storytold/designcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.designcraft.png" alt="" width="32" height="32"> | **Spreadwright** | Page layout and publishing | [GitHub](https://github.com/storytold/designcraft) | [Website](https://getartcraft.com/apps/spreadwright) |
-
-And [**ArtCraft**](https://getartcraft.com/) itself, our AI image and video studio for artists who want real control.
-
-<br>
-
-<p align="center">
-  <a href="https://discord.gg/artcraft"><img alt="Join the ArtCraft community on Discord" src="https://img.shields.io/badge/Join%20us%20on%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" height="40"></a>
-</p>
-
-<h3 align="center">Come make things with us</h3>
-
-<p align="center">
-  Our Discord is where artists of every kind hang out: people who paint, shoot, draw, cut film,
-  set type, and people still figuring out what they like to make. Share what you're working on,
-  ask for help, tell us what's broken, or tell us what you wish these tools could do.
-  Whatever your medium and however long you've been at it, you're welcome here.
-</p>
-
-<p align="center">
-  <a href="https://discord.gg/artcraft"><b>discord.gg/artcraft</b></a> ·
-  <a href="https://getartcraft.com/">getartcraft.com</a> ·
-  <a href="https://getartcraft.com/apps">The Crafting Apps</a> ·
-  <a href="https://getartcraft.com/apps/splinewright">Splinewright</a>
-</p>
-
-## Star history
-
-[![Star History Chart](https://api.star-history.com/svg?repos=storytold/vectorcraft&type=Date&legend=top-left)](https://www.star-history.com/?repos=storytold%2Fsplinewright&type=date&legend=top-left)
-
-## License and credits
-
-Splinewright is dual-licensed under [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option.
-Copyright (c) 2026 ArtCraft Team and the Splinewright contributors. Required notices are in [NOTICE](NOTICE).
-
-Bundled fonts, icons, images and other assets keep their own open licenses; each one is listed
-with its author, source and license in [ASSETS.md](ASSETS.md). Release builds also embed the
-fonts of [craft-fonts](https://github.com/storytold/craft-fonts/blob/main/ATTRIBUTION.md) (Japanese,
-Simplified Chinese and Arabic faces; SIL Open Font License 1.1).
-
-The app icon (an engraved dragon on Splinewright red, `#e8573f`) is the owner's original artwork; its
-palette and files are in [`assets/app-icon/`](assets/app-icon/README.md).
-
-The ArtCraft name, wordmark and logos in [`docs/brand/`](docs/brand/) are trademarks of the
-ArtCraft Team and are not covered by this license. They may be used only unmodified, and only as
-part of this repository and Splinewright, under [`docs/brand/LICENSE-brand.txt`](docs/brand/LICENSE-brand.txt).
-Forks and modified versions must remove them.
-
-<sub>Adobe, Photoshop, Illustrator, Premiere Pro, Lightroom, Acrobat, After Effects and InDesign are trademarks or registered trademarks of Adobe Inc. in the United States and/or other countries. Splinewright is an independent, open-source project and is not affiliated with, sponsored by or endorsed by Adobe Inc.; these names are used only to describe the workflows it is compatible with.</sub>
-
-<p align="center">
-  <a href="https://getartcraft.com/"><img alt="ArtCraft" src="docs/brand/artcraft-mark.svg" width="28"></a><br>
-  <sub>Made by the <a href="https://getartcraft.com/">ArtCraft</a> team and community.</sub>
-</p>
+<sub>Adobe, Illustrator and other product names are trademarks or registered trademarks of Adobe Inc. in the United States and/or other countries. Splinewright is an independent open-source project, is not affiliated with, sponsored by or endorsed by Adobe Inc., and uses these names only to describe the file formats and workflows it is compatible with.</sub>

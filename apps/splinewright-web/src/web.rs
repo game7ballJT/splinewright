@@ -108,6 +108,7 @@ async fn run(host: Host, canvas: web_sys::HtmlCanvasElement, moving: Option<Movi
                 }
                 host.pasted.borrow_mut().ctx = Some(ctx.clone());
                 let services = services(host.inbox.clone(), host.place_inbox.clone(), ctx.clone(), host.locks.clone());
+                let first_start = taken.borrow().is_none();
                 let app = match taken.borrow_mut().take() {
                     Some(mut app) => {
                         // The old services asked the old context for frames.
@@ -117,6 +118,9 @@ async fn run(host: Host, canvas: web_sys::HtmlCanvasElement, moving: Option<Movi
                     }
                     None => SplinewrightApp::new(Session::new(), services),
                 };
+                if first_start {
+                    open_from_query(host.inbox.clone(), ctx.clone());
+                }
                 Ok(Box::new(WebShell { app: Some(app), host, canvas: page, loss }))
             }),
         )
@@ -133,6 +137,45 @@ async fn run(host: Host, canvas: web_sys::HtmlCanvasElement, moving: Option<Movi
             give_up(slot.borrow_mut().take(), kept);
         }
     }
+}
+
+/// `?open=<path>`: fetch a same-origin file (a bundled example document) and open it, so a page can
+/// link straight to the editor with a document already loaded.
+fn open_from_query(inbox: Inbox, ctx: egui::Context) {
+    if let Some(url) = query_param("open") {
+        fetch_into_inbox(url, inbox, ctx);
+    }
+}
+
+/// Fetch a same-origin file and queue it for opening; anything else (another site, a scheme, a
+/// path that climbs out) is refused.
+fn fetch_into_inbox(url: String, inbox: Inbox, ctx: egui::Context) {
+    if !crate::is_same_origin_path(&url) {
+        log::warn!("refusing to open {url}: only same-origin paths are allowed");
+        return;
+    }
+    wasm_bindgen_futures::spawn_local(async move {
+        match fetch_bytes(&url).await {
+            Ok(bytes) => {
+                let name = url.rsplit('/').next().unwrap_or("example").to_string();
+                inbox.lock().unwrap_or_else(|e| e.into_inner()).push((name, bytes));
+                ctx.request_repaint();
+            }
+            Err(e) => log::error!("couldn't open {url}: {e}"),
+        }
+    });
+}
+
+async fn fetch_bytes(url: &str) -> Result<Vec<u8>, String> {
+    let js = |e: wasm_bindgen::JsValue| format!("{e:?}");
+    let window = web_sys::window().ok_or("no window")?;
+    let response: web_sys::Response =
+        wasm_bindgen_futures::JsFuture::from(window.fetch_with_str(url)).await.map_err(js)?.dyn_into().map_err(|_| "not a response")?;
+    if !response.ok() {
+        return Err(format!("HTTP {}", response.status()));
+    }
+    let buffer = wasm_bindgen_futures::JsFuture::from(response.array_buffer().map_err(js)?).await.map_err(js)?;
+    Ok(js_sys::Uint8Array::new(&buffer).to_vec())
 }
 
 /// The runner's options: wgpu (WebGPU where available, else WebGL2; `?webgl` forces WebGL2).

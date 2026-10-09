@@ -12,9 +12,9 @@ trunk build --release              # writes ../../dist/web (index.html, .js glue
 trunk serve --release              # dev server on http://127.0.0.1:8766
 ```
 
-Any static file server works for `dist/web`, for example `python3 -m http.server 8766` inside that directory. The release `.wasm` is about 17.5 MB, or 7.1 MB gzipped, so serve it with compression.
+Any static file server works for `dist/web`, for example `python3 -m http.server 8766` inside that directory. The release `.wasm` is about 28.9 MiB, or 11.8 MiB gzipped (Splinewright, 2026-10-09; the upstream project measured 17.5 MB and 7.1 MB gzipped, and Cloudflare Pages' 25 MiB per-file cap no longer fits), so serve it with compression.
 
-URL flag: `?webgl` forces the WebGL2 backend.
+URL flags: `?webgl` forces the WebGL2 backend, and `?open=samples/<name>.splinewright` opens one of the bundled example documents (`examples/` is copied next to the page by `index.html`) at startup; only same-origin paths are accepted.
 
 How the web shell (`apps/splinewright-web/src/web.rs`) differs from desktop:
 

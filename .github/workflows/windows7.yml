@@ -6,8 +6,6 @@
 name: Windows 7 x64 compatibility
 
 on:
-  schedule:
-    - cron: "23 5 * * 1" # weekly
   workflow_dispatch:
 
 permissions:

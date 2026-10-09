@@ -26,6 +26,8 @@ wrote what; this page lists what the fork changed on top of it.
 | Project links | `help.website`, `help.github`, `help.upstream`, `help.reportIssue` | Replace the upstream community links |
 | `splinewright-cli palette` | CLI | The colours a document is drawn with, most used first (text, hex or JSON) |
 | `splinewright-cli contrast` | CLI | Contrast ratio of two colours; exit code 1 below AA |
+| Web `?open=` and examples | `splinewright-web` | `?open=samples/<name>.splinewright` opens a bundled example (`examples/` is copied next to the page); same-origin paths only (`is_same_origin_path`) |
+| `wasm-release` profile | `Cargo.toml`, `apps/splinewright-web/index.html` | Size-optimised browser build (opt-level `s`, fat LTO, full speed for the geometry, render and path-boolean crates); the plain release profile gave a 43 MiB `.wasm`, over the 24 MiB gate |
 
 Everything above is a registered command (so it is in the menus, the command search, the control
 channel and MCP), has unit tests, and has translations in the interface languages that cover menus.

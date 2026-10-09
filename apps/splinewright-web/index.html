@@ -4,7 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   <title>Splinewright</title>
-  <link data-trunk rel="rust" data-bin="splinewright-web" data-wasm-opt="z" data-weak-refs />
+  <link data-trunk rel="rust" data-bin="splinewright-web" data-cargo-profile="wasm-release" data-wasm-opt="z" data-weak-refs />
+  <!-- The example documents, offered by `?open=samples/<name>.splinewright`. -->
+  <link data-trunk rel="copy-dir" href="../../examples" data-target-path="samples" />
   <style>
     html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #262626; }
     #splinewright_canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }

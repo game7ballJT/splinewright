@@ -309,11 +309,6 @@ Generated-in-code art is original and has no file to list. This covers the defau
 | `docs/images/dusk-poster.png` | Splinewright contributors | Rendered by Splinewright from `examples/dusk-poster.splinewright` | MIT OR Apache-2.0 |  |
 | `examples/dusk-poster.splinewright` | Splinewright contributors | Original artwork built through the Splinewright command API | MIT OR Apache-2.0 |  |
 | `examples/dusk-poster.svg` | Splinewright contributors | SVG export of the above | MIT OR Apache-2.0 |  |
-| `docs/images/shot-1-neon.png` | Splinewright contributors | Screenshot of Splinewright itself (Splinewright/Lucide UI icons only), editing `examples/neon-drive.splinewright` | MIT OR Apache-2.0 |  |
-| `docs/images/shot-2-ribbons.png` | Splinewright contributors | Screenshot of Splinewright itself, editing `examples/ribbons.splinewright` | MIT OR Apache-2.0 |  |
-| `docs/images/shot-3-sheet.png` | Splinewright contributors | Screenshot of Splinewright itself, editing `examples/feature-sheet.splinewright` | MIT OR Apache-2.0 |  |
-| `docs/images/shot-4-bezier.png` | Splinewright contributors | Screenshot of Splinewright itself, editing `examples/feature-sheet.splinewright` | MIT OR Apache-2.0 |  |
-| `docs/images/shot-5-perspective.png` | Splinewright contributors | Screenshot of Splinewright itself, editing `examples/perspective-city.splinewright` | MIT OR Apache-2.0 |  |
 | `docs/images/art-neon-drive.png` | Splinewright contributors | Rendered by Splinewright from `examples/neon-drive.splinewright` | MIT OR Apache-2.0 |  |
 | `docs/images/art-ribbons.png` | Splinewright contributors | Rendered by Splinewright from `examples/ribbons.splinewright` | MIT OR Apache-2.0 |  |
 | `docs/images/art-pathfinder.png` | Splinewright contributors | Rendered by Splinewright from `examples/feature-sheet.splinewright` (artboard 1) | MIT OR Apache-2.0 |  |
@@ -324,3 +319,9 @@ Generated-in-code art is original and has no file to list. This covers the defau
 | `examples/ribbons.splinewright` | Splinewright contributors | Original artwork built through the Splinewright command API | MIT OR Apache-2.0 |  |
 | `examples/feature-sheet.splinewright` | Splinewright contributors | Original artwork built through the Splinewright command API | MIT OR Apache-2.0 |  |
 | `examples/perspective-city.splinewright` | Splinewright contributors | Original artwork built through the Splinewright command API | MIT OR Apache-2.0 |  |
+| `docs/images/splinewright-editor.jpg` | Jon McGee | Screenshot of Splinewright's browser build, editor (Neon Drive) (Splinewright/Lucide UI icons only), from an example in `examples/` | MIT OR Apache-2.0 |  |
+| `docs/images/splinewright-ribbons.jpg` | Jon McGee | Screenshot of Splinewright's browser build, ribbons (Layers panel and task bar) (Splinewright/Lucide UI icons only), from an example in `examples/` | MIT OR Apache-2.0 |  |
+| `docs/images/splinewright-bezier.jpg` | Jon McGee | Screenshot of Splinewright's browser build, bezier (Direct Selection) (Splinewright/Lucide UI icons only), from an example in `examples/` | MIT OR Apache-2.0 |  |
+| `docs/images/splinewright-perspective.jpg` | Jon McGee | Screenshot of Splinewright's browser build, perspective (Perspective Grid) (Splinewright/Lucide UI icons only), from an example in `examples/` | MIT OR Apache-2.0 |  |
+| `docs/images/splinewright-spelling.jpg` | Jon McGee | Screenshot of Splinewright's browser build, spelling (Check Spelling dialog) (Splinewright/Lucide UI icons only), from an example in `examples/` | MIT OR Apache-2.0 |  |
+| `docs/images/splinewright-sheet.jpg` | Jon McGee | Screenshot of Splinewright's browser build, sheet (feature sheet) (Splinewright/Lucide UI icons only), from an example in `examples/` | MIT OR Apache-2.0 |  |

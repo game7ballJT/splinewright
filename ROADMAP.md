@@ -33,7 +33,7 @@ since 2026-10-01.
 
 | Dimension | Estimate | Evidence and what's missing |
 |---|---|---|
-| **Breadth:** menus, tools and panels exist | ~90% | 13 menu items still stubbed; every tool implemented except Touch Type; 51 panel modules |
+| **Breadth:** menus, tools and panels exist | ~90% | 10 menu items still stubbed (Splinewright Help and Check Spelling are done in this fork); every tool implemented except Touch Type; 51 panel modules |
 | **Depth:** each feature behaves like Illustrator | ~69–75% | Strong: paint, appearance and colour (M3), Pathfinder and booleans, selection, drawing, files (M4). Weak: advanced type (~45%), brushes and symbols (in progress), raster effects (~20%) |
 | **Large missing subsystems** | 0–20% | 3D & Materials (0%), Photoshop-style raster effects and the Effect Gallery (~1 of ~56 filters), SVG Filters, CJK composition (vertical type with kinsoku, tate-chu-yoko and the font's vertical metrics; ruby, mojikumi and proportional vertical metrics open), Variables (data merge), scripting |
 | **Interaction fidelity:** modifiers, cursors, small behaviours | ~30–40% | The dedicated pass hasn't started, and there has been no side-by-side session with Illustrator yet. A power user notices this first |
@@ -61,7 +61,7 @@ Ordered by how much each gap blocks someone from switching. Sizes are one-agent 
    The largest single gap. 50–80 h.
 4. **Advanced type:** CJK composition for vertical type (ruby, mojikumi, proportional vertical metrics, manual
    tate-chu-yoko), Optical Margin Alignment, the composer/hyphenation options, tab leaders, a
-   spell-check dictionary (open licence), Touch Type and Snap to Glyph. Vertical point, area and path type have
+   Touch Type and Snap to Glyph (the spell-check dictionary and Check Spelling shipped in this fork, 2026-10-09). Vertical point, area and path type have
    initial support. 35–48 h across type core and advanced.
 5. **Brushes, symbols and libraries:** brush options depth; original brush, symbol and graphic-style libraries
    generated in code (never Adobe's); dynamic symbols; Start Global Edit; brushes driven by pen tilt, bearing and
@@ -231,7 +231,7 @@ With 4–6 agents working on disjoint crates (as the layering allows) the wall-c
 (integration, review and shared files such as `menus.rs` serialize some work): **~55–95 h** to feature parity,
 **~80–145 h** to full parity.
 
-_Inventories (2026-10-07):_ 13 menu items still stubbed (`todo(…)` in `crates/ui-egui/src/menus.rs`); every tool
+_Inventories (2026-10-07):_ 10 menu items still stubbed (`todo(…)` in `crates/ui-egui/src/menus.rs`; was 13 before this fork); every tool
 implemented except Touch Type; 51 panel modules; Illustrator-style live
 effects ~44/54, Photoshop-style raster effects ~1/56, 3D 0/5; ~2,840 tests; ~221k lines of Rust.
 
