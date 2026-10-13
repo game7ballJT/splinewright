@@ -36,7 +36,7 @@ case "$ARCH" in
   aarch64 | arm64) ARCH=aarch64; DEB_ARCH=arm64 ;;
   *) echo "unsupported architecture $ARCH" >&2; exit 2 ;;
 esac
-export SPLINEWRIGHT_MAINTAINER="${SPLINEWRIGHT_MAINTAINER:-Splinewright maintainers <splinewright@storyteller.ai>}"
+export SPLINEWRIGHT_MAINTAINER="${SPLINEWRIGHT_MAINTAINER:-Jon McGee <game7ballJT@users.noreply.github.com>}"
 BASENAME="splinewright-$VERSION-linux-$ARCH"
 
 echo "==> Splinewright $VERSION for Linux $ARCH ($FORMATS)"
