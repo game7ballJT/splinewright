@@ -222,9 +222,11 @@ signed and published. Every bundled asset is listed with its licence in [`ASSETS
 
 ## Downloads
 
-No release has been published yet. Until the first one, build from source (see [Quick start](#quick-start)) or use the browser build at <https://www.jonmcgee.online/apps/splinewright/>.
+**Windows (64-bit):** [download Splinewright-windows-x64.zip](https://github.com/game7ballJT/splinewright/releases/latest/download/Splinewright-windows-x64.zip) (or the [latest release](https://github.com/game7ballJT/splinewright/releases/latest) page), unzip it and run `Splinewright.exe`. There is no installer. The file is not code-signed, so Windows SmartScreen will say it protected your PC: choose *More info*, then *Run anyway*, or build it yourself from source. SHA-256 checksums are on the release. It needs a graphics card with DirectX 12 or Vulkan; without one, use the browser build at <https://www.jonmcgee.online/apps/splinewright/>.
 
-Release builds are made by [`.github/workflows/release.yml`](.github/workflows/release.yml) when the `release` branch is pushed (or the workflow is run by hand): Windows (x64, arm64, x86) MSI installers and portable zips, a universal macOS DMG, Linux AppImage, Flatpak, `.deb`, `.rpm` and tarballs, FreeBSD tarballs and the web build, each with a `SHA256SUMS.txt`. This fork has no signing certificates, so those builds are **unsigned**: Windows SmartScreen and macOS Gatekeeper will warn before the first run.
+Other platforms: build from source, or use the browser build at <https://www.jonmcgee.online/apps/splinewright/>.
+
+The full set of release builds for every platform is made by [`.github/workflows/release.yml`](.github/workflows/release.yml) when the `release` branch is pushed (or the workflow is run by hand): Windows (x64, arm64, x86) MSI installers and portable zips, a universal macOS DMG, Linux AppImage, Flatpak, `.deb`, `.rpm` and tarballs, FreeBSD tarballs and the web build, each with a `SHA256SUMS.txt`. This fork has no signing certificates, so those builds are **unsigned**: Windows SmartScreen and macOS Gatekeeper will warn before the first run.
 ## The family
 
 Splinewright is one of a growing family of forks of the ArtCraft Team's creative apps. Each has its own repository and a live preview in the browser:
